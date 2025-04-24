@@ -8,10 +8,15 @@ import session from 'express-session';
 import connectRedis from 'connect-redis';
 import Redis from 'ioredis';
 import { connectDB } from './config/db';
+// import Routes
+import authRoutes from './routes/authRoutes';
 
 dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+// Routes
+app.use('/api/auth', authRoutes);
 
 // Middleware
 app.use(
