@@ -1,8 +1,9 @@
 // The-Human-Tech-Blog-Server/src/routes/authRoutes.ts
 
 import express from 'express';
-import { register } from '../controllers/authController'; // named import
+import { register, login } from '../controllers/authController';
 
 const router = express.Router();
 router.post('/register', register);
+router.post('/login', login);
 export default router;
