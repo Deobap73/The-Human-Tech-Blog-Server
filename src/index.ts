@@ -9,6 +9,8 @@ import connectRedis from 'connect-redis';
 import Redis from 'ioredis';
 import { connectDB } from './config/db';
 import authRoutes from './routes/authRoutes';
+import passport from 'passport';
+import './config/passport';
 
 dotenv.config(); // Load environment variables
 
@@ -72,3 +74,7 @@ app.get('/', (_, res) => {
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`✅ Server running on port ${PORT}`);
 });
+
+// --------------------  login via OAuth Providers--------------------
+app.use(passport.initialize());
+app.use(passport.session());
