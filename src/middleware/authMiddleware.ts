@@ -1,7 +1,7 @@
 // The-Human-Tech-Blog-Server/src/middleware/authMiddleware.ts
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import User from '../models/User';
+import IUser from '../models/User';
 
 interface JwtPayload {
   userId: string;
@@ -21,7 +21,7 @@ export const protect = async (req: Request, res: Response, next: NextFunction) =
     const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as JwtPayload;
 
     // Busca o usuário no banco de dados
-    const user = await User.findById(decoded.userId).select('-password');
+    const user = await IUser.findById(decoded.userId).select('-password');
     if (!user) {
       return res.status(401).json({ message: 'Not authorized, user not found' });
     }
