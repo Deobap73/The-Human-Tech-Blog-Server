@@ -17,12 +17,14 @@ dist-ssr
 !.vscode/extensions.jsons
 .idea
 .DS_Store
+Thumbs.db
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
 *.env
+*.env.*
 *.rest
 
 ### AL ###
@@ -47,3 +49,8 @@ rad.json
 *.flf
 #Test results file
 TestResults.xml
+
+# Coverage / tests
+coverage/
+.nyc_output/
+*.lcov
