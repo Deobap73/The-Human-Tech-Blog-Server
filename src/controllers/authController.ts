@@ -66,7 +66,7 @@ export const getMe = async (req: Request, res: Response) => {
   return res.status(200).json({ user: req.user });
 };
 
-export const logout = async (req: Request, res: Response) => {
+export const logout = async (_req: Request, res: Response) => {
   res.clearCookie('token');
   res.status(200).json({ message: 'Logged out successfully' });
 };
