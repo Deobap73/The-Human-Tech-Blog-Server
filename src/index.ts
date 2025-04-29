@@ -2,19 +2,27 @@
 
 import express from 'express';
 import dotenv from 'dotenv';
+import path from 'path'; // Import path
+
+// 🚨 Load environment variables FIRST, before anything else
+dotenv.config({ path: path.resolve(__dirname, '../.env') }); // Important
+
+// Now can import the rest
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import session from 'express-session';
 import connectRedis from 'connect-redis';
 import Redis from 'ioredis';
 import { connectDB } from './config/db';
+import setupRoutes from './routes/setupRoutes';
 import authRoutes from './routes/authRoutes';
 import categoryRoutes from './routes/categoryRoutes';
 import postRoutes from './routes/postRoutes';
 import passport from 'passport';
 import './config/passport';
 
-dotenv.config(); // Load environment variables
+// Load environment variables, with path configuration
+dotenv.config({ path: path.join(__dirname, '.env') });
 
 const app = express();
 const PORT = Number(process.env.PORT) || 5000;
@@ -64,6 +72,7 @@ app.use(
 connectDB();
 
 // 🔗 Load all routes
+app.use('/api/setup', setupRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/posts', postRoutes);
