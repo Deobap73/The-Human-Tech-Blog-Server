@@ -14,7 +14,7 @@ import session from 'express-session';
 import connectRedis from 'connect-redis';
 import Redis from 'ioredis';
 import { connectDB } from './config/db';
-import setupRoutes from './routes/setupRoutes';
+// import setupRoutes from './routes/setupRoutes';
 import authRoutes from './routes/authRoutes';
 import categoryRoutes from './routes/categoryRoutes';
 import postRoutes from './routes/postRoutes';
@@ -72,7 +72,7 @@ app.use(
 connectDB();
 
 // 🔗 Load all routes
-app.use('/api/setup', setupRoutes);
+// app.use('/api/setup', setupRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/posts', postRoutes);
