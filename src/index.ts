@@ -9,6 +9,7 @@ import connectRedis from 'connect-redis';
 import Redis from 'ioredis';
 import { connectDB } from './config/db';
 import authRoutes from './routes/authRoutes';
+import categoryRoutes from './routes/categoryRoutes';
 import passport from 'passport';
 import './config/passport';
 
@@ -63,6 +64,7 @@ connectDB();
 
 // 🔗 Load all routes
 app.use('/api/auth', authRoutes);
+app.use('/api/categories', categoryRoutes);
 
 // 🧪 Health check route
 app.get('/', (_, res) => {
