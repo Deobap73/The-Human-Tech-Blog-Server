@@ -1,33 +1,42 @@
 // The-Human-Tech-Blog-Server/src/routes/setupRoutes.ts
-import express from 'express';
-import bcrypt from 'bcrypt';
-import User from '../models/User';
 
-const router = express.Router();
+import { Router } from 'express';
+import { env } from '../config/env';
+import User from '../models/User';
+import { generateToken } from '../utils/jwt';
+
+const router = Router();
 
 router.post('/create-admin', async (req, res) => {
   const { name, email, password, key } = req.body;
 
-  if (key !== process.env.SETUP_KEY) {
+  if (!name || !email || !password || !key) {
+    return res.status(400).json({ message: 'All fields are required' });
+  }
+
+  if (key !== env.SETUP_KEY) {
     return res.status(401).json({ message: 'Invalid setup key' });
   }
 
-  const existingAdmin = await User.findOne({ role: 'admin' });
-  if (existingAdmin) {
-    return res.status(400).json({ message: 'Admin already exists' });
+  const existing = await User.findOne({ email });
+  if (existing) {
+    return res.status(400).json({ message: 'Email already exists' });
   }
 
-  const hashedPassword = await bcrypt.hash(password, 10);
+  const admin = new User({ name, email, password, role: 'admin' }); // ⚠️ Sem hash manual!
+  await admin.save(); // 🔒 A senha será hasheada automaticamente!
 
-  const newAdmin = new User({
-    name,
-    email,
-    password: hashedPassword,
-    role: 'admin',
+  const token = generateToken({ userId: admin._id, role: admin.role });
+
+  res.cookie('token', token, {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: false,
+    maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 
-  await newAdmin.save();
-  return res.status(201).json({ message: 'Admin created with success' });
+  const { password: _, ...adminData } = admin.toObject();
+  return res.status(201).json({ message: 'Admin created', user: adminData });
 });
 
 export default router;

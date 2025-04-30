@@ -1,32 +1,28 @@
+// The-Human-Tech-Blog-Server/src/middleware/authMiddleware.ts
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
-import User, { IUser } from '../models/User'; // <- Corrigido aqui também!
+import { verifyToken } from '../utils/jwt';
+import User from '../models/User';
 
-interface JwtPayload {
-  userId: string;
-  role: string;
-}
-
-// Middleware para proteger rotas
-export const protect = async (req: Request, res: Response, next: NextFunction) => {
-  const token = req.cookies.token;
-
-  if (!token) {
-    return res.status(401).json({ message: 'Not authorized, no token' });
-  }
-
+export const protect = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as JwtPayload;
+    const token = req.cookies.token;
 
-    const user = await User.findById(decoded.userId).select('-password');
-    if (!user) {
-      return res.status(401).json({ message: 'Not authorized, user not found' });
+    if (!token) {
+      res.status(401).json({ message: 'Not authorized, no token' });
+      return; // 👈 evita erro de "not all code paths return"
     }
 
-    req.user = user as IUser; // <- Forçar tipagem segura
-    return next();
+    const decoded = verifyToken(token);
+    const user = await User.findById(decoded.userId);
+    if (!user) {
+      res.status(401).json({ message: 'User not found' });
+      return; // 👈 evita erro de "not all code paths return"
+    }
+
+    req.user = user;
+    return next(); // ✅ caminho seguro
   } catch (error) {
-    console.error('[Auth Middleware]', error);
-    return res.status(401).json({ message: 'Token is not valid or expired' });
+    res.status(401).json({ message: 'Invalid or expired token' });
+    return; // 👈 evita erro de "not all code paths return"
   }
 };

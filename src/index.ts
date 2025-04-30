@@ -2,92 +2,133 @@
 
 import express from 'express';
 import dotenv from 'dotenv';
-import path from 'path'; // Import path
-
-// 🚨 Load environment variables FIRST, before anything else
-dotenv.config({ path: path.resolve(__dirname, '../.env') }); // Important
-
-// Now can import the rest
+import path from 'path';
+// Carrega variáveis de ambiente
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
+//
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import session from 'express-session';
 import connectRedis from 'connect-redis';
 import Redis from 'ioredis';
 import { connectDB } from './config/db';
-// import setupRoutes from './routes/setupRoutes';
+import setupRoutes from './routes/setupRoutes';
 import authRoutes from './routes/authRoutes';
 import categoryRoutes from './routes/categoryRoutes';
 import postRoutes from './routes/postRoutes';
 import passport from 'passport';
 import './config/passport';
-
-// Load environment variables, with path configuration
-dotenv.config({ path: path.join(__dirname, '.env') });
+import { env } from './config/env'; // Importe a configuração validada
 
 const app = express();
-const PORT = Number(process.env.PORT) || 5000;
+const PORT = env.PORT || 5000; // Usa a porta do env validado
 
-// -------------------- MIDDLEWARE BASE --------------------
-
-// 🔐 Parse JSON body (must come before routes)
+// Configuração de middlewares básicos
 app.use(express.json());
+app.use(express.urlencoded({ extended: true })); // Para parsing de formulários
+app.use(cookieParser());
 
-// 🌐 Enable CORS with credentials
+// Configuração CORS mais segura
 app.use(
   cors({
-    origin: process.env.CLIENT_URL,
+    origin: env.CLIENT_URL,
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   })
 );
 
-// 🍪 Enable cookie parsing
-app.use(cookieParser());
-
-// -------------------- REDIS SESSION SETUP --------------------
-
+// Configuração de sessão com Redis
 const RedisStore = connectRedis(session);
-const redisClient = new Redis(process.env.REDIS_URL as string);
+const redisClient = new Redis(env.REDIS_URL);
 
-// 💾 Session configuration (stored in Redis)
 app.use(
   session({
     store: new RedisStore({
       client: redisClient,
       prefix: 'sess:',
-    }) as any, // Force type due to mismatch in RedisStore typings
-    secret: process.env.JWT_SECRET as string,
+      ttl: 86400, // 1 dia em segundos
+    }),
+    name: 'sessionId', // Nome personalizado do cookie
+    secret: env.JWT_SECRET,
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: false, // Set true in production with HTTPS
-      httpOnly: true, // Prevent client-side access
-      sameSite: 'lax', // Helps prevent CSRF
+      secure: env.isProduction, // HTTPS em produção
+      httpOnly: true,
+      sameSite: env.isProduction ? 'strict' : 'lax',
+      maxAge: 24 * 60 * 60 * 1000, // 1 dia
     },
   })
 );
 
-// -------------------- DATABASE & ROUTES --------------------
+// Conexão com o banco de dados
+connectDB()
+  .then(() => console.log('📦 Connected to MongoDB'))
+  .catch((err) => console.error('MongoDB connection error:', err));
 
-// ⚙️ Connect to MongoDB
-connectDB();
+// Configuração do Passport (OAuth)
+app.use(passport.initialize());
+app.use(passport.session());
 
-// 🔗 Load all routes
-// app.use('/api/setup', setupRoutes);
+// Rotas da aplicação
+app.use('/api/setup', setupRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/posts', postRoutes);
 
-// 🧪 Health check route
+// Rota de health check
+app.get('/health', (_, res) => {
+  res.status(200).json({
+    status: 'OK',
+    timestamp: new Date().toISOString(),
+  });
+});
+
+// Rota raiz
 app.get('/', (_, res) => {
-  res.send('The Human Tech Blog API is running');
+  res.send(`
+    <h1>The Human Tech Blog API</h1>
+    <p>Server is running on port ${PORT}</p>
+    <a href="/health">Check health status</a>
+  `);
 });
 
-// -------------------- START SERVER --------------------
+// Interface para erros customizados
+interface HttpError extends Error {
+  status?: number;
+}
 
+/// Middleware de erro global
+app.use(
+  (
+    err: HttpError,
+    req: express.Request,
+    res: express.Response,
+    _next: express.NextFunction // Prefixo _ indica uso intencionalmente omitido
+  ) => {
+    console.error('🚨 Error:', {
+      path: req.path,
+      method: req.method,
+      body: req.body,
+      error: err.stack || err.message,
+    });
+
+    const status = err.status || 500;
+    const message = env.isProduction && status === 500 ? 'Something went wrong' : err.message;
+
+    return res.status(status).json({
+      success: false,
+      message,
+      ...(!env.isProduction && { stack: err.stack }),
+    });
+  }
+);
+
+// Inicia o servidor
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`✅ Server running on port ${PORT}`);
+  console.log(`
+  🚀 Server ready at: http://localhost:${PORT}
+  📚 API docs: http://localhost:${PORT}/api-docs
+  `);
 });
-
-// --------------------  login via OAuth Providers--------------------
-app.use(passport.initialize());
-app.use(passport.session());
