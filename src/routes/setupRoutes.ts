@@ -3,6 +3,8 @@
 import { Router } from 'express';
 import { env } from '../config/env';
 import User from '../models/User';
+import commentRoutes from './commentRoutes';
+import reactionRoutes from './reactionRoutes';
 import { generateToken } from '../utils/jwt';
 
 const router = Router();
@@ -38,5 +40,7 @@ router.post('/create-admin', async (req, res) => {
   const { password: _, ...adminData } = admin.toObject();
   return res.status(201).json({ message: 'Admin created', user: adminData });
 });
+router.use('/comments', commentRoutes);
+router.use('/reactions', reactionRoutes);
 
 export default router;

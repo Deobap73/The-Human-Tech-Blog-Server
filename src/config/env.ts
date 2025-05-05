@@ -1,3 +1,5 @@
+// The-Human-Tech-Blog-Server\src\config\env.ts
+
 import { cleanEnv, str, num, url, bool } from 'envalid';
 
 export const env = cleanEnv(process.env, {
