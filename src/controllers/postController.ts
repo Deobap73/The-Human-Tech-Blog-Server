@@ -30,6 +30,7 @@ export const createPost = async (req: Request, res: Response) => {
 export const getPosts = async (_req: Request, res: Response) => {
   try {
     const posts = await Post.find()
+      .select('title excerpt image category slug')
       .populate('author', 'name')
       .populate('categories', 'name slug logo')
       .sort({ createdAt: -1 });
@@ -48,6 +49,18 @@ export const getPostById = async (req: Request, res: Response) => {
     return res.status(200).json(post);
   } catch (error) {
     return res.status(500).json({ message: 'Failed to fetch post' });
+  }
+};
+
+export const getPostBySlug = async (req: Request, res: Response) => {
+  try {
+    const post = await Post.findOne({ slug: req.params.slug })
+      .populate('author', 'name')
+      .populate('categories', 'name slug logo');
+    if (!post) return res.status(404).json({ message: 'Post not found' });
+    return res.status(200).json(post);
+  } catch {
+    return res.status(500).json({ message: 'Failed to load post' });
   }
 };
 

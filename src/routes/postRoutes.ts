@@ -6,6 +6,7 @@ import {
   getPostById,
   updatePost,
   deletePost,
+  getPostBySlug,
 } from '../controllers/postController';
 // middleware
 import { protect } from '../middleware/authMiddleware';
@@ -18,6 +19,7 @@ const router = express.Router();
 
 router.get('/', getPosts);
 router.get('/:id', getPostById);
+router.get('/slug/:slug', getPostBySlug);
 
 router.post('/', protect, authorizeRoles('admin', 'editor'), createPost);
 router.put('/:id', protect, authorizeRoles('admin', 'editor'), updatePost);
