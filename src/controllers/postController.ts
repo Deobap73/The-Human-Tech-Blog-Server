@@ -30,10 +30,11 @@ export const createPost = async (req: Request, res: Response) => {
 export const getPosts = async (_req: Request, res: Response) => {
   try {
     const posts = await Post.find()
-      .select('title excerpt image category slug')
+      .select('title image status excerpt description slug author categories createdAt views') // 👈 campos visíveis
       .populate('author', 'name')
       .populate('categories', 'name slug logo')
       .sort({ createdAt: -1 });
+
     return res.status(200).json(posts);
   } catch (error) {
     return res.status(500).json({ message: 'Failed to fetch posts' });
