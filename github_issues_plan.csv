@@ -1,0 +1,14 @@
+Title,Labels,Description
+[Frontend] Refatorar estrutura de pastas para arquitetura por features,"refactor,frontend","Reorganizar diretórios para src/features/ com subpastas como: auth/, post/, admin/, chat/. Mover componentes, páginas, estilos, hooks e services para cada domínio."
+[Frontend] Padronizar SCSS com metodologia BEM,"frontend,style",Atualizar todos os arquivos .scss para seguir a metodologia BEM: block__element--modifier. Atualizar classes no JSX/TSX.
+[Frontend] Adicionar Lazy Loading + Suspense nos componentes pesados,"frontend,performance","Usar React.lazy + Suspense para: LoginModal, RegisterModal, SinglePostPage, AdminRoutes, CommentList. Incluir fallback={<Loader />} para UX suave."
+[Frontend] Aplicar React.memo + useMemo/useCallback onde necessário,"frontend,performance","Envolver componentes puros com React.memo, e funções com useMemo/useCallback: Card, BookmarkButton, ThemeToggle, navbarClasses, callbacks."
+[Frontend] Adicionar alias @ e ~/ no Vite e TypeScript,"frontend,refactor",Adicionar @ e ~/ no vite.config.ts e tsconfig.json. Refatorar imports em todos os arquivos para usar alias.
+[Frontend] Adicionar Husky + Lint-Staged com ESLint e Prettier,"frontend,devops","Instalar e configurar husky e lint-staged. Adicionar hooks pre-commit com lint-staged: eslint . --ext .ts,.tsx --fix"
+[Backend] Implementar fluxo de Refresh Token JWT,"backend,security","Adicionar suporte para: Token de acesso curto (15min), Refresh token persistente (HTTPOnly cookie), Endpoint /auth/refresh que emite novo access token"
+[Backend] Adicionar proteção CSRF com cookie/token,"backend,security",Utilizar csurf middleware. Expor token no cookie e header. Validar em todas requisições sensíveis
+[Backend] Adicionar rate-limiting + Google reCAPTCHA v2,"backend,security","Aplicar express-rate-limit nos endpoints: /auth/login, /auth/register. Integrar reCAPTCHA v2 (invisible)"
+[Frontend + Backend] Ativar sistema de Chat com WebSocket,"feature,chat,realtime",Implementar socket.io backend + client. Criar componente de mensagens e sidebar de conversas. Admin vê todas as mensagens.
+[Backend] Criar log de ações para Dashboard Admin,"feature,admin","Model UserActionLog com ação, data, usuário. Endpoint GET /admin/logs. Exibir log por usuário no dashboard."
+[Frontend] Criar gráficos de métricas no Dashboard Admin,"feature,admin,dashboard","Integrar com chart.js ou recharts. Criar API backend /admin/stats com: Contagem de usuários, Posts por data, Comentários por semana."
+[Newsletter] Sistema de inscrição e envio de campanha,"feature,newsletter",Frontend: formulário de inscrição. Backend: API de registro. Integração com Mailchimp ou custom queue. Painel de visualização e envio de email.
