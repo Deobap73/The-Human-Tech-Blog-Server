@@ -6,7 +6,8 @@ import { protect } from '../middleware/authMiddleware';
 
 const router = express.Router();
 
-router.get('/:postId', getCommentsByPost);
 router.post('/', protect, createComment);
+
+router.get('/:postId', getCommentsByPost);
 
 export default router;

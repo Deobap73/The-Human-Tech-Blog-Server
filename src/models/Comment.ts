@@ -1,16 +1,25 @@
 // The-Human-Tech-Blog-Server/src/models/Comment.ts
 
-import mongoose from 'mongoose';
+import mongoose, { Schema, Document } from 'mongoose';
 
-const commentSchema = new mongoose.Schema(
+export interface IComment extends Document {
+  postId: mongoose.Types.ObjectId;
+  userId: mongoose.Types.ObjectId;
+  userName: string;
+  text: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const CommentSchema: Schema = new Schema(
   {
     postId: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: Schema.Types.ObjectId,
       ref: 'Post',
       required: true,
     },
     userId: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: Schema.Types.ObjectId,
       ref: 'User',
       required: true,
     },
@@ -23,7 +32,9 @@ const commentSchema = new mongoose.Schema(
       required: true,
     },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+  }
 );
 
-export default mongoose.model('Comment', commentSchema);
+export default mongoose.model<IComment>('Comment', CommentSchema);

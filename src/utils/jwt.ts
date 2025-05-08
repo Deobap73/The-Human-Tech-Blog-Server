@@ -1,33 +1,22 @@
-// The-Human-Tech-Blog-Server/src/utils/jwt.ts
-
+// src/utils/jwt.ts
 import jwt from 'jsonwebtoken';
 import { env } from '../config/env';
-import { Types } from 'mongoose';
 
-interface TokenPayload {
-  userId: Types.ObjectId;
-  role: string;
-}
+const ACCESS_SECRET = env.JWT_SECRET;
+const REFRESH_SECRET = env.JWT_SECRET + '_refresh';
 
-export const generateToken = (payload: TokenPayload): string => {
-  // Convertemos ObjectId para string apenas para o JWT
-  const payloadForJwt = {
-    userId: payload.userId.toString(),
-    role: payload.role,
-  };
-
-  return jwt.sign(payloadForJwt, env.JWT_SECRET, {
-    expiresIn: env.isProduction ? '1h' : '7d',
-    issuer: 'the-human-tech-blog',
-  });
+export const signAccessToken = (userId: string) => {
+  return jwt.sign({ userId: userId.toString() }, ACCESS_SECRET, { expiresIn: '15m' });
 };
 
-export const verifyToken = (token: string): TokenPayload => {
-  const decoded = jwt.verify(token, env.JWT_SECRET) as { userId: string; role: string };
+export const signRefreshToken = (userId: string) => {
+  return jwt.sign({ userId: userId.toString() }, REFRESH_SECRET, { expiresIn: '7d' });
+};
 
-  // Convertemos de volta para ObjectId
-  return {
-    userId: new Types.ObjectId(decoded.userId),
-    role: decoded.role,
-  };
+export const verifyAccessToken = (token: string) => {
+  return jwt.verify(token, ACCESS_SECRET) as { userId: string };
+};
+
+export const verifyRefreshToken = (token: string) => {
+  return jwt.verify(token, REFRESH_SECRET) as { userId: string };
 };

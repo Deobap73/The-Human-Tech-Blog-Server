@@ -1,8 +1,7 @@
-// The-Human-Tech-Blog-Server/src/routes/setupRoutes.ts
-
+// src/routes/setupRoutes.ts
 import { Router } from 'express';
 import { env } from '../config/env';
-import { generateToken } from '../utils/jwt';
+import { signAccessToken } from '../utils/jwt';
 import User from '../models/User';
 import commentRoutes from './commentRoutes';
 import reactionRoutes from './reactionRoutes';
@@ -26,10 +25,10 @@ router.post('/create-admin', async (req, res) => {
     return res.status(400).json({ message: 'Email already exists' });
   }
 
-  const admin = new User({ name, email, password, role: 'admin' }); // ⚠️ Sem hash manual!
-  await admin.save(); // 🔒 A senha será hasheada automaticamente!
+  const admin = new User({ name, email, password, role: 'admin' });
+  await admin.save();
 
-  const token = generateToken({ userId: admin._id, role: admin.role });
+  const token = signAccessToken(admin._id.toString());
 
   res.cookie('token', token, {
     httpOnly: true,

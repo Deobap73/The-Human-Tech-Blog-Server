@@ -1,28 +1,29 @@
-// The-Human-Tech-Blog-Server/src/middleware/authMiddleware.ts
+// src/middleware/authMiddleware.ts
+
 import { Request, Response, NextFunction } from 'express';
-import { verifyToken } from '../utils/jwt';
+import jwt from 'jsonwebtoken';
 import User from '../models/User';
+import { env } from '../config/env';
 
-export const protect = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const protect = async (req: Request, res: Response, next: NextFunction) => {
+  const authHeader = req.headers.authorization;
+  const token = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
+
+  if (!token) {
+    return res.status(401).json({ message: 'No token provided' });
+  }
+
   try {
-    const token = req.cookies.token;
+    const decoded = jwt.verify(token, env.JWT_SECRET) as { userId: string };
+    const user = await User.findById(decoded.userId).select('-password');
 
-    if (!token) {
-      res.status(401).json({ message: 'Not authorized, no token' });
-      return; // 👈 evita erro de "not all code paths return"
-    }
-
-    const decoded = verifyToken(token);
-    const user = await User.findById(decoded.userId);
     if (!user) {
-      res.status(401).json({ message: 'User not found' });
-      return; // 👈 evita erro de "not all code paths return"
+      return res.status(401).json({ message: 'User not found' });
     }
 
     req.user = user;
-    return next(); // ✅ caminho seguro
-  } catch (error) {
-    res.status(401).json({ message: 'Invalid or expired token' });
-    return; // 👈 evita erro de "not all code paths return"
+    return next(); // Adicionado return aqui
+  } catch (err) {
+    return res.status(401).json({ message: 'Invalid or expired token' });
   }
 };

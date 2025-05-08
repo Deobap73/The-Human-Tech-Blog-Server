@@ -6,21 +6,24 @@ import Post from '../models/Post';
 
 export const createPost = async (req: Request, res: Response) => {
   try {
-    const { title, description, content, image, tags, status, categories } = req.body;
+    const { title, description, content, image, tags, status } = req.body;
 
     const newPost = new Post({
       title,
       description,
       content,
       image,
-      tags,
-      status,
+      tags: tags || [],
+      status: status || 'draft',
       author: (req.user as IUser)._id,
-      categories,
+      categories: [],
     });
 
     await newPost.save();
-    return res.status(201).json({ message: 'Post created', post: newPost });
+    return res.status(201).json({
+      message: 'Post created',
+      post: newPost,
+    });
   } catch (error) {
     console.error('[Create Post]', error);
     return res.status(500).json({ message: 'Failed to create post' });
@@ -30,7 +33,7 @@ export const createPost = async (req: Request, res: Response) => {
 export const getPosts = async (_req: Request, res: Response) => {
   try {
     const posts = await Post.find()
-      .select('title image status excerpt description slug author categories createdAt views') // 👈 campos visíveis
+      .select('title image status description slug author categories createdAt views')
       .populate('author', 'name')
       .populate('categories', 'name slug logo')
       .sort({ createdAt: -1 });
@@ -46,9 +49,11 @@ export const getPostById = async (req: Request, res: Response) => {
     const post = await Post.findById(req.params.id)
       .populate('author', 'name')
       .populate('categories', 'name slug logo');
+
     if (!post) return res.status(404).json({ message: 'Post not found' });
     return res.status(200).json(post);
   } catch (error) {
+    console.error('[Get Post]', error);
     return res.status(500).json({ message: 'Failed to fetch post' });
   }
 };
