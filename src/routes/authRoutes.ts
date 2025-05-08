@@ -1,20 +1,25 @@
 // src/routes/authRoutes.ts
-
-import { env } from '../config/env';
 import express from 'express';
 import passport from 'passport';
-import { register, login, logout, getMe, refresh } from '../controllers/authController';
+import {
+  handleRegister,
+  handleLogin,
+  handleLogout,
+  handleGetMe,
+  handleRefreshToken,
+} from '../controllers/authController';
 import { protect } from '../middleware/authMiddleware';
 import { authorizeRoles } from '../middleware/roleMiddleware';
 import { getAdminDashboard } from '../controllers/adminController';
+import { env } from '../config/env';
 
 const router = express.Router();
 
-router.post('/register', register);
-router.post('/login', login);
-router.post('/logout', logout);
-router.post('/refresh', refresh);
-router.get('/me', protect, getMe);
+router.post('/register', handleRegister);
+router.post('/login', handleLogin);
+router.post('/logout', handleLogout);
+router.post('/refresh', handleRefreshToken);
+router.get('/me', protect, handleGetMe);
 router.get('/admin', protect, authorizeRoles('admin'), getAdminDashboard);
 
 router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
