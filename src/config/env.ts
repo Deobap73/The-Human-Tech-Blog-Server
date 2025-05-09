@@ -32,6 +32,9 @@ export const env = cleanEnv(process.env, {
   GOOGLE_CLIENT_SECRET: str({ default: '' }),
   GOOGLE_CALLBACK_URL: url({ default: 'http://localhost:5000/api/auth/google/callback' }),
 
+  // Google reCAPTCHA
+  RECAPTCHA_SECRET: str(),
+
   // OAuth - GitHub
   GITHUB_CLIENT_ID: str({ default: '' }),
   GITHUB_CLIENT_SECRET: str({ default: '' }),

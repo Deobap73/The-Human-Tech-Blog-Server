@@ -12,12 +12,14 @@ import { handleOAuthCallback } from '../controllers/oauthController';
 import { protect } from '../middleware/authMiddleware';
 import { authorizeRoles } from '../middleware/roleMiddleware';
 import { csrfProtection } from '../middleware/csrfMiddleware';
+import { authLimiter } from '../middleware/rateLimiter';
+import { verifyCaptcha } from '../middleware/verifyCaptcha';
 import { getAdminDashboard } from '../controllers/adminController';
 
 const router = express.Router();
 
-router.post('/register', handleRegister);
-router.post('/login', handleLogin);
+router.post('/register', authLimiter, verifyCaptcha, handleRegister);
+router.post('/login', authLimiter, verifyCaptcha, handleLogin);
 router.post('/logout', handleLogout);
 router.post('/refresh', handleRefreshToken);
 router.get('/me', protect, handleGetMe);

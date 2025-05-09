@@ -34,5 +34,8 @@ declare namespace NodeJS {
 
     // Frontend
     CLIENT_URL: string;
+
+    // Google reCAPTCHA
+    RECAPTCHA_SECRET: string;
   }
 }
