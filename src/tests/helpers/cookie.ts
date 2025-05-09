@@ -1,14 +1,20 @@
 // tests/helpers/cookie.ts
 
-/**
- * Extrai um cookie específico de um array de cookies set-cookie.
- *
- * @param cookies Cabeçalhos set-cookie da resposta HTTP
- * @param name Nome do cookie a extrair (ex: 'refreshToken')
- * @returns O valor completo do cookie correspondente ou string vazia
- */
-export function extractCookie(cookies: string[] | undefined, key: string): string | null {
-  if (!Array.isArray(cookies)) return null;
-  const cookie = cookies.find((c) => c.startsWith(`${key}=`));
-  return cookie ?? null;
+export function getCookieByName(cookies: string[], name: string): string | undefined {
+  const cookie = cookies.find((c) => c.startsWith(`${name}=`));
+  return cookie?.split(';')[0].split('=')[1]; // Apenas o valor do cookie
+}
+
+export function hasCookieWithValue(
+  rawCookies: string | string[] | undefined,
+  expectedValuePart: string
+): boolean {
+  const cookies = Array.isArray(rawCookies) ? rawCookies : [rawCookies ?? ''];
+  return cookies.some((cookie) => cookie.includes(expectedValuePart));
+}
+
+// src/tests/helpers/cookies.ts
+export function getCookies(headers: any): string[] {
+  const cookies = headers['set-cookie'];
+  return Array.isArray(cookies) ? cookies : [cookies].filter(Boolean);
 }

@@ -11,6 +11,8 @@
     "start:prod": "node dist/index.js",
     "lint": "eslint . --ext .ts",
     "test": "jest",
+    "test:watch": "jest --watchAll",
+    "test:detect": "jest --detectOpenHandles",
     "prepare": "npm run build",
     "format": "prettier --write \"src/**/*.ts\""
   },

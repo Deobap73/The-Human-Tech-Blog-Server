@@ -80,4 +80,9 @@ app.use(
   }
 );
 
+// Only initialize Passport in non-test environments
+if (process.env.NODE_ENV !== 'test') {
+  require('./config/passport');
+}
+
 export default app;
