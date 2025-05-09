@@ -5,6 +5,7 @@ import path from 'path';
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 import cookieParser from 'cookie-parser';
+import { csrfProtection } from './middleware/csrfMiddleware';
 import cors from 'cors';
 import setupRoutes from './routes/setupRoutes';
 import authRoutes from './routes/authRoutes';
@@ -22,6 +23,7 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+app.use(csrfProtection);
 
 app.use(
   cors({

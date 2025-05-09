@@ -1,16 +1,10 @@
-# <h1 align="center" >The Human Tech Blog — Backend (blog-server) — by Deolindo Baptista </h1>
+# <h1 align="center">The Human Tech Blog — Backend (blog-server) — by Deolindo Baptista</h1>
 
-A robust, secure, and scalable backend built with Node.js, Express, and TypeScript to power the **The Human Tech Blog**. This backend manages post creation, authentication, comments, and category APIs, integrated with MongoDB and JWT-based access control.
-
-<br>
+A robust, secure, and scalable backend built with Node.js, Express, and TypeScript to power the **The Human Tech Blog**. Handles post creation, authentication (JWT & OAuth), comment management, category tags, and token lifecycle with Redis.
 
 ---
 
-<br>
-
-## 🏗️ Technologies Used
-
-<br>
+## 🏠 Technologies Used
 
 | Category             | Tech Stack                          |
 | -------------------- | ----------------------------------- |
@@ -18,333 +12,205 @@ A robust, secure, and scalable backend built with Node.js, Express, and TypeScri
 | TypeScript           | Strongly typed JavaScript           |
 | MongoDB Atlas        | Cloud-hosted NoSQL database         |
 | Mongoose             | ODM for MongoDB                     |
-| Redis                | Session store (via connect-redis)   |
-| JWT                  | Authentication & Authorization      |
+| Redis                | Token/session revocation store      |
+| JWT + Refresh Token  | Stateless auth + rotation flow      |
 | Passport.js          | Google & GitHub OAuth2 strategies   |
 | Cloudinary           | Image upload support (via frontend) |
-| dotenv               | Environment variable management     |
-
-<br>
+| dotenv + envalid     | Environment variable validation     |
 
 ---
 
-<br>
-
 ## 📁 Project Structure
-
-<br>
 
 ```txt
 blog-server/
 ├── src/
-│   ├── controllers/        # Logic for routes (auth, posts, comments)
-│   ├── middleware/         # JWT validation middleware
-│   ├── models/             # Mongoose schemas (User, Post, Comment, Category)
-│   ├── routes/             # Express routes grouped by module
-│   ├── utils/              # Mongo connection, helpers
-│   └── index.ts            # Entry point
-├── test-db.ts              # MongoDB connection test script
-├── .env                    # Environment variables
-├── .dockerignore           # Ignored files if dockerized
-├── package.json            # Scripts & dependencies
-└── tsconfig.json           # TypeScript compiler options
+│   ├── controllers/        # Route handlers (auth, posts, comments, oauth)
+│   ├── middleware/         # JWT validation & role-based guards
+│   ├── models/             # Mongoose schemas (User, Post, Comment, etc)
+│   ├── routes/             # Express route modules
+│   ├── utils/              # JWT helpers, redis, issueTokens, cloudinary
+│   ├── config/             # Redis, Passport, env parsing
+│   └── app.ts              # Express app setup
+├── test-db.ts              # Simple MongoDB connection test
+├── .env / .env.test        # Environment variables
+├── jest.config.js          # Test configuration
+└── tsconfig.json           # TypeScript settings
 ```
 
 ---
-
-<br>
 
 ## 🚀 Features
 
-<br>
+### ✅ Authentication (Advanced)
 
-✅ Authentication
+- Email/password login with access & refresh tokens
+- Secure refresh token in cookie (httpOnly, sameSite)
+- Google & GitHub OAuth2 with full token integration
+- Stateless JWT for access, Redis for refresh
+- Token rotation and revocation
 
-- Email/Password login (JWT)
+### ✅ Posts & Comments
 
-- Google & GitHub OAuth2 (Passport.js)
+- Post CRUD (protected)
+- Markdown content, image upload (Cloudinary)
+- Comment creation (authenticated)
 
-- Redis-backed session management (for OAuth)
+### ✅ Categories & Tags
 
-- express-session with connect-redis
+- Category CRUD (admin only)
+- Auto-association with posts
 
-✅ Post System
+### ✅ Security Layers
 
-- CRUD routes
-
-- Rich text + Cloudinary image upload
-
-✅ Comment System
-
-- Authenticated posting
-
-- Auto-populated with user data
-
-✅ Categories
-
-- Auto-generated category tags
-
-✅ MongoDB Integration
-
-- Uses MongoDB Atlas with Mongoose ODM
-
-- Connection managed via connect.ts
-
-✅ Scalable Architecture
-
-- Clean controller/service layering
-
-- Stateless JWT API + stateful session fallback
-
-<br>
+- Role-based guards (`admin`, `editor`, etc)
+- Passport.js social auth strategies
+- Redis-powered token cleanup & revocation
+- Express middlewares for CSRF-safe cookies
 
 ---
-
-<br>
 
 ## 🔐 Environment Variables (.env)
 
-<br>
-
-```txt
+```env
 PORT=5000
-MONGO_URI=mongodb+srv://<user>:<pass>@cluster.mongodb.net
+MONGO_URI=mongodb://localhost:27017/thehumantechblog
 JWT_SECRET=your_jwt_secret
+REFRESH_TOKEN_SECRET=your_refresh_secret
+REFRESH_TOKEN_EXPIRATION=7d
+REFRESH_TOKEN_EXPIRATION_MS=604800000
 
 # Redis
-REDIS_URL=redis://default:<password>@<redis-host>.railway.internal:6379
+REDIS_URL=redis://localhost:6379
 
-# OAuth
+# Cloudinary (frontend uses VITE_ prefix)
+VITE_CLOUDINARY_CLOUD_NAME=your_name
+CLOUDINARY_API_KEY=your_key
+CLOUDINARY_API_SECRET=your_secret
+
+# Google OAuth
 GOOGLE_CLIENT_ID=...
 GOOGLE_CLIENT_SECRET=...
+GOOGLE_CALLBACK_URL=http://localhost:5000/api/auth/google/callback
+
+# GitHub OAuth
 GITHUB_CLIENT_ID=...
 GITHUB_CLIENT_SECRET=...
+GITHUB_CALLBACK_URL=http://localhost:5000/api/auth/github/callback
 
-# Frontend redirect
-CLIENT_URL=https://your-frontend.netlify.app
-
-# Cloudinary (Frontend uses VITE_)
-VITE_CLOUDINARY_CLOUD_NAME=your_name
-VITE_CLOUDINARY_UPLOAD_PRESET=your_preset
+# Frontend URL
+CLIENT_URL=http://localhost:5173
 ```
-
-Note: In production, use .env.production or Railway’s environment manager.
-
-<br>
 
 ---
 
-<br>
+## 🔒 How Auth Works
 
-## 🔐 Authentication how it work
+1. **Login Flows**
 
-1. Authentication Types:
+   - Email/password → `/api/auth/login`
+   - Google OAuth2 → `/api/auth/google`
+   - GitHub OAuth2 → `/api/auth/github`
 
-- Email/password login (/login, /register)
+2. **Tokens**
 
-- Google OAuth (/google, /google/callback)
+   - Short-lived `accessToken` (JWT, 15 min)
+   - Long-lived `refreshToken` (Redis + cookie, 7d)
+   - Refresh flow: `/api/auth/refresh` replaces token
 
-- GitHub OAuth (/github, /github/callback)
+3. **Rotation & Revocation**
 
-- Token refresh (/refresh)
+   - Redis TTL auto-expires stale tokens
+   - Revoked on logout, rotated on refresh
 
-2. Security Features:
+4. **Secure Cookies**
 
-- HTTP-only cookies for token storage
+   - `httpOnly`, `secure`, `sameSite=strict`
+   - Stored in browser, never exposed to JS
 
-- CSRF protection with sameSite cookies
+---
 
-- Short-lived access tokens (2 hours)
+## 💡 Getting Started
 
-- Secure flag in production (HTTPS only)
-
-3. OAuth Flow:
-
-![OAuth Flow](https://github.com/Deobap73/The-Human-Tech-Blog-Server/blob/7855eec143e6e0077d39056f91cc2bae73b2d6dd/src/assets/becfb1.png)
-
-4. Token Refresh:
-
-- Uses a separate refresh token
-
-- Creates new access token without requiring new login
-
-- Handles token expiration gracefully
-
-5. Error Handling:
-
-- 401 for missing tokens
-
-- 403 for invalid tokens
-
-- Redirects for OAuth failures
-
-#### This implementation provides:
-
-- Multiple login options for users
-
-- Secure token management
-
-- Clear separation of authentication methods
-
-- Easy integration with frontend applications
-
-<br>
-
-## 💻 Getting Started
-
-<br>
-
-1. 🔨 Install dependencies:
-
-```txt
+```bash
 npm install
+npm run dev       # dev mode
+npm run build     # compile to dist/
+npm start         # production start
 ```
 
-2. ▶️ Run in dev mode:
+Test MongoDB connection:
 
-```txt
-npm run dev
-```
-
-3. 🏗️ Build project:
-
-```txt
-   npm run build
-```
-
-4. Start (production):
-
-```txt
-npm start
-```
-
-<br>
-
----
-
-<br>
-
-## 🧪 Test MongoDB Connection
-
-<br>
-
-Run a simple test to ensure the DB is reachable:
-
-```txt
+```bash
 npx ts-node test-db.ts
 ```
 
-<br>
+Run Jest tests:
+
+```bash
+npx jest
+```
 
 ---
 
-<br>
+## 🚀 Deployment (Railway)
 
-## 📡 API Endpoints
+1. Push to GitHub
+2. Connect repo to [Railway](https://railway.app)
+3. Add Redis plugin
+4. Set environment variables via Railway
+5. Done 🎉
 
-<br>
+---
 
-1. 🔑 Auth
+## 📡 API Overview
 
-```txt
-POST /api/auth/login
-POST /api/auth/register
-GET  /api/auth/google
-GET  /api/auth/github
+### Auth
+
+```
+POST   /api/auth/register
+POST   /api/auth/login
+GET    /api/auth/google /callback
+GET    /api/auth/github /callback
+POST   /api/auth/refresh
+POST   /api/auth/logout
 ```
 
-2. 📝 Posts
+### Posts
 
-```txt
+```
 GET    /api/posts
-GET    /api/posts/:slug
-POST   /api/posts        (Protected)
+GET    /api/posts/:id
+POST   /api/posts         # Authenticated (editor, admin)
 ```
 
-3. 💬 Comments
+### Comments
 
-```txt
-GET    /api/comments?postSlug=slug
-POST   /api/comments     (Protected)
+```
+POST   /api/comments      # Authenticated
+GET    /api/comments/:postId
 ```
 
-4. 🗂️ Categories
+### Categories
 
-```txt
+```
 GET    /api/categories
+POST   /api/categories    # Admin only
 ```
 
-<br>
+---
+
+## 👨‍💼 Author
+
+Created and maintained by **Deolindo Baptista**
+Licensed under MIT. Use freely for educational or personal projects.
 
 ---
 
-<br>
-
-## 🌍 Deployment (Railway + Redis)
-
-Images added in the post creation page are uploaded to [Cloudinary](https://cloudinary.com/) using unsigned upload presets.
-
-### 🔧 Railway Steps:
-
-1. Push backend repo to GitHub
-
-2. Railway: New project → Deploy from GitHub
-
-3. Add .env variables (including REDIS_URL)
-
-4. Railway → Add Redis plugin
-
-5. Copy Redis internal URL into REDIS_URL
-
-6. Done 🎉
-
-### 🔑🔥 Why Redis?
-
-Redis replaces the insecure in-memory MemoryStore used by express-session:
-
-- 🧠 Scalable
-
--⚡ Fast in production
-
-- 🔐 Secure token/session isolation Minimum Variables:
-
-<br>
-
----
-
-<br>
-
-## 👤 Author
-
-Built and maintained by Deolindo Baptista
-MIT License.
-Free for personal use.
-Not allowed for commercial resale.
-
-<br>
-
----
-
-<br>
-
-## 🧪 Want to contribute?
+## 💪 Contribute
 
 1. Fork the repo
-
-2. Create a feature branch (feat/new-feature)
-
-3. Open a pull request with a detailed description
-
-<br>
-
----
-
-<br>
-
-## 🎉 Final Notes
-
-This project is fully audit-verified, scalable, and ideal for personal blog platforms.
+2. Create a branch: `feat/my-feature`
+3. Submit PR with details
 
 Happy coding! ✨
-
----

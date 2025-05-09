@@ -11,6 +11,7 @@ import {
 import { handleOAuthCallback } from '../controllers/oauthController';
 import { protect } from '../middleware/authMiddleware';
 import { authorizeRoles } from '../middleware/roleMiddleware';
+import { csrfProtection } from '../middleware/csrfMiddleware';
 import { getAdminDashboard } from '../controllers/adminController';
 
 const router = express.Router();
@@ -21,6 +22,9 @@ router.post('/logout', handleLogout);
 router.post('/refresh', handleRefreshToken);
 router.get('/me', protect, handleGetMe);
 router.get('/admin', protect, authorizeRoles('admin'), getAdminDashboard);
+router.get('/csrf', csrfProtection, (req, res) => {
+  return res.status(200).json({ csrfToken: req.csrfToken() });
+});
 
 router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 router.get(
