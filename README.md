@@ -84,32 +84,44 @@ blog-server/
 
 ```env
 PORT=5000
-MONGO_URI=mongodb://localhost:27017/thehumantechblog
-JWT_SECRET=your_jwt_secret
-REFRESH_TOKEN_SECRET=your_refresh_secret
-REFRESH_TOKEN_EXPIRATION=7d
-REFRESH_TOKEN_EXPIRATION_MS=604800000
+MONGO_URI=*
 
-# Redis
+# JWT 
+JWT_SECRET=****************************************
+JWT_EXPIRATION=15m
+
+# Frontend Env (Vite uses VITE_ prefix)
+VITE_CLOUDINARY_CLOUD_NAME=*
+VITE_CLOUDINARY_UPLOAD_PRESET=*
+CLOUDINARY_API_KEY=*
+CLOUDINARY_API_SECRET=******************
+
+# OAuth Google
+GOOGLE_CLIENT_ID=*
+GOOGLE_CLIENT_SECRET=******************
+GOOGLE_CALLBACK_URL=*
+
+# OAuth GitHub
+GITHUB_CLIENT_ID=*
+GITHUB_CLIENT_SECRET=**************************
+GITHUB_CALLBACK_URL=*
+
+# Redirect to your frontend
+CLIENT_URL=http://localhost:5173
+
+# Redis URL
 REDIS_URL=redis://localhost:6379
 
-# Cloudinary
-VITE_CLOUDINARY_CLOUD_NAME=your_name
-CLOUDINARY_API_KEY=your_key
-CLOUDINARY_API_SECRET=your_secret
+# Setup Key
+SETUP_KEY=********************
 
-# Google OAuth
-GOOGLE_CLIENT_ID=...
-GOOGLE_CLIENT_SECRET=...
-GOOGLE_CALLBACK_URL=http://localhost:5000/api/auth/google/callback
+# Refresh Token
+REFRESH_TOKEN_SECRET=*************************************
+REFRESH_TOKEN_EXPIRATION=7d
+REFRESH_TOKEN_EXPIRATION_MS=604800000 # 7 days in ms
 
-# GitHub OAuth
-GITHUB_CLIENT_ID=...
-GITHUB_CLIENT_SECRET=...
-GITHUB_CALLBACK_URL=http://localhost:5000/api/auth/github/callback
-
-# Frontend URL
-CLIENT_URL=http://localhost:5173
+ # Google reCAPTCHA
+RECAPTCHA_SECRET=***********************************
 ```
 
 ---
