@@ -4,6 +4,9 @@ import User from '../models/User';
 import redisClient from '../config/redis';
 import { env } from '../config/env';
 import { issueTokens } from '../utils/issueTokens';
+import { WithId } from '../types/WithId';
+import { IUser } from '../types/User';
+import speakeasy from 'speakeasy';
 
 export const handleRegister = async (req: Request, res: Response) => {
   const { name, email, password } = req.body;
@@ -18,29 +21,43 @@ export const handleRegister = async (req: Request, res: Response) => {
 };
 
 export const handleLogin = async (req: Request, res: Response) => {
-  const { email, password } = req.body;
+  const { email, password, token } = req.body;
   const user = await User.findOne({ email }).select('+password');
   if (!user || !(await user.comparePassword(password))) {
     return res.status(401).json({ message: 'Invalid credentials' });
   }
 
-  const { accessToken } = await issueTokens(user._id.toString(), res);
+  const typedUser = user as WithId<IUser>;
 
+  if (typedUser.role === 'admin' && typedUser.twoFactorEnabled) {
+    if (!token) {
+      return res.status(401).json({ message: '2FA token required', twoFactorRequired: true });
+    }
+
+    const verified = speakeasy.totp.verify({
+      secret: typedUser.twoFactorSecret!,
+      encoding: 'base32',
+      token,
+    });
+
+    if (!verified) {
+      return res.status(401).json({ message: 'Invalid 2FA token' });
+    }
+  }
+
+  const { accessToken } = await issueTokens(typedUser._id.toString(), res);
   return res.json({ accessToken });
 };
 
 export const handleRefreshToken = async (req: Request, res: Response) => {
   const oldToken = req.cookies.refreshToken;
-
   if (!oldToken) return res.status(401).json({ message: 'Missing refresh token' });
 
   const userId = await redisClient.get(oldToken);
   if (!userId) return res.status(403).json({ message: 'Refresh token revoked or invalid' });
 
   await redisClient.del(oldToken);
-
   const { accessToken } = await issueTokens(userId, res);
-
   return res.json({ accessToken });
 };
 

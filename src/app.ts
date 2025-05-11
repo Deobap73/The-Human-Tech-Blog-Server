@@ -14,6 +14,7 @@ import postRoutes from './routes/postRoutes';
 import commentRoutes from './routes/commentRoutes';
 import reactionRoutes from './routes/reactionRoutes';
 import bookmarkRoutes from './routes/bookmarkRoutes';
+import { twofaRoutes } from './routes/twofaRoutes';
 import passport from 'passport';
 import './config/passport';
 import { env } from './config/env';
@@ -23,7 +24,9 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
-app.use(csrfProtection);
+if (process.env.NODE_ENV !== 'test') {
+  app.use(csrfProtection);
+}
 
 app.use(
   cors({
@@ -49,6 +52,7 @@ app.use('/api/posts', postRoutes);
 app.use('/api/comments', commentRoutes);
 app.use('/api/reactions', reactionRoutes);
 app.use('/api/bookmarks', bookmarkRoutes);
+app.use('/api/2fa', twofaRoutes);
 
 app.get('/health', (_, res) => {
   res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });

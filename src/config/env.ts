@@ -1,11 +1,13 @@
 // The-Human-Tech-Blog-Server\src\config\env.ts
 
-import { cleanEnv, str, num, url } from 'envalid';
+import { cleanEnv, str, num, url, bool } from 'envalid';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
 export const env = cleanEnv(process.env, {
+  isProduction: bool({ default: process.env.NODE_ENV === 'production' }),
+
   // Configurações básicas
   PORT: num({ default: 5000 }),
   MONGO_URI: str({ default: 'mongodb://localhost:27017/thehumantechblog' }),

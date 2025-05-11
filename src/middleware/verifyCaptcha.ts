@@ -4,6 +4,9 @@ import { Request, Response, NextFunction } from 'express';
 import { env } from '../config/env';
 
 export const verifyCaptcha = async (req: Request, res: Response, next: NextFunction) => {
+  // Skip captcha validation in test environment
+  if (process.env.NODE_ENV === 'test') return next();
+
   const { captcha } = req.body;
   if (!captcha) return res.status(400).json({ message: 'Captcha token missing' });
 
@@ -12,11 +15,8 @@ export const verifyCaptcha = async (req: Request, res: Response, next: NextFunct
       `https://www.google.com/recaptcha/api/siteverify?secret=${env.RECAPTCHA_SECRET}&response=${captcha}`
     );
 
-    if (!data.success) {
-      return res.status(403).json({ message: 'Captcha verification failed' });
-    }
-
-    return next(); // ✅ adiciona return explícito aqui
+    if (!data.success) return res.status(403).json({ message: 'Captcha verification failed' });
+    return next();
   } catch {
     return res.status(500).json({ message: 'Captcha verification error' });
   }

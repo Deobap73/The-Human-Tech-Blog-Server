@@ -1,15 +1,30 @@
 // src/utils/issueTokens.ts
-import { Response } from 'express';
-import { signAccessToken, signRefreshToken } from './jwt';
-import redisClient from '../config/redis';
+import jwt from 'jsonwebtoken';
 import { env } from '../config/env';
+import redisClient from '../config/redis';
+import { Response } from 'express';
 
-export const issueTokens = async (userId: string, res: Response) => {
-  const accessToken = signAccessToken(userId);
-  const refreshToken = signRefreshToken(userId);
+interface Tokens {
+  accessToken: string;
+  refreshToken: string;
+}
 
-  await redisClient.set(refreshToken, userId, { EX: env.REFRESH_TOKEN_EXPIRATION_MS / 1000 });
+export const issueTokens = async (userId: string, res: Response): Promise<Tokens> => {
+  // Verificando se os segredos estão configurados
+  if (!env.JWT_SECRET || !env.REFRESH_TOKEN_SECRET) {
+    throw new Error('JWT secrets are not configured');
+  }
 
+  // Gerando tokens com opções explícitas
+  const accessToken = jwt.sign({ id: userId }, env.JWT_SECRET, {
+    expiresIn: env.JWT_EXPIRATION as jwt.SignOptions['expiresIn'],
+  });
+
+  const refreshToken = jwt.sign({ id: userId }, env.REFRESH_TOKEN_SECRET, {
+    expiresIn: env.REFRESH_TOKEN_EXPIRATION as jwt.SignOptions['expiresIn'],
+  });
+
+  // Configurando cookie
   res.cookie('refreshToken', refreshToken, {
     httpOnly: true,
     secure: env.isProduction,
@@ -17,5 +32,12 @@ export const issueTokens = async (userId: string, res: Response) => {
     maxAge: env.REFRESH_TOKEN_EXPIRATION_MS,
   });
 
-  return { accessToken };
+  // Armazenando refresh token no Redis
+  await redisClient.setEx(
+    `refresh:${userId}`,
+    Math.floor(env.REFRESH_TOKEN_EXPIRATION_MS / 1000),
+    refreshToken
+  );
+
+  return { accessToken, refreshToken };
 };

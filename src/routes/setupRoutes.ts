@@ -2,7 +2,7 @@
 import { Router } from 'express';
 import { env } from '../config/env';
 import { signAccessToken } from '../utils/jwt';
-import User from '../models/User';
+import User, { IUser } from '../models/User';
 import commentRoutes from './commentRoutes';
 import reactionRoutes from './reactionRoutes';
 import bookmarkRoutes from './bookmarkRoutes';
@@ -28,7 +28,8 @@ router.post('/create-admin', async (req, res) => {
   const admin = new User({ name, email, password, role: 'admin' });
   await admin.save();
 
-  const token = signAccessToken(admin._id.toString());
+  const adminObject = admin.toObject() as IUser & { _id: string };
+  const token = signAccessToken(adminObject._id);
 
   res.cookie('token', token, {
     httpOnly: true,
@@ -37,8 +38,8 @@ router.post('/create-admin', async (req, res) => {
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 
-  const { password: _, ...adminData } = admin.toObject();
-  return res.status(201).json({ message: 'Admin created', user: adminData });
+  const { password: _, ...safeAdminData } = adminObject;
+  return res.status(201).json({ message: 'Admin created', user: safeAdminData });
 });
 
 //Routers
