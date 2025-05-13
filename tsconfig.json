@@ -28,6 +28,6 @@
     "types": ["jest", "node", "express"],
     "isolatedModules": true
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "../The-Human-Tech-Blog-React/src/shared/socket/socket.ts"],
   "exclude": ["node_modules", "dist"]
 }

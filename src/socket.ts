@@ -1,37 +1,45 @@
-// The-Human-Tech-Blog-Server/src/socket.ts
+// src/socket.ts
+import { Server as IOServer, Socket } from 'socket.io';
+import jwt from 'jsonwebtoken';
+import http from 'http';
+import { env } from './config/env';
+import User from './models/User';
 
-import { Server } from 'socket.io';
-
-let io: Server;
-
-export const initSocket = (server: any) => {
-  io = new Server(server, {
+export const setupSocket = (server: http.Server) => {
+  const io = new IOServer(server, {
     cors: {
-      origin: process.env.CLIENT_URL,
+      origin: env.CLIENT_URL,
       credentials: true,
     },
   });
 
-  io.on('connection', (socket) => {
-    console.log('User connected:', socket.id);
+  io.use(async (socket, next) => {
+    const token = socket.handshake.auth?.token;
+    if (!token) return next(new Error('Unauthorized'));
 
-    socket.on('joinConversation', (conversationId) => {
-      socket.join(conversationId);
-    });
+    try {
+      const decoded = jwt.verify(token, env.JWT_SECRET) as any;
+      const user = await User.findById(decoded.id).select('-password');
+      if (!user) return next(new Error('User not found'));
 
-    socket.on('sendMessage', ({ conversationId, message }) => {
-      socket.to(conversationId).emit('receiveMessage', message);
+      // @ts-ignore
+      socket.user = user;
+      next();
+    } catch (err) {
+      next(new Error('Invalid token'));
+    }
+  });
+
+  io.on('connection', (socket: Socket) => {
+    console.log(`📡 [socket] User connected: ${socket.user?.email}`);
+
+    socket.on('message:create', ({ conversationId, text }) => {
+      console.log(`📨 [socket] Message: ${text} to conversation ${conversationId}`);
+      // TODO: Save to DB and emit to conversation members
     });
 
     socket.on('disconnect', () => {
-      console.log('User disconnected:', socket.id);
+      console.log(`🚪 [socket] User disconnected: ${socket.user?.email}`);
     });
   });
-
-  return io;
-};
-
-export const getIO = () => {
-  if (!io) throw new Error('Socket.io not initialized');
-  return io;
 };
