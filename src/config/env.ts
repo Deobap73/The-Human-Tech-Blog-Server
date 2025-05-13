@@ -25,7 +25,7 @@ export const env = cleanEnv(process.env, {
   REDIS_URL: str({ default: 'redis://localhost:6379' }),
 
   // Cloudinary
-  VITE_CLOUDINARY_CLOUD_NAME: str({ default: '' }),
+  CLOUDINARY_CLOUD_NAME: str({ default: '' }),
   CLOUDINARY_API_KEY: str({ default: '' }),
   CLOUDINARY_API_SECRET: str({ default: '' }),
 
