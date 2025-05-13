@@ -1,4 +1,4 @@
-// The-Human-Tech-Blog-Server/src/routes/messageRoutes.ts
+// src/routes/messageRoutes.ts
 
 import express from 'express';
 import { sendMessage, getMessages } from '../controllers/messageController';
