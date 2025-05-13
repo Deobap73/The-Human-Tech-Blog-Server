@@ -1,25 +1,24 @@
 // src/socket/handlers/messageHandler.ts
-import { Server, Socket } from 'socket.io';
-import Message from '@/models/Message';
+import { Socket } from 'socket.io';
+import MessageModel from '@/models/Message';
 import { ChatMessage } from '@/types/ChatMessage';
 
-export const registerMessageHandlers = (io: Server, socket: Socket) => {
-  socket.on('message:create', async (payload: ChatMessage) => {
+export const registerMessageHandlers = (socket: Socket) => {
+  socket.on('message:create', async (msg: ChatMessage) => {
     try {
-      if (!socket.user) return;
-
-      const newMessage = new Message({
-        sender: socket.user._id,
-        conversationId: payload.conversationId,
-        text: payload.text,
+      const saved = await MessageModel.create({
+        text: msg.text,
+        conversationId: msg.conversationId,
+        sender: socket.data.user._id,
       });
 
-      const savedMessage = await newMessage.save();
+      // Emite para o remetente
+      socket.emit('message:new', saved);
 
-      io.to(payload.conversationId).emit('message:received', savedMessage);
+      // Emite para o destinatário (broadcast)
+      socket.to(msg.conversationId).emit('message:new', saved);
     } catch (err) {
-      console.error('message:create error:', err);
-      socket.emit('error', { message: 'Failed to send message' });
+      socket.emit('message:error', 'Failed to save message');
     }
   });
 };
