@@ -1,15 +1,11 @@
 // src/routes/messageRoutes.ts
-
 import express from 'express';
 import { sendMessage, getMessages } from '../controllers/messageController';
 import { protect } from '../middleware/authMiddleware';
 
 const router = express.Router();
 
-// POST /api/messages - enviar nova mensagem
 router.post('/', protect, sendMessage);
-
-// GET /api/messages/:conversationId - buscar mensagens de uma conversa
-router.get('/:conversationId', protect, getMessages);
+router.get('/:conversationId', protect, getMessages); // TODO: validate ownership in controller
 
 export default router;
