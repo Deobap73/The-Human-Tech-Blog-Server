@@ -8,10 +8,11 @@
     "strict": true,
     "skipLibCheck": true,
     "outDir": "./dist",
-    "rootDir": "./src",
-    "baseUrl": "./src",
+    "rootDir": "./",
+    "baseUrl": "./",
     "paths": {
-      "@/*": ["*"]
+      "@/*": ["src/*"],
+      "@shared/*": ["../shared/*"]
     },
     "typeRoots": ["./node_modules/@types", "./src/types"],
     "sourceMap": true,
@@ -28,6 +29,6 @@
     "types": ["jest", "node", "express"],
     "isolatedModules": true
   },
-  "include": ["src/**/*", "../The-Human-Tech-Blog-React/src/shared/socket/socket.ts"],
+  "include": ["src/**/*", "../shared/**/*"], // Inclui a pasta shared
   "exclude": ["node_modules", "dist"]
 }
