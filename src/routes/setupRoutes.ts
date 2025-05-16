@@ -6,8 +6,15 @@ import User, { IUser } from '../models/User';
 import commentRoutes from './commentRoutes';
 import reactionRoutes from './reactionRoutes';
 import bookmarkRoutes from './bookmarkRoutes';
+import { csrfProtection } from '../middleware/csrfMiddleware';
 
 const router = Router();
+
+// ✅ CSRF Token endpoint
+router.get('/csrf', csrfProtection, (req, res) => {
+  const csrfToken = req.csrfToken();
+  return res.status(200).json({ csrfToken });
+});
 
 router.post('/create-admin', async (req, res) => {
   const { name, email, password, key } = req.body;
@@ -42,7 +49,7 @@ router.post('/create-admin', async (req, res) => {
   return res.status(201).json({ message: 'Admin created', user: safeAdminData });
 });
 
-//Routers
+// Subroutes
 router.use('/comments', commentRoutes);
 router.use('/reactions', reactionRoutes);
 router.use('/bookmarks', bookmarkRoutes);

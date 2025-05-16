@@ -15,6 +15,7 @@ const seed = async () => {
   try {
     await mongoose.connect(process.env.MONGO_URI!);
 
+    console.log('🔄 Cleaning collections...');
     await Promise.all([
       Post.deleteMany(),
       Category.deleteMany(),
@@ -23,12 +24,29 @@ const seed = async () => {
       Conversation.deleteMany(),
     ]);
 
-    const [berto, berit, alex] = await User.insertMany([
-      { name: 'berto', email: 'berto@example.com', password: '123456', role: 'admin' },
-      { name: 'berit', email: 'berit@example.com', password: '123456', role: 'editor' },
-      { name: 'Alex', email: 'alex@example.com', password: '123456', role: 'user' },
-    ]);
+    console.log('👤 Creating users...');
+    const berto = new User({
+      name: 'berto',
+      email: 'berto@example.com',
+      password: '123456',
+      role: 'admin',
+    });
+    const berit = new User({
+      name: 'berit',
+      email: 'berit@example.com',
+      password: '123456',
+      role: 'editor',
+    });
+    const alex = new User({
+      name: 'Alex',
+      email: 'alex@example.com',
+      password: '123456',
+      role: 'user',
+    });
 
+    await Promise.all([berto.save(), berit.save(), alex.save()]);
+
+    console.log('🏷️ Creating categories...');
     const categories = await Category.insertMany([
       { name: 'Agile Projects', slug: 'agile-projects', logo: 'agileProjects.webp' },
       { name: 'Frontend UX', slug: 'frontend-ux', logo: 'frontEndUx.webp' },
@@ -43,6 +61,7 @@ const seed = async () => {
 
     const getCategoryId = (name: string) => categories.find((c) => c.name === name)?._id;
 
+    console.log('📝 Creating posts...');
     await Post.insertMany([
       {
         title: 'The Human Side of Agile Development',
@@ -142,7 +161,7 @@ const seed = async () => {
       },
     ]);
 
-    // Chat simulation: create conversations
+    console.log('💬 Creating conversations and messages...');
     const conversation = await Conversation.create({ members: [berto._id, berit._id] });
     await Message.insertMany([
       { text: 'Hi berit, welcome!', sender: berto._id, conversationId: conversation._id },

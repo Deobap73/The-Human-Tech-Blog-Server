@@ -13,6 +13,7 @@ declare namespace NodeJS {
     REFRESH_TOKEN_SECRET: string;
     REFRESH_TOKEN_EXPIRATION: string;
     REFRESH_TOKEN_EXPIRATION_MS: string;
+    isProduction: boolean;
 
     // Redis
     REDIS_URL: string;

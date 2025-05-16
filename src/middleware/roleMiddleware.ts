@@ -2,6 +2,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { IUser } from '../types/User';
 
+// Keep your existing middleware functions
 export const isAdmin = (req: Request, res: Response, next: NextFunction): void => {
   const user = req.user as IUser;
   if (!user || user.role !== 'admin') {

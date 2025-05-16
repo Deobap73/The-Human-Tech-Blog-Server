@@ -1,4 +1,4 @@
 // src/test.ts
-import { register } from './controllers/authController';
+import { handleRegister } from './controllers/authController';
 
-console.log(typeof register); // ← deve imprimir "function"
+console.log(typeof handleRegister); // ← deve imprimir "function"

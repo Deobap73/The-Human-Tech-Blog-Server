@@ -7,18 +7,16 @@ import {
   updateCategory,
   deleteCategory,
 } from '../controllers/categoryController';
-
 import { protect } from '../middleware/authMiddleware';
-import { authorizeRoles } from '../middleware/roleMiddleware';
+import { isAdmin } from '../middleware/roleMiddleware'; // Changed from authorizeRoles
 
 const router = express.Router();
 
-// GET all categories
 router.get('/', getCategories);
 
-// Admin-only routes
-router.post('/', protect, authorizeRoles('admin'), createCategory);
-router.put('/:id', protect, authorizeRoles('admin'), updateCategory);
-router.delete('/:id', protect, authorizeRoles('admin'), deleteCategory);
+// Changed all authorizeRoles('admin') to isAdmin
+router.post('/', protect, isAdmin, createCategory);
+router.put('/:id', protect, isAdmin, updateCategory);
+router.delete('/:id', protect, isAdmin, deleteCategory);
 
 export default router;

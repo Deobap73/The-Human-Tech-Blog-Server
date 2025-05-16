@@ -1,13 +1,15 @@
 // src/middleware/verifyCaptcha.ts
+
 import axios from 'axios';
 import { Request, Response, NextFunction } from 'express';
 import { env } from '../config/env';
 
 export const verifyCaptcha = async (req: Request, res: Response, next: NextFunction) => {
-  // Skip captcha validation in test environment
   if (process.env.NODE_ENV === 'test') return next();
 
   const { captcha } = req.body;
+  console.log('[verifyCaptcha] captcha:', captcha);
+
   if (!captcha) return res.status(400).json({ message: 'Captcha token missing' });
 
   try {
@@ -15,9 +17,13 @@ export const verifyCaptcha = async (req: Request, res: Response, next: NextFunct
       `https://www.google.com/recaptcha/api/siteverify?secret=${env.RECAPTCHA_SECRET}&response=${captcha}`
     );
 
-    if (!data.success) return res.status(403).json({ message: 'Captcha verification failed' });
+    console.log('[verifyCaptcha] response:', data);
+
+    if (!data.success)
+      return res.status(403).json({ message: 'Captcha verification failed', details: data });
     return next();
-  } catch {
+  } catch (error) {
+    console.error('[verifyCaptcha] error:', error);
     return res.status(500).json({ message: 'Captcha verification error' });
   }
 };

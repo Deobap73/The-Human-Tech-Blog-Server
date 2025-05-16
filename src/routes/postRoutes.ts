@@ -1,4 +1,5 @@
 // The-Human-Tech-Blog-Server/src/routes/postRoutes.ts
+
 import express from 'express';
 import {
   createPost,
@@ -8,10 +9,8 @@ import {
   deletePost,
   getPostBySlug,
 } from '../controllers/postController';
-// middleware
 import { protect } from '../middleware/authMiddleware';
-import { authorizeRoles } from '../middleware/roleMiddleware';
-//
+import { isAdmin } from '../middleware/roleMiddleware'; // Changed from authorizeRoles
 import upload from '../middleware/uploadMiddleware';
 import { uploadToCloudinary } from '../utils/cloudinaryUpload';
 
@@ -21,15 +20,16 @@ router.get('/', getPosts);
 router.get('/:id', getPostById);
 router.get('/slug/:slug', getPostBySlug);
 
-router.post('/', protect, authorizeRoles('admin', 'editor'), createPost);
-router.put('/:id', protect, authorizeRoles('admin', 'editor'), updatePost);
-router.delete('/:id', protect, authorizeRoles('admin'), deletePost);
+// Simplified to isAdmin since you don't want to use authorizeRoles
+// Note: This loses the 'editor' role functionality from original
+router.post('/', protect, isAdmin, createPost);
+router.put('/:id', protect, isAdmin, updatePost);
+router.delete('/:id', protect, isAdmin, deletePost);
 
-// ✅ Upload image
 router.post(
   '/upload',
   protect,
-  authorizeRoles('admin', 'editor'),
+  isAdmin, // Changed from authorizeRoles('admin', 'editor')
   upload.single('image'),
   async (req, res) => {
     if (!req.file) return res.status(400).json({ message: 'No image file provided' });
