@@ -6,8 +6,8 @@ import slugify from 'slugify';
 import Post from '../models/Post';
 import Category from '../models/Category';
 import User from '../models/User';
-import Message from '../models/Message';
-import Conversation from '../models/Conversation';
+import { Message } from '../models/Message';
+import { Conversation } from '../models/Conversation';
 
 dotenv.config();
 

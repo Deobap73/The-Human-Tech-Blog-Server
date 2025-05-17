@@ -2,7 +2,7 @@
 import request from 'supertest';
 import app from '../../src/app';
 import User from '../../src/models/User';
-import Conversation from '../../src/models/Conversation';
+import { Conversation } from '../../src/models/Conversation';
 import { issueTestToken } from './helpers/cookie';
 
 let userA: any, tokenA: string, conversation: any;

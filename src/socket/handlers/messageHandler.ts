@@ -1,12 +1,12 @@
 // src/socket/handlers/messageHandler.ts
 import { Socket } from 'socket.io';
-import MessageModel from '@/models/Message';
+import { Message } from '@/models/Message';
 import { ChatMessage } from '@/types/ChatMessage';
 
 export const registerMessageHandlers = (socket: Socket) => {
   socket.on('message:create', async (msg: ChatMessage) => {
     try {
-      const saved = await MessageModel.create({
+      const saved = await Message.create({
         text: msg.text,
         conversationId: msg.conversationId,
         sender: socket.data.user._id,

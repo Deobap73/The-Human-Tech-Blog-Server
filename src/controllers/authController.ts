@@ -78,8 +78,8 @@ export const handleLogout = async (_req: Request, res: Response) => {
 
 export const handleRefreshToken = async (req: Request, res: Response) => {
   try {
-    console.log('📥 Incoming /refresh request');
-    console.log('🧁 Cookies:', req.cookies);
+    // console.log('📥 Incoming /refresh request');
+    // console.log('🧁 Cookies:', req.cookies);
 
     const token = req.cookies?.refreshToken;
     if (!token) {
@@ -88,7 +88,7 @@ export const handleRefreshToken = async (req: Request, res: Response) => {
     }
 
     const decoded = jwt.verify(token, env.REFRESH_TOKEN_SECRET) as { id: string };
-    console.log('🧬 Decoded JWT payload:', decoded);
+    // console.log('🧬 Decoded JWT payload:', decoded);
 
     const user = await User.findById(decoded.id);
     if (!user || !user._id) {

@@ -2,15 +2,28 @@
 import { env } from './config/env';
 import app from './app';
 import { connectDB } from './config/db';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
+import { setupSocket } from './socket';
 
 const PORT = env.PORT || 5000;
 
 connectDB()
   .then(() => {
     console.log('📦 Connected to MongoDB');
-    app.listen(PORT, () => {
-      console.log(`\n🚀 Server ready at: http://localhost:${PORT}`);
-      console.log(`📚 API docs: http://localhost:${PORT}/api-docs`);
+
+    const httpServer = createServer(app);
+    const io = new Server(httpServer, {
+      cors: {
+        origin: 'http://localhost:5173',
+        credentials: true,
+      },
+    });
+
+    setupSocket(io); // ✅ registra eventos socket
+
+    httpServer.listen(PORT, () => {
+      console.log(`🚀 Server running at: http://localhost:${PORT}`);
     });
   })
   .catch((err) => {

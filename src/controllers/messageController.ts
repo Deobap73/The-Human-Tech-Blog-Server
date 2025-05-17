@@ -22,10 +22,10 @@ export const getMessages = async (req: Request, res: Response): Promise<void> =>
       return;
     }
 
-    const messages = await Message.find({ conversation: conversationId }).populate(
-      'sender',
-      'name'
-    );
+    const messages = await Message.find({ conversation: conversationId })
+      .populate('sender', 'name email avatar role')
+      .lean();
+
     res.status(200).json(messages);
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch messages' });
