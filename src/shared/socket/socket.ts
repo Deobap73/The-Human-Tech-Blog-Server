@@ -2,8 +2,8 @@
 import { Server as IOServer, Socket } from 'socket.io';
 import jwt from 'jsonwebtoken';
 import http from 'http';
-import { env } from '@/config/env';
-import User from '@/models/User';
+import { env } from '../../config/env';
+import User from '../..//models/User';
 
 export const setupSocket = (server: http.Server) => {
   const io = new IOServer(server, {

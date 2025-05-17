@@ -1,7 +1,7 @@
 // src/socket/handlers/messageHandler.ts
 import { Socket } from 'socket.io';
-import { Message } from '@/models/Message';
-import { ChatMessage } from '@/types/ChatMessage';
+import { Message } from '../../models/Message';
+import { ChatMessage } from '../../types/ChatMessage';
 
 export const registerMessageHandlers = (socket: Socket) => {
   socket.on('message:create', async (msg: ChatMessage) => {

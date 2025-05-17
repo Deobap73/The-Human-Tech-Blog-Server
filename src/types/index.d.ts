@@ -2,7 +2,7 @@
 
 import { Document, Types } from 'mongoose';
 import { IUser } from '../models/User';
-import { UserDoc } from '@/models/User';
+import { UserDoc } from '../models/User';
 import { Socket as IOSocket } from 'socket.io';
 
 declare global {
