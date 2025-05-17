@@ -1,12 +1,10 @@
 // src/routes/conversationRoutes.ts
 import express from 'express';
-import { createConversation, getUserConversations } from '../controllers/conversationController';
-import { protect } from '../middleware/authMiddleware';
-import { isAdminOrTarget } from '../middleware/roleMiddleware';
+import { getUserConversations } from '../controllers/conversationController';
+import { isAuthenticated } from '../middleware/authMiddleware';
 
 const router = express.Router();
 
-router.post('/', protect, createConversation);
-router.get('/:userId', protect, isAdminOrTarget, getUserConversations);
+router.get('/', isAuthenticated, getUserConversations);
 
 export default router;

@@ -1,11 +1,11 @@
 // src/routes/messageRoutes.ts
 import express from 'express';
-import { sendMessage, getMessages } from '../controllers/messageController';
-import { protect } from '../middleware/authMiddleware';
+import { getMessages, sendMessage } from '../controllers/messageController';
+import { isAuthenticated } from '../middleware/authMiddleware';
 
 const router = express.Router();
 
-router.post('/', protect, sendMessage);
-router.get('/:conversationId', protect, getMessages); // TODO: validate ownership in controller
+router.get('/:conversationId', isAuthenticated, getMessages);
+router.post('/:conversationId', isAuthenticated, sendMessage);
 
 export default router;

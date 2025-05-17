@@ -1,42 +1,17 @@
 // src/controllers/conversationController.ts
-
 import { Request, Response } from 'express';
-import Conversation from '../models/Conversation';
+import { Conversation } from '../models/Conversation';
+import { IUser } from '../types/User';
 
-export const createConversation = async (req: Request, res: Response) => {
-  const { senderId, receiverId } = req.body;
-
-  if (!senderId || !receiverId) {
-    return res.status(400).json({ message: 'Missing users' });
-  }
+export const getUserConversations = async (req: Request, res: Response): Promise<void> => {
+  const user = req.user as IUser;
 
   try {
-    const existing = await Conversation.findOne({
-      participants: { $all: [senderId, receiverId] },
-    });
+    const query = user.role === 'admin' ? {} : { participants: user._id };
 
-    if (existing) {
-      return res.status(200).json(existing);
-    }
-
-    const conversation = new Conversation({ participants: [senderId, receiverId] });
-    await conversation.save();
-
-    return res.status(201).json(conversation);
-  } catch (error) {
-    console.error('[createConversation]', error);
-    return res.status(500).json({ error: 'Could not create conversation' });
-  }
-};
-
-export const getUserConversations = async (req: Request, res: Response) => {
-  const { userId } = req.params;
-
-  try {
-    const conversations = await Conversation.find({ participants: userId });
-    return res.status(200).json(conversations);
-  } catch (error) {
-    console.error('[getUserConversations]', error);
-    return res.status(500).json({ error: 'Failed to get conversations' });
+    const conversations = await Conversation.find(query).populate('participants', 'name email');
+    res.status(200).json(conversations);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch conversations' });
   }
 };

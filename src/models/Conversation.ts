@@ -1,16 +1,17 @@
-// The-Human-Tech-Blog-Server/src/models/Conversation.ts
-
-import mongoose, { Schema, Document } from 'mongoose';
+// src/models/Conversation.ts
+import { Schema, model, Document, Types } from 'mongoose';
 
 export interface IConversation extends Document {
-  participants: mongoose.Types.ObjectId[]; // [Admin, User]
+  participants: Types.ObjectId[];
+  createdAt: Date;
+  updatedAt: Date;
 }
 
-const ConversationSchema = new Schema(
+const conversationSchema = new Schema<IConversation>(
   {
     participants: [{ type: Schema.Types.ObjectId, ref: 'User', required: true }],
   },
   { timestamps: true }
 );
 
-export default mongoose.model<IConversation>('Conversation', ConversationSchema);
+export const Conversation = model<IConversation>('Conversation', conversationSchema);

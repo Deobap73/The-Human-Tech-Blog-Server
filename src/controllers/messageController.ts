@@ -1,47 +1,61 @@
 // src/controllers/messageController.ts
 import { Request, Response } from 'express';
-import Message from '../models/Message';
-import Conversation from '../models/Conversation';
+import { Types } from 'mongoose';
+import { Message } from '../models/Message';
+import { Conversation } from '../models/Conversation';
 import { IUser } from '../types/User';
 
-export const sendMessage = async (req: Request, res: Response) => {
+export const getMessages = async (req: Request, res: Response): Promise<void> => {
+  const user = req.user as IUser;
+  const { conversationId } = req.params;
+
   try {
-    const { conversationId, text } = req.body;
-    const sender = (req.user as IUser)._id;
-    const message = await Message.create({ conversationId, sender, text });
-    res.status(201).json(message);
+    const userId = new Types.ObjectId(user._id as string);
+    const conversation = await Conversation.findById(conversationId);
+
+    if (
+      !conversation ||
+      (!user.role.includes('admin') && !conversation.participants.some((p) => p.equals(userId)))
+    ) {
+      res.status(403).json({ error: 'Unauthorized' });
+      return;
+    }
+
+    const messages = await Message.find({ conversation: conversationId }).populate(
+      'sender',
+      'name'
+    );
+    res.status(200).json(messages);
   } catch (err) {
-    res.status(500).json({ message: 'Failed to send message', error: err });
+    res.status(500).json({ error: 'Failed to fetch messages' });
   }
 };
 
-export const getMessages = async (req: Request, res: Response): Promise<void> => {
+export const sendMessage = async (req: Request, res: Response): Promise<void> => {
+  const user = req.user as IUser;
+  const { conversationId } = req.params;
+  const { text } = req.body;
+
   try {
-    const { conversationId } = req.params;
-    const user = req.user as IUser;
-
-    if (!user?._id) {
-      res.status(401).json({ message: 'Unauthorized' });
-      return;
-    }
-
+    const userId = new Types.ObjectId(user._id as string);
     const conversation = await Conversation.findById(conversationId);
-    if (!conversation) {
-      res.status(404).json({ message: 'Conversation not found' });
-      return;
-    }
 
     if (
-      user.role !== 'admin' &&
-      !conversation.participants.some((p) => p.toString() === String(user._id))
+      !conversation ||
+      (!user.role.includes('admin') && !conversation.participants.some((p) => p.equals(userId)))
     ) {
-      res.status(403).json({ message: 'Access denied' });
+      res.status(403).json({ error: 'Unauthorized' });
       return;
     }
 
-    const messages = await Message.find({ conversationId });
-    res.status(200).json(messages);
+    const newMessage = await Message.create({
+      conversation: conversation._id,
+      sender: userId,
+      text,
+    });
+
+    res.status(201).json(newMessage);
   } catch (err) {
-    res.status(500).json({ message: 'Failed to get messages', error: err });
+    res.status(500).json({ error: 'Failed to send message' });
   }
 };
