@@ -10,7 +10,7 @@ import {
   getPostBySlug,
 } from '../controllers/postController';
 import { protect } from '../middleware/authMiddleware';
-import { isAdmin } from '../middleware/roleMiddleware'; // Changed from authorizeRoles
+import { authorizeRoles } from '../middleware/roleMiddleware';
 import upload from '../middleware/uploadMiddleware';
 import { uploadToCloudinary } from '../utils/cloudinaryUpload';
 
@@ -20,16 +20,14 @@ router.get('/', getPosts);
 router.get('/:id', getPostById);
 router.get('/slug/:slug', getPostBySlug);
 
-// Simplified to isAdmin since you don't want to use authorizeRoles
-// Note: This loses the 'editor' role functionality from original
-router.post('/', protect, isAdmin, createPost);
-router.put('/:id', protect, isAdmin, updatePost);
-router.delete('/:id', protect, isAdmin, deletePost);
+router.post('/', protect, authorizeRoles('admin', 'editor'), createPost);
+router.put('/:id', protect, authorizeRoles('admin', 'editor'), updatePost);
+router.delete('/:id', protect, authorizeRoles('admin', 'editor'), deletePost);
 
 router.post(
   '/upload',
   protect,
-  isAdmin, // Changed from authorizeRoles('admin', 'editor')
+  authorizeRoles('admin', 'editor'),
   upload.single('image'),
   async (req, res) => {
     if (!req.file) return res.status(400).json({ message: 'No image file provided' });

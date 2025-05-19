@@ -27,3 +27,15 @@ export const isAdminOrTarget = (req: Request, res: Response, next: NextFunction)
   }
   next();
 };
+
+
+export const authorizeRoles = (...roles: string[]) => {
+  return (req: Request, res: Response, next: NextFunction): void => {
+    const user = req.user as IUser;
+    if (!user || !roles.includes(user.role)) {
+      res.status(403).json({ message: `Access denied: Only [${roles.join(', ')}] allowed` });
+      return;
+    }
+    next();
+  };
+};

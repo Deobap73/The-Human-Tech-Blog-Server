@@ -9,6 +9,9 @@ import cookieParser from 'cookie-parser';
 // import { csrfProtection } from './middleware/csrfMiddleware';
 import cors from 'cors';
 // import { verifyCsrf } from './middleware/csrfMiddleware';
+import passport from 'passport';
+import './config/passport';
+import { env } from './config/env';
 import setupRoutes from './routes/setupRoutes';
 import authRoutes from './routes/authRoutes';
 import categoryRoutes from './routes/categoryRoutes';
@@ -20,9 +23,7 @@ import { twofaRoutes } from './routes/twofaRoutes';
 import conversationRoutes from './routes/conversationRoutes';
 import messageRoutes from './routes/messageRoutes';
 import adminSettingsRoutes from './routes/adminSettingsRoutes';
-import passport from 'passport';
-import './config/passport';
-import { env } from './config/env';
+import draftRoutes from './routes/draftRoutes';
 
 const app = express();
 
@@ -35,9 +36,10 @@ app.use(
     origin: 'http://localhost:5173',
     credentials: true,
     allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token'],
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'], 
   })
 );
+
 
 // 3. Body parsers
 app.use(express.json());
@@ -64,6 +66,7 @@ app.use('/api/2fa', twofaRoutes);
 app.use('/api/conversations', conversationRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/admin/settings', adminSettingsRoutes);
+app.use('/api/drafts', draftRoutes);
 
 app.get('/health', (_, res) => {
   res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
