@@ -77,3 +77,16 @@ export const getAllDrafts = async (_req: Request, res: Response) => {
     return res.status(500).json({ message: 'Failed to fetch drafts' });
   }
 };
+
+// ✅ Eliminar todos os rascunho
+export const deleteAllMyDrafts = async (req: Request, res: Response) => {
+  const user = req.user as IUser;
+
+  try {
+    const result = await Draft.deleteMany({ author: user._id });
+    return res.status(200).json({ message: 'All drafts deleted', count: result.deletedCount });
+  } catch (error) {
+    console.error('[Delete All Drafts]', error);
+    return res.status(500).json({ message: 'Failed to delete drafts' });
+  }
+};

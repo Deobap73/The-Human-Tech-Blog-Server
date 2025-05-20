@@ -5,6 +5,7 @@ import {
   updateDraft,
   getDraftById,
   deleteDraft,
+  deleteAllMyDrafts,
   getAllDrafts,
   getMyDrafts,
 } from '../controllers/draftController';
@@ -30,5 +31,8 @@ router.get('/me', protect, getMyDrafts);
 
 // 🛡️ GET /api/drafts – listar todos os rascunhos (admin only)
 router.get('/', protect, authorizeRoles('admin'), getAllDrafts);
+
+// 🗑 DELETE /api/clear/– excluir todos os rascunho
+router.delete('/clear', protect, deleteAllMyDrafts);
 
 export default router;
