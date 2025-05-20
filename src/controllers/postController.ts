@@ -3,10 +3,12 @@
 import { Request, Response } from 'express';
 import { IUser } from '../models/User';
 import Post from '../models/Post';
+import Draft from '../models/Draft';
 
 export const createPost = async (req: Request, res: Response) => {
   try {
-    const { title, description, content, image, tags, status } = req.body;
+    const { title, description, content, image, tags, status, draftId } = req.body;
+    const authorId = (req.user as IUser)._id;
 
     const newPost = new Post({
       title,
@@ -15,11 +17,17 @@ export const createPost = async (req: Request, res: Response) => {
       image,
       tags: tags || [],
       status: status || 'draft',
-      author: (req.user as IUser)._id,
+      author: authorId,
       categories: [],
     });
 
     await newPost.save();
+
+    // 🔥 Remove draft se fornecido
+    if (draftId) {
+      await Draft.findOneAndDelete({ _id: draftId, author: authorId });
+    }
+
     return res.status(201).json({
       message: 'Post created',
       post: newPost,
