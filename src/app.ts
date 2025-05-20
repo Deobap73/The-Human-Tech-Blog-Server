@@ -6,6 +6,7 @@ import path from 'path';
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 import cookieParser from 'cookie-parser';
+import { globalLimiter } from './middleware/rateLimitMiddleware';
 // import { csrfProtection } from './middleware/csrfMiddleware';
 import cors from 'cors';
 // import { verifyCsrf } from './middleware/csrfMiddleware';
@@ -29,6 +30,7 @@ const app = express();
 
 // 1. Cookie Parser primeiro
 app.use(cookieParser());
+app.use(globalLimiter);
 
 // 2. CORS
 app.use(
@@ -36,10 +38,9 @@ app.use(
     origin: 'http://localhost:5173',
     credentials: true,
     allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token'],
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'], 
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   })
 );
-
 
 // 3. Body parsers
 app.use(express.json());
