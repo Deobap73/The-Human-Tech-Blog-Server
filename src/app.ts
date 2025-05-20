@@ -1,4 +1,4 @@
-// The-Human-Tech-Blog-Server/src/app.ts
+// ✅ The-Human-Tech-Blog-Server/src/app.ts
 
 import express from 'express';
 import dotenv from 'dotenv';
@@ -6,13 +6,8 @@ import path from 'path';
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 import cookieParser from 'cookie-parser';
-import { globalLimiter } from './middleware/rateLimitMiddleware';
-// import { csrfProtection } from './middleware/csrfMiddleware';
 import cors from 'cors';
-// import { verifyCsrf } from './middleware/csrfMiddleware';
-import passport from 'passport';
-import './config/passport';
-import { env } from './config/env';
+import csrf from 'csurf';
 import setupRoutes from './routes/setupRoutes';
 import authRoutes from './routes/authRoutes';
 import categoryRoutes from './routes/categoryRoutes';
@@ -20,19 +15,19 @@ import postRoutes from './routes/postRoutes';
 import commentRoutes from './routes/commentRoutes';
 import reactionRoutes from './routes/reactionRoutes';
 import bookmarkRoutes from './routes/bookmarkRoutes';
-import { twofaRoutes } from './routes/twofaRoutes';
+import twofaRoutes from './routes/twofaRoutes';
 import conversationRoutes from './routes/conversationRoutes';
 import messageRoutes from './routes/messageRoutes';
 import adminSettingsRoutes from './routes/adminSettingsRoutes';
 import draftRoutes from './routes/draftRoutes';
+import passport from 'passport';
+import './config/passport';
+import { env } from './config/env';
 
 const app = express();
 
-// 1. Cookie Parser primeiro
+// 1. Cookies e CORS
 app.use(cookieParser());
-app.use(globalLimiter);
-
-// 2. CORS
 app.use(
   cors({
     origin: 'http://localhost:5173',
@@ -42,20 +37,28 @@ app.use(
   })
 );
 
-// 3. Body parsers
+// 2. Body parser
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// 4. CSRF Protection (após body parsers)
-// app.use(verifyCsrf);
+// 3. CSRF protection middleware
+const csrfProtection = csrf({
+  cookie: {
+    httpOnly: false,
+    sameSite: 'lax',
+    secure: env.isProduction,
+  },
+});
 
-// ⚠️ Redis session temporarily disabled
-// app.use(session({ ... }));
+app.use(csrfProtection);
+
+app.get('/api/auth/csrf', (req, res) => {
+  return res.status(200).json({ csrfToken: req.csrfToken() });
+});
 
 app.use(passport.initialize());
-// app.use(passport.session()); // Only if using express-session
 
-// 🔁 Rotas principais
+// 🔁 Rotas protegidas
 app.use('/api/setup', setupRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/categories', categoryRoutes);

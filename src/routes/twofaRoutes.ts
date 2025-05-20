@@ -1,13 +1,13 @@
-// src/routes/twofaRoutes.ts
+// The-Human-Tech-Blog-Server/src/routes/twofaRoutes.ts
 
 import express from 'express';
-import { generate2FASecret, verify2FAToken, disable2FA } from '../controllers/twofaController';
 import { protect } from '../middleware/authMiddleware';
+import { generate2FA, verify2FA, disable2FA } from '../controllers/twofaController';
 
 const router = express.Router();
 
-router.get('/generate', protect, generate2FASecret);
-router.post('/verify', protect, verify2FAToken);
+router.post('/generate', protect, generate2FA);
+router.post('/verify', protect, verify2FA);
 router.post('/disable', protect, disable2FA);
 
-export { router as twofaRoutes };
+export default router;
