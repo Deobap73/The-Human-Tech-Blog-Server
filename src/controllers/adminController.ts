@@ -5,12 +5,6 @@ import redisClient from '../config/redis';
 import { env } from '../config/env';
 import { issueTokens } from '../utils/issueTokens';
 import speakeasy from 'speakeasy';
-import Post from '../models/Post';
-import Draft from '../models/Draft';
-import Category from '../models/Category';
-import { Message } from '../models/Message';
-import Reaction from '../models/Reaction';
-import Comment from '../models/Comment';
 import { UserActionLog } from '../models/UserActionLog';
 
 export const handleRegister = async (req: Request, res: Response) => {
@@ -91,49 +85,35 @@ export const getAdminDashboard = (req: Request, res: Response) => {
 
 export const getStats = async (_req: Request, res: Response) => {
   try {
-    const [
-      totalUsers,
-      totalPosts,
-      totalDrafts,
-      totalCategories,
-      totalMessages,
-      totalReactions,
-      totalComments,
-    ] = await Promise.all([
+    const [users, posts, drafts, comments] = await Promise.all([
       User.countDocuments(),
-      Post.countDocuments({ status: 'published' }),
-      Draft.countDocuments(),
-      Category.countDocuments(),
-      Message.countDocuments(),
-      Reaction.countDocuments(),
-      Comment.countDocuments(),
+      require('../models/Post').default.countDocuments(),
+      require('../models/Draft').default.countDocuments(),
+      require('../models/Comment').default.countDocuments(),
     ]);
 
     return res.status(200).json({
-      totalUsers,
-      totalPosts,
-      totalDrafts,
-      totalCategories,
-      totalMessages,
-      totalReactions,
-      totalComments,
+      totalUsers: users,
+      totalPosts: posts,
+      totalDrafts: drafts,
+      totalComments: comments,
     });
-  } catch (error) {
-    console.error('[Admin Stats]', error);
-    return res.status(500).json({ message: 'Failed to load statistics' });
+  } catch (err) {
+    console.error('[Get Stats]', err);
+    return res.status(500).json({ message: 'Failed to load stats' });
   }
 };
 
-export const getActionLogs = async (_req: Request, res: Response) => {
+export const getAdminLogs = async (_req: Request, res: Response) => {
   try {
     const logs = await UserActionLog.find()
       .populate('user', 'name email')
       .sort({ createdAt: -1 })
       .limit(100);
 
-    return res.status(200).json({ logs });
-  } catch (error) {
-    console.error('[Get Logs]', error);
-    return res.status(500).json({ message: 'Failed to fetch action logs' });
+    return res.status(200).json(logs);
+  } catch (err) {
+    console.error('[Get Admin Logs]', err);
+    return res.status(500).json({ message: 'Failed to load logs' });
   }
 };
