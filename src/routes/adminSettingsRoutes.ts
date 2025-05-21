@@ -6,7 +6,7 @@ import { getAdminDashboard, getStats, getAdminLogs } from '../controllers/adminC
 
 const router = express.Router();
 
-// ✅ Rotas protegidas com autenticação e autorização admin
+// ✅ Todas as rotas protegidas com autenticação e autorização admin
 router.get('/dashboard', protect, isAdmin, getAdminDashboard);
 router.get('/stats', protect, isAdmin, getStats);
 router.get('/logs', protect, isAdmin, getAdminLogs);

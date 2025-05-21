@@ -1,57 +1,57 @@
-// The-Human-Tech-Blog-Server/src/controllers/categoryController.ts
-
+// ✅ The-Human-Tech-Blog-Server/src/controllers/categoryController.ts
 import { Request, Response } from 'express';
 import Category from '../models/Category';
+import Post from '../models/Post';
 
-export const createCategory = async (req: Request, res: Response) => {
+export const getAllCategories = async (_req: Request, res: Response) => {
   try {
-    const { name, slug, logo } = req.body;
-
-    const exists = await Category.findOne({ slug });
-    if (exists) return res.status(400).json({ message: 'Category already exists' });
-
-    const category = new Category({ name, slug, logo });
-    await category.save();
-
-    return res.status(201).json({ message: 'Category created', category });
-  } catch (error) {
-    console.error('[Create Category]', error);
-    return res.status(500).json({ message: 'Internal Server Error' });
-  }
-};
-
-export const getCategories = async (_req: Request, res: Response) => {
-  try {
-    const categories = await Category.find().sort({ createdAt: -1 });
+    const categories = await Category.find();
     return res.status(200).json(categories);
   } catch (error) {
     return res.status(500).json({ message: 'Failed to fetch categories' });
   }
 };
 
-export const updateCategory = async (req: Request, res: Response) => {
+export const createCategory = async (req: Request, res: Response) => {
   try {
-    const { name, slug, logo } = req.body;
-    const updated = await Category.findByIdAndUpdate(
-      req.params.id,
-      { name, slug, logo },
-      { new: true }
-    );
-    if (!updated) return res.status(404).json({ message: 'Category not found' });
-
-    return res.status(200).json({ message: 'Category updated', category: updated });
+    const category = await Category.create(req.body);
+    return res.status(201).json(category);
   } catch (error) {
-    return res.status(500).json({ message: 'Failed to update category' });
+    return res
+      .status(400)
+      .json({ message: error instanceof Error ? error.message : 'Invalid data' });
   }
 };
 
 export const deleteCategory = async (req: Request, res: Response) => {
   try {
-    const deleted = await Category.findByIdAndDelete(req.params.id);
-    if (!deleted) return res.status(404).json({ message: 'Category not found' });
+    const categoryId = req.params.id;
+    const postsUsingCategory = await Post.find({ categories: categoryId });
 
-    return res.status(200).json({ message: 'Category deleted' });
+    if (postsUsingCategory.length > 0) {
+      return res.status(400).json({ message: 'Cannot delete: Category is in use by posts' });
+    }
+
+    await Category.findByIdAndDelete(categoryId);
+    return res.status(200).json({ message: 'Category deleted successfully' });
   } catch (error) {
     return res.status(500).json({ message: 'Failed to delete category' });
+  }
+};
+
+export const getPostsByCategorySlug = async (req: Request, res: Response) => {
+  try {
+    const slug = req.params.slug;
+    const category = await Category.findOne({ slug });
+    if (!category) return res.status(404).json({ message: 'Category not found' });
+
+    const posts = await Post.find({ categories: category._id, status: 'published' })
+      .populate('author', 'name')
+      .sort({ createdAt: -1 });
+
+    return res.status(200).json(posts);
+  } catch (error) {
+    console.error('[getPostsByCategorySlug]', error);
+    return res.status(500).json({ message: 'Failed to fetch posts for category' });
   }
 };

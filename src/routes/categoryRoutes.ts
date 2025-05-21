@@ -1,22 +1,19 @@
-// The-Human-Tech-Blog-Server/src/routes/authRoutes.ts
-
+// ✅ The-Human-Tech-Blog-Server/src/routes/categoryRoutes.ts
 import express from 'express';
 import {
+  getAllCategories,
   createCategory,
-  getCategories,
-  updateCategory,
   deleteCategory,
+  getPostsByCategorySlug,
 } from '../controllers/categoryController';
 import { protect } from '../middleware/authMiddleware';
-import { isAdmin } from '../middleware/roleMiddleware'; // Changed from authorizeRoles
+import { authorizeRoles } from '../middleware/roleMiddleware';
 
 const router = express.Router();
 
-router.get('/', getCategories);
-
-// Changed all authorizeRoles('admin') to isAdmin
-router.post('/', protect, isAdmin, createCategory);
-router.put('/:id', protect, isAdmin, updateCategory);
-router.delete('/:id', protect, isAdmin, deleteCategory);
+router.get('/', getAllCategories);
+router.post('/', protect, authorizeRoles('admin', 'editor'), createCategory);
+router.delete('/:id', protect, authorizeRoles('admin', 'editor'), deleteCategory);
+router.get('/:slug/posts', getPostsByCategorySlug);
 
 export default router;
