@@ -1,11 +1,9 @@
-// src/controllers/authController.ts
+// The-Human-Tech-Blog-Server/src/controllers/adminController.ts
 import { Request, Response } from 'express';
-import User from '../models/User';
+import User, { UserDoc } from '../models/User';
 import redisClient from '../config/redis';
 import { env } from '../config/env';
 import { issueTokens } from '../utils/issueTokens';
-import { WithId } from '../types/WithId';
-import { IUser } from '../types/User';
 import speakeasy from 'speakeasy';
 
 export const handleRegister = async (req: Request, res: Response) => {
@@ -22,20 +20,19 @@ export const handleRegister = async (req: Request, res: Response) => {
 
 export const handleLogin = async (req: Request, res: Response) => {
   const { email, password, token } = req.body;
-  const user = await User.findOne({ email }).select('+password');
+  const user = (await User.findOne({ email }).select('+password')) as UserDoc;
+
   if (!user || !(await user.comparePassword(password))) {
     return res.status(401).json({ message: 'Invalid credentials' });
   }
 
-  const typedUser = user as WithId<IUser>;
-
-  if (typedUser.role === 'admin' && typedUser.twoFactorEnabled) {
+  if (user.role === 'admin' && user.twoFactorEnabled) {
     if (!token) {
       return res.status(401).json({ message: '2FA token required' });
     }
 
     const verified = speakeasy.totp.verify({
-      secret: typedUser.twoFactorSecret || '',
+      secret: user.twoFactorSecret || '',
       encoding: 'base32',
       token,
     });
@@ -45,7 +42,7 @@ export const handleLogin = async (req: Request, res: Response) => {
     }
   }
 
-  const { accessToken } = await issueTokens(typedUser._id.toString(), res);
+  const { accessToken } = await issueTokens(user._id.toString(), res);
   return res.json({ accessToken });
 };
 
@@ -78,10 +75,9 @@ export const handleGetMe = async (req: Request, res: Response) => {
 };
 
 export const getAdminDashboard = (req: Request, res: Response) => {
-  // Example: Access user data from req.user (if using JWT/auth middleware)
   const user = req.user;
   return res.status(200).json({
     message: 'Admin dashboard data',
-    user: user, // Or any other data from `req`
+    user,
   });
 };

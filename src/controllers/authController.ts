@@ -1,15 +1,14 @@
-// ✅ The-Human-Tech-Blog-Server/src/controllers/authController.ts
+// The-Human-Tech-Blog-Server/src/controllers/authController.ts
 
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
-import speakeasy from 'speakeasy';
-import qrcode from 'qrcode';
 import User from '../models/User';
 import { issueTokens } from '../utils/issueTokens';
 import { IUser } from '../types/User';
-import { WithId } from '../types/WithId';
 import { env } from '../config/env';
+import jwt from 'jsonwebtoken';
 
+// 🔐 Login com suporte a 2FA (se aplicável)
 export const login = async (req: Request, res: Response) => {
   const { email, password, token } = req.body;
 
@@ -18,16 +17,14 @@ export const login = async (req: Request, res: Response) => {
     return res.status(401).json({ message: 'Invalid credentials' });
   }
 
-  const typedUser = user as WithId<IUser>;
-
-  // 🔐 Verifica se user admin tem 2FA ativado
-  if (typedUser.role === 'admin' && typedUser.twoFactorEnabled) {
+  if (user.role === 'admin' && user.twoFactorEnabled) {
     if (!token) {
       return res.status(401).json({ message: '2FA token required', twoFactorRequired: true });
     }
 
+    const speakeasy = await import('speakeasy');
     const verified = speakeasy.totp.verify({
-      secret: typedUser.twoFactorSecret || '',
+      secret: user.twoFactorSecret || '',
       encoding: 'base32',
       token,
       window: 1,
@@ -38,67 +35,63 @@ export const login = async (req: Request, res: Response) => {
     }
   }
 
-  const tokens = await issueTokens(typedUser._id.toString(), res);
+  const tokens = await issueTokens(user._id as unknown as string, res);
 
   res.cookie('XSRF-TOKEN', tokens.accessToken, {
+    httpOnly: false,
     sameSite: 'lax',
     secure: env.isProduction,
-    httpOnly: false,
-    maxAge: 1000 * 60 * 60, // 1h
+    maxAge: 60 * 60 * 1000,
   });
 
   return res.status(200).json({ message: 'Login successful' });
 };
 
-export const enable2FA = async (req: Request, res: Response) => {
-  const user = req.user as IUser;
+// 📥 Registo
+export const register = async (req: Request, res: Response) => {
+  const { name, email, password } = req.body;
+  const hashedPassword = await bcrypt.hash(password, 12);
 
-  if (user.role !== 'admin') {
-    return res.status(403).json({ message: 'Only admins can enable 2FA' });
-  }
+  const userExists = await User.findOne({ email });
+  if (userExists) return res.status(400).json({ message: 'Email already in use' });
 
-  const secret = speakeasy.generateSecret({ name: `HumanTechBlog (${user.email})` });
+  const newUser = new User({ name, email, password: hashedPassword });
+  await newUser.save();
 
-  if (!secret.otpauth_url) {
-    return res.status(500).json({ message: 'Failed to generate OTP Auth URL' });
-  }
-
-  const qr = await qrcode.toDataURL(secret.otpauth_url);
-
-  user.twoFactorSecret = secret.base32;
-  user.twoFactorEnabled = false;
-  await user.save();
-
-  return res.status(200).json({ qr, secret: secret.base32 });
+  return res.status(201).json({ message: 'User registered successfully' });
 };
 
-export const verify2FA = async (req: Request, res: Response) => {
-  const { token } = req.body;
-  const user = req.user as IUser;
-
-  const verified = speakeasy.totp.verify({
-    secret: user.twoFactorSecret || '',
-    encoding: 'base32',
-    token,
-    window: 1,
-  });
-
-  if (!verified) {
-    return res.status(400).json({ message: 'Invalid 2FA token' });
-  }
-
-  user.twoFactorEnabled = true;
-  await user.save();
-
-  return res.status(200).json({ message: '2FA enabled successfully' });
+// 🔐 Logout
+export const logout = async (_req: Request, res: Response) => {
+  res.clearCookie('refreshToken');
+  return res.status(200).json({ message: 'Logged out successfully' });
 };
 
-export const disable2FA = async (req: Request, res: Response) => {
+// 🔄 Refresh Token
+export const refreshToken = async (req: Request, res: Response) => {
+  const token = req.cookies.refreshToken;
+  if (!token) return res.status(401).json({ message: 'No refresh token provided' });
+
+  try {
+    const decoded = jwt.verify(token, env.REFRESH_TOKEN_SECRET) as { id: string };
+    const tokens = await issueTokens(decoded.id, res);
+
+    res.cookie('XSRF-TOKEN', tokens.accessToken, {
+      httpOnly: false,
+      sameSite: 'lax',
+      secure: env.isProduction,
+      maxAge: 60 * 60 * 1000,
+    });
+
+    return res.status(200).json({ accessToken: tokens.accessToken });
+  } catch (error) {
+    return res.status(401).json({ message: 'Invalid refresh token' });
+  }
+};
+
+// 👤 Obter utilizador atual
+export const getMe = async (req: Request, res: Response) => {
   const user = req.user as IUser;
-
-  user.twoFactorSecret = undefined;
-  user.twoFactorEnabled = false;
-  await user.save();
-
-  return res.status(200).json({ message: '2FA disabled' });
+  if (!user) return res.status(401).json({ message: 'Unauthorized' });
+  return res.status(200).json({ user });
 };

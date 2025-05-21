@@ -1,8 +1,8 @@
-// src/routes/authRoutes.ts
+// ✅ The-Human-Tech-Blog-Server/src/routes/authRoutes.ts
+
 import express, { Request, Response } from 'express';
 import passport from 'passport';
-import * as authController from '../controllers/authController';
-// import { debugRequestHeaders } from '../middleware/debugRequestHeaders';
+import { login, logout, register, refreshToken, getMe } from '../controllers/authController';
 import { handleOAuthCallback } from '../controllers/oauthController';
 import { protect } from '../middleware/authMiddleware';
 import { isAdmin } from '../middleware/roleMiddleware';
@@ -29,12 +29,12 @@ router.get('/csrf', csrf({ cookie: true }), (req: Request, res: Response) => {
   res.status(200).json({ csrfToken: token });
 });
 
-router.post('/login', authLimiter, csrfProtection, authController.handleLogin);
-router.post('/token', authController.handleToken);
-router.post('/register', authLimiter, authController.handleRegister);
-router.post('/logout', authController.handleLogout);
-router.post('/refresh', authController.handleRefreshToken);
-router.get('/me', protect, authController.handleGetMe);
+router.post('/login', authLimiter, csrfProtection, login);
+router.post('/token', refreshToken);
+router.post('/register', authLimiter, register);
+router.post('/logout', logout);
+router.post('/refresh', refreshToken);
+router.get('/me', protect, getMe);
 router.get('/admin', protect, isAdmin, getAdminDashboard);
 
 router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));

@@ -1,27 +1,26 @@
-// ✅ The-Human-Tech-Blog-Server/src/routes/draftRoutes.ts
-
-import express from 'express';
+// 📄 The-Human-Tech-Blog-Server/src/routes/draftRoutes.ts
+import { Router } from 'express';
 import {
   createDraft,
+  deleteDraft,
   getDraftById,
   updateDraft,
-  deleteDraft,
-  getAllDrafts,
   getMyDrafts,
+  getAllDrafts,
 } from '../controllers/draftController';
 import { protect } from '../middleware/authMiddleware';
 import { authorizeRoles } from '../middleware/roleMiddleware';
+import { verifyDraftOwnership } from '../middleware/draftOwnership';
 
-const router = express.Router();
+const router = Router();
 
-// 👤 Autenticado (qualquer utilizador)
-router.post('/', protect, createDraft);
-router.get('/me', protect, getMyDrafts);
-router.get('/:id', protect, getDraftById);
-router.patch('/:id', protect, updateDraft);
-router.delete('/:id', protect, deleteDraft);
+router.use(protect);
 
-// 🔒 Apenas admin pode ver todos os rascunhos
-router.get('/', protect, authorizeRoles('admin'), getAllDrafts);
+router.post('/', createDraft);
+router.get('/me', getMyDrafts);
+router.get('/', authorizeRoles('admin'), getAllDrafts);
+router.get('/:id', verifyDraftOwnership, getDraftById);
+router.patch('/:id', verifyDraftOwnership, updateDraft);
+router.delete('/:id', verifyDraftOwnership, deleteDraft);
 
 export default router;

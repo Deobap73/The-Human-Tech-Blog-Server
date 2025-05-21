@@ -1,4 +1,4 @@
-// The-Human-Tech-Blog-Server/src/routes/postRoutes.ts
+// ✅ The-Human-Tech-Blog-Server/src/routes/postRoutes.ts
 
 import express from 'express';
 import {
@@ -8,6 +8,7 @@ import {
   updatePost,
   deletePost,
   getPostBySlug,
+  publishDraft,
 } from '../controllers/postController';
 import { protect } from '../middleware/authMiddleware';
 import { authorizeRoles } from '../middleware/roleMiddleware';
@@ -17,8 +18,8 @@ import { uploadToCloudinary } from '../utils/cloudinaryUpload';
 const router = express.Router();
 
 router.get('/', getPosts);
-router.get('/:id', getPostById);
 router.get('/slug/:slug', getPostBySlug);
+router.get('/:id', getPostById);
 
 router.post('/', protect, authorizeRoles('admin', 'editor'), createPost);
 router.put('/:id', protect, authorizeRoles('admin', 'editor'), updatePost);
@@ -41,5 +42,7 @@ router.post(
     }
   }
 );
+
+router.post('/publish/:id', protect, authorizeRoles('admin', 'editor'), publishDraft);
 
 export default router;

@@ -3,7 +3,7 @@
 import { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import Reaction from '../models/Reaction';
-import { IUser } from '../models/User';
+import { IUser } from '../types/User';
 
 export const toggleReaction = async (req: Request, res: Response) => {
   const user = req.user as IUser;

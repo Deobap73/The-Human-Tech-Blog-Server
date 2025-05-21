@@ -2,7 +2,7 @@
 
 import { Request, Response } from 'express';
 import Comment from '../models/Comment';
-import { IUser } from '../models/User';
+import { IUser } from '../types/User';
 
 export const createComment = async (req: Request, res: Response) => {
   const user = req.user as IUser;

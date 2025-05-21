@@ -3,7 +3,7 @@
 import { Request, Response } from 'express';
 /* import mongoose from 'mongoose'; */
 import Bookmark from '../models/Bookmark';
-import { IUser } from '../models/User';
+import { IUser } from '../types/User';
 
 export const toggleBookmark = async (req: Request, res: Response) => {
   const user = req.user as IUser;
