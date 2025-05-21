@@ -14,13 +14,25 @@ import { verifyDraftOwnership } from '../middleware/draftOwnership';
 
 const router = Router();
 
+// 🔒 Todas as rotas requerem autenticação
 router.use(protect);
 
+// 📝 Criar novo rascunho
 router.post('/', createDraft);
+
+// 👤 Listar meus próprios rascunhos
 router.get('/me', getMyDrafts);
+
+// 🔒 Admin pode ver todos os rascunhos
 router.get('/', authorizeRoles('admin'), getAllDrafts);
+
+// 🧾 Obter rascunho por ID (apenas se for o autor)
 router.get('/:id', verifyDraftOwnership, getDraftById);
+
+// ✏️ Atualizar rascunho (apenas se for o autor)
 router.patch('/:id', verifyDraftOwnership, updateDraft);
+
+// ❌ Excluir rascunho (apenas se for o autor)
 router.delete('/:id', verifyDraftOwnership, deleteDraft);
 
 export default router;

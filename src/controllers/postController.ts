@@ -1,96 +1,37 @@
 // ✅ The-Human-Tech-Blog-Server/src/controllers/postController.ts
-
 import { Request, Response } from 'express';
 import Post from '../models/Post';
 import Draft from '../models/Draft';
 import { IUser } from '../types/User';
-
-export const createPost = async (req: Request, res: Response) => {
-  try {
-    const { title, description, content, image, tags, status, draftId } = req.body;
-    const authorId = (req.user as IUser)._id;
-
-    const newPost = new Post({
-      title,
-      description,
-      content,
-      image,
-      tags: tags || [],
-      status: status || 'draft',
-      author: authorId,
-      categories: [],
-    });
-
-    await newPost.save();
-
-    if (draftId) {
-      await Draft.findOneAndDelete({ _id: draftId, author: authorId });
-    }
-
-    return res.status(201).json({ message: 'Post created', post: newPost });
-  } catch (error) {
-    console.error('[Create Post]', error);
-    return res.status(500).json({ message: 'Failed to create post' });
-  }
-};
+import { logAdminAction } from '../utils/logAdminAction';
+import { Types } from 'mongoose';
 
 export const getPosts = async (_req: Request, res: Response) => {
   try {
-    const posts = await Post.find()
-      .select('title image status description slug author categories createdAt views')
-      .populate('author', 'name')
-      .populate('categories', 'name slug logo')
-      .sort({ createdAt: -1 });
-
+    const posts = await Post.find().sort({ createdAt: -1 });
     return res.status(200).json(posts);
-  } catch (error) {
+  } catch (err) {
     return res.status(500).json({ message: 'Failed to fetch posts' });
   }
 };
 
 export const getPostById = async (req: Request, res: Response) => {
   try {
-    const post = await Post.findById(req.params.id)
-      .populate('author', 'name')
-      .populate('categories', 'name slug logo');
-
+    const post = await Post.findById(req.params.id);
     if (!post) return res.status(404).json({ message: 'Post not found' });
     return res.status(200).json(post);
-  } catch (error) {
-    console.error('[Get Post]', error);
-    return res.status(500).json({ message: 'Failed to fetch post' });
+  } catch (err) {
+    return res.status(500).json({ message: 'Error fetching post' });
   }
 };
 
 export const getPostBySlug = async (req: Request, res: Response) => {
   try {
-    const post = await Post.findOne({ slug: req.params.slug })
-      .populate('author', 'name')
-      .populate('categories', 'name slug logo');
+    const post = await Post.findOne({ slug: req.params.slug });
     if (!post) return res.status(404).json({ message: 'Post not found' });
     return res.status(200).json(post);
-  } catch {
-    return res.status(500).json({ message: 'Failed to load post' });
-  }
-};
-
-export const updatePost = async (req: Request, res: Response) => {
-  try {
-    const updated = await Post.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    if (!updated) return res.status(404).json({ message: 'Post not found' });
-    return res.status(200).json({ message: 'Post updated', post: updated });
-  } catch (error) {
-    return res.status(500).json({ message: 'Failed to update post' });
-  }
-};
-
-export const deletePost = async (req: Request, res: Response) => {
-  try {
-    const deleted = await Post.findByIdAndDelete(req.params.id);
-    if (!deleted) return res.status(404).json({ message: 'Post not found' });
-    return res.status(200).json({ message: 'Post deleted' });
-  } catch (error) {
-    return res.status(500).json({ message: 'Failed to delete post' });
+  } catch (err) {
+    return res.status(500).json({ message: 'Error fetching post' });
   }
 };
 
@@ -118,9 +59,64 @@ export const publishDraft = async (req: Request, res: Response) => {
     await newPost.save();
     await Draft.findByIdAndDelete(draftId);
 
+    await logAdminAction(
+      user._id as Types.ObjectId,
+      'PUBLISH_DRAFT',
+      `Draft ${draftId} published as post ${newPost._id}`
+    );
+
     return res.status(201).json({ message: 'Draft published successfully', post: newPost });
   } catch (error) {
     console.error('[Publish Draft]', error);
     return res.status(500).json({ message: 'Failed to publish draft' });
+  }
+};
+
+export const deletePost = async (req: Request, res: Response) => {
+  const postId = req.params.id;
+  const user = req.user as IUser;
+
+  try {
+    const deleted = await Post.findByIdAndDelete(postId);
+    if (!deleted) return res.status(404).json({ message: 'Post not found' });
+
+    await logAdminAction(user._id as Types.ObjectId, 'DELETE_POST', `Deleted post ${postId}`);
+
+    return res.status(200).json({ message: 'Post deleted' });
+  } catch (error) {
+    console.error('[Delete Post]', error);
+    return res.status(500).json({ message: 'Failed to delete post' });
+  }
+};
+
+export const createPost = async (req: Request, res: Response) => {
+  const user = req.user as IUser;
+
+  try {
+    const newPost = new Post({ ...req.body, author: user._id });
+    await newPost.save();
+
+    await logAdminAction(user._id as Types.ObjectId, 'CREATE_POST', `Created post ${newPost._id}`);
+
+    return res.status(201).json({ message: 'Post created', post: newPost });
+  } catch (error) {
+    console.error('[Create Post]', error);
+    return res.status(500).json({ message: 'Failed to create post' });
+  }
+};
+
+export const updatePost = async (req: Request, res: Response) => {
+  const postId = req.params.id;
+  const user = req.user as IUser;
+
+  try {
+    const updated = await Post.findByIdAndUpdate(postId, req.body, { new: true });
+    if (!updated) return res.status(404).json({ message: 'Post not found' });
+
+    await logAdminAction(user._id as Types.ObjectId, 'UPDATE_POST', `Updated post ${postId}`);
+
+    return res.status(200).json({ message: 'Post updated', post: updated });
+  } catch (error) {
+    return res.status(500).json({ message: 'Failed to update post' });
   }
 };

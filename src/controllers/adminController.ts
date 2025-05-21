@@ -1,10 +1,17 @@
-// The-Human-Tech-Blog-Server/src/controllers/adminController.ts
+// ✅ The-Human-Tech-Blog-Server/src/controllers/adminController.ts
 import { Request, Response } from 'express';
 import User, { UserDoc } from '../models/User';
 import redisClient from '../config/redis';
 import { env } from '../config/env';
 import { issueTokens } from '../utils/issueTokens';
 import speakeasy from 'speakeasy';
+import Post from '../models/Post';
+import Draft from '../models/Draft';
+import Category from '../models/Category';
+import { Message } from '../models/Message';
+import Reaction from '../models/Reaction';
+import Comment from '../models/Comment';
+import { UserActionLog } from '../models/UserActionLog';
 
 export const handleRegister = async (req: Request, res: Response) => {
   const { name, email, password } = req.body;
@@ -80,4 +87,53 @@ export const getAdminDashboard = (req: Request, res: Response) => {
     message: 'Admin dashboard data',
     user,
   });
+};
+
+export const getStats = async (_req: Request, res: Response) => {
+  try {
+    const [
+      totalUsers,
+      totalPosts,
+      totalDrafts,
+      totalCategories,
+      totalMessages,
+      totalReactions,
+      totalComments,
+    ] = await Promise.all([
+      User.countDocuments(),
+      Post.countDocuments({ status: 'published' }),
+      Draft.countDocuments(),
+      Category.countDocuments(),
+      Message.countDocuments(),
+      Reaction.countDocuments(),
+      Comment.countDocuments(),
+    ]);
+
+    return res.status(200).json({
+      totalUsers,
+      totalPosts,
+      totalDrafts,
+      totalCategories,
+      totalMessages,
+      totalReactions,
+      totalComments,
+    });
+  } catch (error) {
+    console.error('[Admin Stats]', error);
+    return res.status(500).json({ message: 'Failed to load statistics' });
+  }
+};
+
+export const getActionLogs = async (_req: Request, res: Response) => {
+  try {
+    const logs = await UserActionLog.find()
+      .populate('user', 'name email')
+      .sort({ createdAt: -1 })
+      .limit(100);
+
+    return res.status(200).json({ logs });
+  } catch (error) {
+    console.error('[Get Logs]', error);
+    return res.status(500).json({ message: 'Failed to fetch action logs' });
+  }
 };
