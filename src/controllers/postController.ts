@@ -86,14 +86,20 @@ export const deletePost = async (req: Request, res: Response) => {
   const user = req.user as IUser;
 
   try {
-    const deleted = await Post.findByIdAndDelete(postId);
-    if (!deleted) return res.status(404).json({ message: 'Post not found' });
+    const post = await Post.findById(postId);
+    if (!post) return res.status(404).json({ message: 'Post not found' });
+
+    // Author/admin protection
+    if (String(post.author) !== String(user._id) && user.role !== 'admin') {
+      return res.status(403).json({ message: 'Forbidden: not the author or admin' });
+    }
+
+    await post.deleteOne();
 
     await logAdminAction(user._id as Types.ObjectId, 'DELETE_POST', `Deleted post ${postId}`);
 
     return res.status(200).json({ message: 'Post deleted' });
   } catch (error) {
-    console.error('[Delete Post]', error);
     return res.status(500).json({ message: 'Failed to delete post' });
   }
 };
@@ -121,18 +127,20 @@ export const updatePost = async (req: Request, res: Response) => {
   const user = req.user as IUser;
 
   try {
-    // Optionally: if title is updated, recalculate slug (uncomment if desired)
-    // let updateData = { ...req.body };
-    // if (req.body.title) {
-    //   updateData.slug = await generateUniqueSlug(req.body.title);
-    // }
+    const post = await Post.findById(postId);
+    if (!post) return res.status(404).json({ message: 'Post not found' });
 
-    const updated = await Post.findByIdAndUpdate(postId, req.body, { new: true });
-    if (!updated) return res.status(404).json({ message: 'Post not found' });
+    // Author/admin protection
+    if (String(post.author) !== String(user._id) && user.role !== 'admin') {
+      return res.status(403).json({ message: 'Forbidden: not the author or admin' });
+    }
+
+    Object.assign(post, req.body);
+    await post.save();
 
     await logAdminAction(user._id as Types.ObjectId, 'UPDATE_POST', `Updated post ${postId}`);
 
-    return res.status(200).json({ message: 'Post updated', post: updated });
+    return res.status(200).json({ message: 'Post updated', post });
   } catch (error) {
     return res.status(500).json({ message: 'Failed to update post' });
   }
