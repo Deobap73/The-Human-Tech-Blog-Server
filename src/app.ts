@@ -20,6 +20,7 @@ import conversationRoutes from './routes/conversationRoutes';
 import messageRoutes from './routes/messageRoutes';
 import adminSettingsRoutes from './routes/adminSettingsRoutes';
 import draftRoutes from './routes/draftRoutes';
+import newsletterRoutes from './routes/newsletterRoutes';
 import passport from 'passport';
 import './config/passport';
 import { env } from './config/env';
@@ -71,6 +72,7 @@ app.use('/api/conversations', conversationRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/admin/settings', adminSettingsRoutes);
 app.use('/api/drafts', draftRoutes);
+app.use('/api/newsletter', newsletterRoutes);
 
 app.get('/health', (_, res) => {
   res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
