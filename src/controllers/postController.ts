@@ -1,15 +1,17 @@
-// ✅ The-Human-Tech-Blog-Server/src/controllers/postController.ts
+// The-Human-Tech-Blog-Server/src/controllers/postController.ts
+
 import { Request, Response } from 'express';
 import Post from '../models/Post';
 import Draft from '../models/Draft';
 import { IUser } from '../types/User';
 import { logAdminAction } from '../utils/logAdminAction';
 import { Types } from 'mongoose';
+import { generateUniqueSlug } from '../utils/generateUniqueSlug';
 
 export const getPosts = async (_req: Request, res: Response) => {
   try {
     const posts = await Post.find()
-      .populate('categories', 'name slug logo') // importante!
+      .populate('categories', 'name slug logo')
       .select('title description image slug categories status createdAt')
       .sort({ createdAt: -1 });
 
@@ -49,6 +51,8 @@ export const publishDraft = async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'Draft not found or not authorized' });
     }
 
+    const slug = await generateUniqueSlug(draft.title);
+
     const newPost = new Post({
       title: draft.title,
       description: draft.description,
@@ -58,6 +62,7 @@ export const publishDraft = async (req: Request, res: Response) => {
       status: 'published',
       author: draft.author,
       categories: [],
+      slug,
     });
 
     await newPost.save();
@@ -97,7 +102,9 @@ export const createPost = async (req: Request, res: Response) => {
   const user = req.user as IUser;
 
   try {
-    const newPost = new Post({ ...req.body, author: user._id });
+    const slug = await generateUniqueSlug(req.body.title);
+
+    const newPost = new Post({ ...req.body, author: user._id, slug });
     await newPost.save();
 
     await logAdminAction(user._id as Types.ObjectId, 'CREATE_POST', `Created post ${newPost._id}`);
@@ -114,6 +121,12 @@ export const updatePost = async (req: Request, res: Response) => {
   const user = req.user as IUser;
 
   try {
+    // Optionally: if title is updated, recalculate slug (uncomment if desired)
+    // let updateData = { ...req.body };
+    // if (req.body.title) {
+    //   updateData.slug = await generateUniqueSlug(req.body.title);
+    // }
+
     const updated = await Post.findByIdAndUpdate(postId, req.body, { new: true });
     if (!updated) return res.status(404).json({ message: 'Post not found' });
 
