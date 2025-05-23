@@ -8,7 +8,11 @@ import { Types } from 'mongoose';
 
 export const getPosts = async (_req: Request, res: Response) => {
   try {
-    const posts = await Post.find().sort({ createdAt: -1 });
+    const posts = await Post.find()
+      .populate('categories', 'name slug logo') // importante!
+      .select('title description image slug categories status createdAt')
+      .sort({ createdAt: -1 });
+
     return res.status(200).json(posts);
   } catch (err) {
     return res.status(500).json({ message: 'Failed to fetch posts' });
