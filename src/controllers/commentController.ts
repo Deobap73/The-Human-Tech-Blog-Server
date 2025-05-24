@@ -3,7 +3,6 @@
 import { Request, Response } from 'express';
 import Comment from '../models/Comment';
 import { IUser } from '../types/User';
-import { Types } from 'mongoose';
 
 // ✅ Criar comentário
 export const createComment = async (req: Request, res: Response) => {
@@ -46,26 +45,24 @@ export const getCommentsByPost = async (req: Request, res: Response) => {
 // ✅ Apagar comentário (admin ou próprio autor)
 export const deleteComment = async (req: Request, res: Response) => {
   const user = req.user as IUser;
-  const { id } = req.params;
+  const commentId = req.params.id;
 
   try {
-    const comment = await Comment.findById(id);
+    const comment = await Comment.findById(commentId);
     if (!comment) return res.status(404).json({ message: 'Comment not found' });
 
-    // Garante conversão segura dos IDs
-    const authorId =
-      comment.userId instanceof Types.ObjectId ? comment.userId.toString() : String(comment.userId);
+    const commentAuthor = comment.userId.toString();
+    const userId = typeof user._id === 'string' ? user._id : (user._id as any).toString();
 
-    const userId = user._id instanceof Types.ObjectId ? user._id.toString() : String(user._id);
-
-    if (authorId !== userId && user.role !== 'admin') {
-      return res.status(403).json({ message: 'Not allowed to delete this comment' });
+    if (commentAuthor !== userId && user.role !== 'admin') {
+      return res.status(403).json({ message: 'Forbidden: not the author or admin' });
     }
 
     await comment.deleteOne();
+
     return res.status(200).json({ message: 'Comment deleted' });
-  } catch (error) {
-    console.error('[Delete Comment]', error);
-    return res.status(500).json({ error: 'Failed to delete comment' });
+  } catch (err) {
+    console.error('[Delete Comment]', err);
+    return res.status(500).json({ message: 'Failed to delete comment' });
   }
 };
