@@ -8,11 +8,17 @@ import { logAdminAction } from '../utils/logAdminAction';
 import { Types } from 'mongoose';
 import { generateUniqueSlug } from '../utils/generateUniqueSlug';
 
-export const getPosts = async (_req: Request, res: Response) => {
+export const getPosts = async (req: Request, res: Response) => {
   try {
-    const posts = await Post.find()
+    const query: any = {};
+    // Novo: permite filtrar por autor
+    if (req.query.author) {
+      query.author = req.query.author;
+    }
+
+    const posts = await Post.find(query)
       .populate('categories', 'name slug logo')
-      .select('title description image slug categories status createdAt')
+      .select('title description image slug categories status createdAt author')
       .sort({ createdAt: -1 });
 
     return res.status(200).json(posts);
