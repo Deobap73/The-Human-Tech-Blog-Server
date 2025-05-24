@@ -4,9 +4,12 @@ import app from './app';
 import { connectDB } from './config/db';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
+import { initSocketIO } from './socket/io';
 import { setupSocket } from './socket';
 
 const PORT = env.PORT || 5000;
+const httpServer = createServer(app);
+initSocketIO(httpServer);
 
 connectDB()
   .then(() => {

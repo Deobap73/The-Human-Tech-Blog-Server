@@ -3,10 +3,11 @@
 import { Request, Response } from 'express';
 import Reaction from '../models/Reaction';
 import { IUser } from '../types/User';
+import { getSocketIO } from '../socket/io';
 
-// Adicionar/trocar/remover reação (toggle)
+// Toggle (adicionar/remover) reação a posts/comentários
 export const toggleReaction = async (req: Request, res: Response) => {
-  const user = req.user as IUser;
+  const user = req.user;
   if (!user) return res.status(401).json({ message: 'Unauthorized' });
 
   const { targetType, targetId, emoji } = req.body;
@@ -16,17 +17,8 @@ export const toggleReaction = async (req: Request, res: Response) => {
   }
 
   try {
-    // Garantir sempre string
-    const userId =
-      typeof user._id === 'string'
-        ? user._id
-        : user._id && typeof user._id.toString === 'function'
-          ? user._id.toString()
-          : '';
-
-    if (!userId) {
-      return res.status(400).json({ message: 'Invalid user ID' });
-    }
+    const userObj = user as IUser;
+    const userId = typeof userObj._id === 'string' ? userObj._id : String(userObj._id);
 
     const existing = await Reaction.findOne({
       targetType,
@@ -37,6 +29,10 @@ export const toggleReaction = async (req: Request, res: Response) => {
 
     if (existing) {
       await existing.deleteOne();
+
+      // Emitir evento realtime pelo socket.io
+      getSocketIO().emit('reaction:updated', { targetType, targetId });
+
       return res.status(200).json({ message: 'Reaction removed' });
     } else {
       await Reaction.create({
@@ -45,6 +41,10 @@ export const toggleReaction = async (req: Request, res: Response) => {
         userId,
         emoji,
       });
+
+      // Emitir evento realtime pelo socket.io
+      getSocketIO().emit('reaction:updated', { targetType, targetId });
+
       return res.status(201).json({ message: 'Reaction added' });
     }
   } catch (err) {
@@ -52,15 +52,12 @@ export const toggleReaction = async (req: Request, res: Response) => {
   }
 };
 
-// Listar reações por target (post ou comment)
+// Listar todas as reações de um post ou comentário
 export const getReactions = async (req: Request, res: Response) => {
-  const targetType = req.query.targetType as string;
-  const targetId = req.query.targetId as string;
-
-  if (!['post', 'comment'].includes(targetType) || !targetId) {
+  const { targetType, targetId } = req.query;
+  if (!['post', 'comment'].includes(targetType as string) || !targetId) {
     return res.status(400).json({ message: 'Invalid query' });
   }
-
   try {
     const reactions = await Reaction.find({
       targetType,
