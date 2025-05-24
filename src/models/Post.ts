@@ -7,7 +7,7 @@ export interface IPost extends Document {
   description: string;
   content: string;
   image?: string;
-  tags: string[];
+  tags: mongoose.Types.ObjectId[]; // Relacionamento real
   status: 'draft' | 'published';
   author: mongoose.Types.ObjectId;
   categories: mongoose.Types.ObjectId[];
@@ -22,7 +22,7 @@ const PostSchema: Schema<IPost> = new Schema(
     description: { type: String, required: true },
     content: { type: String, required: true },
     image: { type: String },
-    tags: [{ type: String }],
+    tags: [{ type: Schema.Types.ObjectId, ref: 'Tag' }], // Relaciona com Tag
     status: {
       type: String,
       enum: ['draft', 'published'],
@@ -30,14 +30,13 @@ const PostSchema: Schema<IPost> = new Schema(
     },
     author: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     categories: [{ type: Schema.Types.ObjectId, ref: 'Category' }],
-    slug: { type: String, unique: true }, // ✅ corrigido
+    slug: { type: String, unique: true },
   },
   {
     timestamps: true,
   }
 );
 
-// ✅ Gera o slug antes de salvar
 PostSchema.pre<IPost>('save', function (next) {
   if (!this.slug && this.title) {
     this.slug = slugify(this.title, { lower: true, strict: true });

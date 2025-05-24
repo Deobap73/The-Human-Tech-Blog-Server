@@ -29,7 +29,7 @@ import userAdminRoutes from './routes/userAdminRoutes';
 import draftRoutes from './routes/draftRoutes';
 import newsletterRoutes from './routes/newsletterRoutes';
 import userRoutes from './routes/userRoutes';
-
+import tagRoutes from './routes/tagRoutes';
 const app = express();
 
 // 1. Cookies e CORS
@@ -99,6 +99,7 @@ app.use('/api/admin/users', userAdminRoutes);
 app.use('/api/drafts', draftRoutes);
 app.use('/api/newsletter', newsletterRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/tags', tagRoutes);
 
 app.get('/health', (_, res) => {
   res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
