@@ -1,9 +1,8 @@
 // The-Human-Tech-Blog-Server/src/models/Notification.ts
-
 import mongoose, { Schema } from 'mongoose';
 
 export interface INotification extends mongoose.Document {
-  user: mongoose.Types.ObjectId;
+  user: mongoose.Types.ObjectId | string;
   type: 'comment' | 'post' | 'admin' | 'system';
   message: string;
   data?: Record<string, any>;
