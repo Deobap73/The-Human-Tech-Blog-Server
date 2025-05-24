@@ -1,4 +1,4 @@
-// ✅ The-Human-Tech-Blog-Server/src/app.ts
+// The-Human-Tech-Blog-Server/src/app.ts
 
 import express from 'express';
 import dotenv from 'dotenv';
@@ -8,6 +8,11 @@ dotenv.config({ path: path.resolve(__dirname, '../.env') });
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import csrf from 'csurf';
+import passport from 'passport';
+import './config/passport';
+import { env } from './config/env';
+
+// Import das rotas (mantém igual ao teu!)
 import setupRoutes from './routes/setupRoutes';
 import authRoutes from './routes/authRoutes';
 import categoryRoutes from './routes/categoryRoutes';
@@ -24,9 +29,6 @@ import userAdminRoutes from './routes/userAdminRoutes';
 import draftRoutes from './routes/draftRoutes';
 import newsletterRoutes from './routes/newsletterRoutes';
 import userRoutes from './routes/userRoutes';
-import passport from 'passport';
-import './config/passport';
-import { env } from './config/env';
 
 const app = express();
 
@@ -45,7 +47,8 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// 3. CSRF protection middleware
+// 3. CSRF protection middleware (MODO CORRETO)
+// Só para rotas que alteram estado! Aplica nas rotas API exceto GET do csrf e health.
 const csrfProtection = csrf({
   cookie: {
     httpOnly: false,
@@ -54,12 +57,25 @@ const csrfProtection = csrf({
   },
 });
 
-// Aplica CSRF **apenas** nas rotas sensíveis
-app.use('/api/auth/login', csrfProtection);
-app.use('/api/auth/register', csrfProtection);
-// Podes adicionar aqui outras rotas sensíveis se quiseres...
+// 2️⃣ Aplica csrfProtection DIRETAMENTE na rota que devolve o token:
+app.get('/api/auth/csrf', csrfProtection, (req, res) => {
+  return res.status(200).json({ csrfToken: req.csrfToken() });
+});
 
-// Rota para obter o CSRF token (NÃO precisa proteção)
+// ** Aplica o csrfProtection ANTES da rota que usa req.csrfToken **
+app.use('/api', (req, res, next) => {
+  // Só ativa csrfProtection se NÃO for GET do csrf ou health check!
+  if (
+    (req.method === 'POST' && req.path === '/auth/refresh') ||
+    (req.method === 'GET' && req.path === '/auth/csrf') ||
+    (req.method === 'GET' && req.path === '/health')
+  ) {
+    return next();
+  }
+  return csrfProtection(req, res, next);
+});
+
+// ** Rota pública para pedir o token CSRF **
 app.get('/api/auth/csrf', (req, res) => {
   return res.status(200).json({ csrfToken: req.csrfToken() });
 });
@@ -82,7 +98,6 @@ app.use('/api/admin/settings', adminSettingsRoutes);
 app.use('/api/admin/users', userAdminRoutes);
 app.use('/api/drafts', draftRoutes);
 app.use('/api/newsletter', newsletterRoutes);
-
 app.use('/api/users', userRoutes);
 
 app.get('/health', (_, res) => {
@@ -97,10 +112,10 @@ app.get('/', (_, res) => {
   `);
 });
 
+// Error handler
 interface HttpError extends Error {
   status?: number;
 }
-
 app.use(
   (err: HttpError, req: express.Request, res: express.Response, _next: express.NextFunction) => {
     console.error('🚨 Error:', {
