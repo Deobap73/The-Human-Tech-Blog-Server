@@ -1,4 +1,4 @@
-// The-Human-Tech-Blog-Server/src/routes/reactionRoutes.ts
+// src/routes/reactionRoutes.ts
 
 import express from 'express';
 import { toggleReaction, getReactions } from '../controllers/reactionController';
@@ -6,7 +6,10 @@ import { protect } from '../middleware/authMiddleware';
 
 const router = express.Router();
 
+// Adiciona/troca/remove reação (POST)
 router.post('/', protect, toggleReaction);
-router.get('/:postId', getReactions);
+
+// Lista as reações de um post/comentário (GET)
+router.get('/', getReactions);
 
 export default router;

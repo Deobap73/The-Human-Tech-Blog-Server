@@ -1,28 +1,27 @@
-// The-Human-Tech-Blog-Server/src/models/Reaction.ts
+// src/models/Reaction.ts
 
-import mongoose from 'mongoose';
+import mongoose, { Schema, Document } from 'mongoose';
 
-const reactionSchema = new mongoose.Schema(
+export interface IReaction extends Document {
+  targetType: 'post' | 'comment';
+  targetId: mongoose.Types.ObjectId | string;
+  userId: mongoose.Types.ObjectId | string;
+  emoji: string; // exemplo: '👍', '😂', etc
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const ReactionSchema: Schema<IReaction> = new Schema(
   {
-    postId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Post',
-      required: true,
-    },
-    userId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      required: true,
-    },
-    type: {
-      type: String,
-      enum: ['like', 'love', 'funny', 'sad', 'angry'],
-      default: 'like',
-    },
+    targetType: { type: String, enum: ['post', 'comment'], required: true },
+    targetId: { type: Schema.Types.ObjectId, required: true },
+    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    emoji: { type: String, required: true },
   },
   { timestamps: true }
 );
 
-reactionSchema.index({ postId: 1, userId: 1 }, { unique: true });
+// Um user pode reagir com 1 emoji a cada post/comentário (mas pode trocar)
+ReactionSchema.index({ targetType: 1, targetId: 1, userId: 1, emoji: 1 }, { unique: true });
 
-export default mongoose.model('Reaction', reactionSchema);
+export default mongoose.model<IReaction>('Reaction', ReactionSchema);
