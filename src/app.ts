@@ -54,8 +54,12 @@ const csrfProtection = csrf({
   },
 });
 
-app.use(csrfProtection);
+// Aplica CSRF **apenas** nas rotas sensíveis
+app.use('/api/auth/login', csrfProtection);
+app.use('/api/auth/register', csrfProtection);
+// Podes adicionar aqui outras rotas sensíveis se quiseres...
 
+// Rota para obter o CSRF token (NÃO precisa proteção)
 app.get('/api/auth/csrf', (req, res) => {
   return res.status(200).json({ csrfToken: req.csrfToken() });
 });
