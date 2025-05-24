@@ -1,3 +1,5 @@
+// The-Human-Tech-Blog-Server/src/controllers/userAdminController.ts
+
 import { Request, Response } from 'express';
 import User from '../models/User';
 

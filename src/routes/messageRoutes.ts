@@ -1,4 +1,5 @@
 // src/routes/messageRoutes.ts
+
 import express from 'express';
 import { getMessages, sendMessage } from '../controllers/messageController';
 import { isAuthenticated } from '../middleware/authMiddleware';

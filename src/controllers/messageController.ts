@@ -1,63 +1,74 @@
-// src/controllers/messageController.ts
+// The-Human-Tech-Blog-Server/src/controllers/messageController.ts
+
 import { Request, Response } from 'express';
-import mongoose, { Types } from 'mongoose';
 import { Message } from '../models/Message';
 import { Conversation } from '../models/Conversation';
 import { IUser } from '../types/User';
 
-export const getMessages = async (req: Request, res: Response): Promise<void> => {
+// Obter mensagens de uma conversa (admin pode aceder a tudo)
+export const getMessages = async (req: Request, res: Response) => {
   const user = req.user as IUser;
   const { conversationId } = req.params;
 
   try {
-    const conversation = await Conversation.findById(conversationId);
-    if (
-      !conversation ||
-      (!user.role.includes('admin') &&
-        !conversation.participants.some((participant) =>
-          participant.equals(user._id as Types.ObjectId)
-        ))
-    ) {
-      res.status(403).json({ error: 'Unauthorized' });
-      return;
+    const conv = await Conversation.findById(conversationId);
+    if (!conv) {
+      return res.status(404).json({ error: 'Conversation not found' });
     }
 
-    const messages = await Message.find({ conversation: conversationId })
-      .populate('sender', 'name email avatar role')
-      .lean();
+    // Aceita ObjectId ou string
+    const idStr = typeof user._id === 'string' ? user._id : String(user._id);
+    const isParticipant = conv.participants.some((p) => String(p) === idStr);
 
-    res.status(200).json(messages);
+    if (!isParticipant && user.role !== 'admin') {
+      console.log(
+        'User not allowed:',
+        idStr,
+        conv.participants.map((p) => String(p)),
+        user.role
+      );
+      return res.status(403).json({ error: 'Not a participant' });
+    }
+
+    const messages = await Message.find({ conversation: conversationId }).populate(
+      'sender',
+      'name email avatar role'
+    );
+    return res.status(200).json(messages);
   } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch messages' });
+    return res.status(500).json({ error: 'Failed to fetch messages' });
   }
 };
 
-export const sendMessage = async (req: Request, res: Response): Promise<void> => {
+// Enviar mensagem (só participantes/admin)
+export const sendMessage = async (req: Request, res: Response) => {
   const user = req.user as IUser;
   const { conversationId } = req.params;
   const { text } = req.body;
 
   try {
-    const conversation = await Conversation.findById(conversationId);
-    if (
-      !conversation ||
-      (!user.role.includes('admin') &&
-        !conversation.participants.some((participant) =>
-          participant.equals(user._id as Types.ObjectId)
-        ))
-    ) {
-      res.status(403).json({ error: 'Unauthorized' });
-      return;
+    const conv = await Conversation.findById(conversationId);
+    if (!conv) {
+      return res.status(404).json({ error: 'Conversation not found' });
     }
 
-    const newMessage = await Message.create({
-      conversation: conversation._id,
-      sender: new mongoose.Types.ObjectId(user._id as string),
+    const idStr = typeof user._id === 'string' ? user._id : String(user._id);
+    const isParticipant = conv.participants.some((p) => String(p) === idStr);
+
+    if (!isParticipant && user.role !== 'admin') {
+      return res.status(403).json({ error: 'Not a participant' });
+    }
+
+    const msg = await Message.create({
+      conversation: conversationId,
+      sender: user._id,
       text,
     });
 
-    res.status(201).json(newMessage);
+    // TODO: Emitir via socket.io se aplicável
+
+    return res.status(201).json(msg);
   } catch (err) {
-    res.status(500).json({ error: 'Failed to send message' });
+    return res.status(500).json({ error: 'Failed to send message' });
   }
 };
