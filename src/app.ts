@@ -18,6 +18,7 @@ import bookmarkRoutes from './routes/bookmarkRoutes';
 import twofaRoutes from './routes/twofaRoutes';
 import conversationRoutes from './routes/conversationRoutes';
 import messageRoutes from './routes/messageRoutes';
+import notificationRoutes from './routes/notificationRoutes';
 import adminSettingsRoutes from './routes/adminSettingsRoutes';
 import userAdminRoutes from './routes/userAdminRoutes';
 import draftRoutes from './routes/draftRoutes';
@@ -72,10 +73,12 @@ app.use('/api/bookmarks', bookmarkRoutes);
 app.use('/api/2fa', twofaRoutes);
 app.use('/api/conversations', conversationRoutes);
 app.use('/api/messages', messageRoutes);
+app.use('/api/notifications', notificationRoutes);
 app.use('/api/admin/settings', adminSettingsRoutes);
 app.use('/api/admin/users', userAdminRoutes);
 app.use('/api/drafts', draftRoutes);
 app.use('/api/newsletter', newsletterRoutes);
+
 app.use('/api/users', userRoutes);
 
 app.get('/health', (_, res) => {
