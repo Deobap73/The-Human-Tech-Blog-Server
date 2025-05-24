@@ -21,6 +21,7 @@ import messageRoutes from './routes/messageRoutes';
 import adminSettingsRoutes from './routes/adminSettingsRoutes';
 import draftRoutes from './routes/draftRoutes';
 import newsletterRoutes from './routes/newsletterRoutes';
+import userRoutes from './routes/userRoutes';
 import passport from 'passport';
 import './config/passport';
 import { env } from './config/env';
@@ -73,6 +74,7 @@ app.use('/api/messages', messageRoutes);
 app.use('/api/admin/settings', adminSettingsRoutes);
 app.use('/api/drafts', draftRoutes);
 app.use('/api/newsletter', newsletterRoutes);
+app.use('/api/users', userRoutes);
 
 app.get('/health', (_, res) => {
   res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
