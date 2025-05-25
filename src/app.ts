@@ -30,6 +30,8 @@ import draftRoutes from './routes/draftRoutes';
 import newsletterRoutes from './routes/newsletterRoutes';
 import userRoutes from './routes/userRoutes';
 import tagRoutes from './routes/tagRoutes';
+import commentModerationRoutes from './routes/commentModerationRoutes';
+
 const app = express();
 
 // 1. Cookies e CORS
@@ -88,6 +90,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/comments', commentRoutes);
+app.use('/api/moderation/comments', commentModerationRoutes);
 app.use('/api/reactions', reactionRoutes);
 app.use('/api/bookmarks', bookmarkRoutes);
 app.use('/api/2fa', twofaRoutes);

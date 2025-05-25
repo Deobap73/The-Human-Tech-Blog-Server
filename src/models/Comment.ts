@@ -1,40 +1,26 @@
 // The-Human-Tech-Blog-Server/src/models/Comment.ts
 
-import mongoose, { Schema, Document } from 'mongoose';
+import { Schema, Types, model } from 'mongoose';
 
-export interface IComment extends Document {
-  postId: mongoose.Types.ObjectId;
-  userId: mongoose.Types.ObjectId;
-  userName: string;
+export interface IComment {
+  postId: Types.ObjectId;
+  userId: Types.ObjectId;
   text: string;
+  status: 'pending' | 'approved' | 'rejected';
+  moderatedBy?: Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }
 
-const CommentSchema: Schema = new Schema(
+const CommentSchema = new Schema<IComment>(
   {
-    postId: {
-      type: Schema.Types.ObjectId,
-      ref: 'Post',
-      required: true,
-    },
-    userId: {
-      type: Schema.Types.ObjectId,
-      ref: 'User',
-      required: true,
-    },
-    userName: {
-      type: String,
-      required: true,
-    },
-    text: {
-      type: String,
-      required: true,
-    },
+    postId: { type: Schema.Types.ObjectId, ref: 'Post', required: true },
+    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    text: { type: String, required: true },
+    status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
+    moderatedBy: { type: Schema.Types.ObjectId, ref: 'User' },
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
-export default mongoose.model<IComment>('Comment', CommentSchema);
+export default model<IComment>('Comment', CommentSchema);
