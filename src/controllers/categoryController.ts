@@ -55,3 +55,16 @@ export const getPostsByCategorySlug = async (req: Request, res: Response) => {
     return res.status(500).json({ message: 'Failed to fetch posts for category' });
   }
 };
+
+export const getCategoryBySlug = async (req: Request, res: Response) => {
+  try {
+    const { slug } = req.params;
+    const category = await Category.findOne({ slug });
+    if (!category) {
+      return res.status(404).json({ message: 'Category not found' });
+    }
+    return res.status(200).json(category);
+  } catch (error) {
+    return res.status(500).json({ message: 'Failed to fetch category' });
+  }
+};
