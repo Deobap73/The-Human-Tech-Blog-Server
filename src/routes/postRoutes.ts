@@ -18,8 +18,9 @@ import { searchPosts } from '../controllers/postController';
 const router = express.Router();
 
 router.get('/', getPosts);
-router.get('/:id', getPostById);
+router.get('/search', searchPosts);
 router.get('/slug/:slug', getPostBySlug);
+router.get('/:id', getPostById);
 
 router.post('/', protect, authorizeRoles('admin', 'editor'), createPost);
 router.put('/:id', protect, authorizeRoles('admin', 'editor'), updatePost);
@@ -43,7 +44,5 @@ router.post(
     }
   }
 );
-
-router.get('/search', searchPosts);
 
 export default router;

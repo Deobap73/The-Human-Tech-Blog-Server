@@ -156,30 +156,29 @@ export const searchPosts = async (req: Request, res: Response) => {
   const { q = '', page = 1, limit = 10 } = req.query;
   const query = q.toString().trim();
 
+  console.log('[Search Posts][START]', { query, page, limit });
+
   if (!query) {
+    console.log('[Search Posts][NO QUERY]');
     return res.status(400).json({ message: 'Search query is required.' });
   }
 
   try {
-    // Pesquisa full-text ou regex para flexibilidade
-    const mongoQuery = {
-      $or: [
-        { title: { $regex: query, $options: 'i' } },
-        { description: { $regex: query, $options: 'i' } },
-        { content: { $regex: query, $options: 'i' } },
-        { tags: { $regex: query, $options: 'i' } },
-      ],
-    };
-
-    const posts = await Post.find(mongoQuery)
-      .populate('author', 'name')
-      .sort({ createdAt: -1 })
+    // Pesquisa full-text
+    const posts = await Post.find({ $text: { $search: query } }, { score: { $meta: 'textScore' } })
+      .sort({ score: { $meta: 'textScore' }, createdAt: -1 })
       .skip((Number(page) - 1) * Number(limit))
-      .limit(Number(limit));
+      .limit(Number(limit))
+      .populate('author', 'name')
+      .populate('categories', 'name slug logo')
+      .populate('tags', 'name slug');
 
+    console.log('[Search Posts][RESULT]', posts.length, 'posts found');
     return res.status(200).json(posts);
   } catch (error) {
-    console.error('[Search Posts]', error);
-    return res.status(500).json({ message: 'Search failed' });
+    console.error('[Search Posts][ERROR]', error);
+    const msg =
+      error instanceof Error ? error.message : typeof error === 'string' ? error : 'Unknown error';
+    return res.status(500).json({ message: 'Search failed', error: msg });
   }
 };
