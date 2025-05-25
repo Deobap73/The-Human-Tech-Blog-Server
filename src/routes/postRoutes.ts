@@ -13,6 +13,7 @@ import { protect } from '../middleware/authMiddleware';
 import { authorizeRoles } from '../middleware/roleMiddleware';
 import upload from '../middleware/uploadMiddleware';
 import { uploadToCloudinary } from '../utils/cloudinaryUpload';
+import { searchPosts } from '../controllers/postController';
 
 const router = express.Router();
 
@@ -42,5 +43,7 @@ router.post(
     }
   }
 );
+
+router.get('/search', searchPosts);
 
 export default router;

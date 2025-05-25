@@ -44,4 +44,6 @@ PostSchema.pre<IPost>('save', function (next) {
   next();
 });
 
+PostSchema.index({ title: 'text', description: 'text', content: 'text', tags: 'text' });
+
 export default mongoose.model<IPost>('Post', PostSchema);

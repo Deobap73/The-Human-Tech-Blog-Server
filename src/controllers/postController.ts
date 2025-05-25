@@ -151,3 +151,35 @@ export const updatePost = async (req: Request, res: Response) => {
     return res.status(500).json({ message: 'Failed to update post' });
   }
 };
+
+export const searchPosts = async (req: Request, res: Response) => {
+  const { q = '', page = 1, limit = 10 } = req.query;
+  const query = q.toString().trim();
+
+  if (!query) {
+    return res.status(400).json({ message: 'Search query is required.' });
+  }
+
+  try {
+    // Pesquisa full-text ou regex para flexibilidade
+    const mongoQuery = {
+      $or: [
+        { title: { $regex: query, $options: 'i' } },
+        { description: { $regex: query, $options: 'i' } },
+        { content: { $regex: query, $options: 'i' } },
+        { tags: { $regex: query, $options: 'i' } },
+      ],
+    };
+
+    const posts = await Post.find(mongoQuery)
+      .populate('author', 'name')
+      .sort({ createdAt: -1 })
+      .skip((Number(page) - 1) * Number(limit))
+      .limit(Number(limit));
+
+    return res.status(200).json(posts);
+  } catch (error) {
+    console.error('[Search Posts]', error);
+    return res.status(500).json({ message: 'Search failed' });
+  }
+};
