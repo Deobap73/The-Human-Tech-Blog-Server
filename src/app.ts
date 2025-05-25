@@ -31,6 +31,7 @@ import newsletterRoutes from './routes/newsletterRoutes';
 import userRoutes from './routes/userRoutes';
 import tagRoutes from './routes/tagRoutes';
 import commentModerationRoutes from './routes/commentModerationRoutes';
+import analyticsRoutes from './routes/analyticsRoutes';
 
 const app = express();
 
@@ -103,6 +104,7 @@ app.use('/api/drafts', draftRoutes);
 app.use('/api/newsletter', newsletterRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/tags', tagRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 app.get('/health', (_, res) => {
   res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
