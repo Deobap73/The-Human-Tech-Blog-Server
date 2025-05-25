@@ -66,3 +66,12 @@ export const deleteComment = async (req: Request, res: Response) => {
     return res.status(500).json({ message: 'Failed to delete comment' });
   }
 };
+
+export const getPendingCommentsCount = async (_: Request, res: Response) => {
+  try {
+    const count = await Comment.countDocuments({ status: 'pending' });
+    res.json({ count });
+  } catch (error) {
+    res.status(500).json({ count: 0 });
+  }
+};
