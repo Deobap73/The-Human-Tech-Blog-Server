@@ -1,18 +1,31 @@
 // src/models/Tag.ts
 
-import { Schema, model, InferSchemaType, CallbackError } from 'mongoose';
+import { Schema, model, Document, CallbackError } from 'mongoose';
 import slugify from 'slugify';
 import { MongoServerError } from 'mongodb';
 
+export interface TagTranslation {
+  name: string;
+  description?: string;
+}
+
+export interface ITag extends Document {
+  slug: string;
+  color?: string;
+  translations: {
+    [key: string]: TagTranslation | undefined | null;
+    en?: TagTranslation | null;
+    pt?: TagTranslation | null;
+    de?: TagTranslation | null;
+    es?: TagTranslation | null;
+  };
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// REMOVE <ITag> aqui
 const tagSchema = new Schema(
   {
-    name: {
-      type: String,
-      required: [true, 'Tag name is required'],
-      trim: true,
-      minlength: [2, 'Tag name must be at least 2 characters'],
-      maxlength: [50, 'Tag name must be at most 50 characters'],
-    },
     slug: {
       type: String,
       required: true,
@@ -21,15 +34,36 @@ const tagSchema = new Schema(
       trim: true,
     },
     color: {
-      type: String, // Por exemplo, #ffaa00
+      type: String, // Ex: "#ffaa00"
+    },
+    translations: {
+      en: {
+        name: { type: String, required: true, minlength: 2, maxlength: 50 },
+        description: { type: String },
+      },
+      pt: {
+        name: { type: String },
+        description: { type: String },
+      },
+      de: {
+        name: { type: String },
+        description: { type: String },
+      },
+      es: {
+        name: { type: String },
+        description: { type: String },
+      },
     },
   },
   { timestamps: true }
 );
 
 tagSchema.pre('validate', function (next) {
-  if (!this.slug && this.name) {
-    this.slug = slugify(this.name, { lower: true, strict: true });
+  // Use translations.en.name as canonical
+  // @ts-ignore
+  if (!this.slug && this.translations && this.translations.en && this.translations.en.name) {
+    // @ts-ignore
+    this.slug = slugify(this.translations.en.name, { lower: true, strict: true });
   }
   next();
 });
@@ -43,5 +77,4 @@ tagSchema.post('save', function (error: CallbackError, _doc: any, next: (err?: a
   }
 });
 
-export type ITag = InferSchemaType<typeof tagSchema>;
-export default model('Tag', tagSchema);
+export default model<ITag>('Tag', tagSchema);

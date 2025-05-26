@@ -1,4 +1,4 @@
-// src/routes/notificationRoutes.ts
+// /src/routes/notificationRoutes.ts
 
 import express from 'express';
 import {
@@ -8,14 +8,14 @@ import {
   createNotification,
 } from '../controllers/notificationController';
 import { protect } from '../middleware/authMiddleware';
+import { detectLanguage } from '../middleware/detectLanguage';
 
 const router = express.Router();
 
-// Todas protegidas (exemplo: ajustar conforme o projeto)
-router.get('/', protect, getNotifications);
-router.patch('/:id/read', protect, markNotificationRead);
-router.delete('/:id', protect, deleteNotification);
-// Rota para criar notificações (opcional, para teste ou admin)
-router.post('/', protect, createNotification);
+// Todas protegidas
+router.get('/:lang/notifications', protect, detectLanguage, getNotifications);
+router.patch('/notifications/:id/read', protect, markNotificationRead);
+router.delete('/notifications/:id', protect, deleteNotification);
+router.post('/notifications', protect, createNotification);
 
 export default router;

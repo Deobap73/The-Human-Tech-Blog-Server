@@ -1,17 +1,30 @@
-// ✅ The-Human-Tech-Blog-Server/src/models/Category.ts
-import { Schema, model, InferSchemaType, CallbackError } from 'mongoose';
+// src/models/Category.ts
+
+import { Schema, model, Document } from 'mongoose';
 import slugify from 'slugify';
 import { MongoServerError } from 'mongodb';
 
-const categorySchema = new Schema(
+export interface CategoryTranslation {
+  name: string;
+  description?: string;
+}
+
+export interface ICategory extends Document {
+  slug: string;
+  translations: {
+    en: CategoryTranslation;
+    pt?: CategoryTranslation;
+    de?: CategoryTranslation;
+    es?: CategoryTranslation;
+    [key: string]: CategoryTranslation | undefined;
+  };
+  logo?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const categorySchema = new Schema<ICategory>(
   {
-    name: {
-      type: String,
-      required: [true, 'Category name is required'],
-      trim: true,
-      minlength: [2, 'Category name must be at least 2 characters'],
-      maxlength: [50, 'Category name must be at most 50 characters'],
-    },
     slug: {
       type: String,
       required: true,
@@ -19,21 +32,43 @@ const categorySchema = new Schema(
       lowercase: true,
       trim: true,
     },
-    logo: {
-      type: String,
+    translations: {
+      en: {
+        name: { type: String, required: true, minlength: 2, maxlength: 50 },
+        description: { type: String },
+      },
+      pt: {
+        name: { type: String, minlength: 2, maxlength: 50 },
+        description: { type: String },
+      },
+      de: {
+        name: { type: String, minlength: 2, maxlength: 50 },
+        description: { type: String },
+      },
+      es: {
+        name: { type: String, minlength: 2, maxlength: 50 },
+        description: { type: String },
+      },
     },
+    logo: { type: String },
   },
   { timestamps: true }
 );
 
 categorySchema.pre('validate', function (next) {
-  if (!this.slug && this.name) {
-    this.slug = slugify(this.name, { lower: true, strict: true });
+  // Preferencialmente usa o slug do nome em inglês (pode ser ajustado conforme lógica de negócio)
+  const mainName =
+    this.translations?.en?.name ||
+    this.translations?.pt?.name ||
+    this.translations?.de?.name ||
+    this.translations?.es?.name;
+  if (!this.slug && mainName) {
+    this.slug = slugify(mainName, { lower: true, strict: true });
   }
   next();
 });
 
-categorySchema.post('save', function (error: CallbackError, _doc: any, next: (err?: any) => void) {
+categorySchema.post('save', function (error: any, _doc: any, next: (err?: any) => void) {
   const mongoError = error as MongoServerError;
   if (mongoError?.code === 11000 && mongoError?.keyPattern?.slug) {
     next(new Error('Slug must be unique. A category with this name already exists.'));
@@ -42,5 +77,4 @@ categorySchema.post('save', function (error: CallbackError, _doc: any, next: (er
   }
 });
 
-export type ICategory = InferSchemaType<typeof categorySchema>;
-export default model('Category', categorySchema);
+export default model<ICategory>('Category', categorySchema);

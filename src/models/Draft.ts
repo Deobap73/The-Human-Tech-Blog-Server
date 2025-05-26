@@ -1,17 +1,28 @@
-// src/models/Draft.ts
+// /src/models/Draft.ts
+import mongoose, { Schema, Document, Types } from 'mongoose';
 
-import mongoose from 'mongoose';
+export interface IDraft extends Document {
+  title: string;
+  content: string;
+  description: string;
+  image?: string;
+  tags?: string[];
+  author: Types.ObjectId;
+  categories?: Types.ObjectId[];
+  // ... outros campos que existam nos drafts
+}
 
-const draftSchema = new mongoose.Schema(
+const DraftSchema = new Schema<IDraft>(
   {
-    title: { type: String, default: '' },
-    description: { type: String, default: '' },
-    content: { type: String, default: '' },
-    image: { type: String, default: '' },
+    title: { type: String, required: true },
+    content: { type: String, required: true },
+    description: { type: String, required: true },
+    image: { type: String },
     tags: [{ type: String }],
-    author: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    author: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    categories: [{ type: Schema.Types.ObjectId, ref: 'Category' }],
   },
   { timestamps: true }
 );
 
-export default mongoose.model('Draft', draftSchema);
+export default mongoose.model<IDraft>('Draft', DraftSchema);

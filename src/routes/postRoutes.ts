@@ -1,4 +1,4 @@
-// ✅ The-Human-Tech-Blog-Server/src/routes/postRoutes.ts
+// /src/routes/postRoutes.ts
 import express from 'express';
 import {
   createPost,
@@ -8,18 +8,21 @@ import {
   deletePost,
   getPostBySlug,
   publishDraft,
+  searchPosts,
 } from '../controllers/postController';
+import { detectLanguage } from '../middleware/detectLanguage';
 import { protect } from '../middleware/authMiddleware';
 import { authorizeRoles } from '../middleware/roleMiddleware';
 import upload from '../middleware/uploadMiddleware';
 import { uploadToCloudinary } from '../utils/cloudinaryUpload';
-import { searchPosts } from '../controllers/postController';
 
 const router = express.Router();
 
+// Rotas multilíngue e padrão
 router.get('/', getPosts);
 router.get('/search', searchPosts);
-router.get('/slug/:slug', getPostBySlug);
+// Importante: detectLanguage antes do controller!
+router.get('/:lang/posts/slug/:slug', detectLanguage, getPostBySlug);
 router.get('/:id', getPostById);
 
 router.post('/', protect, authorizeRoles('admin', 'editor'), createPost);
@@ -34,7 +37,6 @@ router.post(
   upload.single('image'),
   async (req, res) => {
     if (!req.file) return res.status(400).json({ message: 'No image file provided' });
-
     try {
       const result = await uploadToCloudinary(req.file.buffer, 'posts');
       return res.status(200).json({ imageUrl: result.secure_url });

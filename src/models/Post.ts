@@ -1,49 +1,46 @@
-// src/models/Post.ts
-import mongoose, { Schema, Document } from 'mongoose';
-import slugify from 'slugify';
+// /src/models/Post.ts
+import mongoose, { Schema, Document, Types } from 'mongoose';
+
+export interface PostTranslation {
+  title: string;
+  content: string;
+  description: string;
+}
 
 export interface IPost extends Document {
-  title: string;
-  description: string;
-  content: string;
-  image?: string;
-  tags: mongoose.Types.ObjectId[]; // Relacionamento real
-  status: 'draft' | 'published';
-  author: mongoose.Types.ObjectId;
-  categories: mongoose.Types.ObjectId[];
   slug: string;
+  translations: {
+    en?: PostTranslation;
+    pt?: PostTranslation;
+    de?: PostTranslation;
+    es?: PostTranslation;
+    [key: string]: PostTranslation | undefined;
+  };
+  categories: Types.ObjectId[];
+  author: Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }
 
-const PostSchema: Schema<IPost> = new Schema(
-  {
-    title: { type: String, required: true },
-    description: { type: String, required: true },
-    content: { type: String, required: true },
-    image: { type: String },
-    tags: [{ type: Schema.Types.ObjectId, ref: 'Tag' }], // Relaciona com Tag
-    status: {
-      type: String,
-      enum: ['draft', 'published'],
-      default: 'draft',
-    },
-    author: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-    categories: [{ type: Schema.Types.ObjectId, ref: 'Category' }],
-    slug: { type: String, unique: true },
-  },
-  {
-    timestamps: true,
-  }
-);
-
-PostSchema.pre<IPost>('save', function (next) {
-  if (!this.slug && this.title) {
-    this.slug = slugify(this.title, { lower: true, strict: true });
-  }
-  next();
+const TranslationSchema = new Schema<PostTranslation>({
+  title: { type: String, required: true },
+  content: { type: String, required: true },
+  description: { type: String, required: true },
 });
 
-PostSchema.index({ title: 'text', description: 'text', content: 'text', tags: 'text' });
+const PostSchema = new Schema<IPost>(
+  {
+    slug: { type: String, required: true, unique: true },
+    translations: {
+      en: { type: TranslationSchema, required: true },
+      pt: { type: TranslationSchema, required: false },
+      de: { type: TranslationSchema, required: false },
+      es: { type: TranslationSchema, required: false },
+    },
+    categories: [{ type: Schema.Types.ObjectId, ref: 'Category' }],
+    author: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  },
+  { timestamps: true }
+);
 
 export default mongoose.model<IPost>('Post', PostSchema);

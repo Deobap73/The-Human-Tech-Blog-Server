@@ -11,6 +11,8 @@ import csrf from 'csurf';
 import passport from 'passport';
 import './config/passport';
 import { env } from './config/env';
+import { i18nextMiddleware } from './i18n';
+import { detectLanguage } from './middleware/detectLanguage';
 
 // Import das rotas (mantém igual ao teu!)
 import setupRoutes from './routes/setupRoutes';
@@ -49,6 +51,7 @@ app.use(
 // 2. Body parser
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(i18nextMiddleware.handle(require('./i18n').default));
 
 // 3. CSRF protection middleware (MODO CORRETO)
 // Só para rotas que alteram estado! Aplica nas rotas API exceto GET do csrf e health.
@@ -89,7 +92,7 @@ app.use(passport.initialize());
 app.use('/api/setup', setupRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/categories', categoryRoutes);
-app.use('/api/posts', postRoutes);
+app.use('/api', detectLanguage, postRoutes);
 app.use('/api/comments', commentRoutes);
 app.use('/api/moderation/comments', commentModerationRoutes);
 app.use('/api/reactions', reactionRoutes);

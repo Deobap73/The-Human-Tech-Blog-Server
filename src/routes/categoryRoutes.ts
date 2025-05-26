@@ -1,8 +1,10 @@
-// ✅ The-Human-Tech-Blog-Server/src/routes/categoryRoutes.ts
+// src/routes/categoryRoutes.ts
+
 import express from 'express';
 import {
   getAllCategories,
   createCategory,
+  updateCategory,
   deleteCategory,
   getPostsByCategorySlug,
   getCategoryBySlug,
@@ -14,6 +16,7 @@ const router = express.Router();
 
 router.get('/', getAllCategories);
 router.post('/', protect, authorizeRoles('admin', 'editor'), createCategory);
+router.put('/:id', protect, authorizeRoles('admin', 'editor'), updateCategory);
 router.delete('/:id', protect, authorizeRoles('admin', 'editor'), deleteCategory);
 router.get('/:slug/posts', getPostsByCategorySlug);
 router.get('/:slug', getCategoryBySlug);

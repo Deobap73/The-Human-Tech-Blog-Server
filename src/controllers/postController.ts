@@ -1,5 +1,4 @@
-// The-Human-Tech-Blog-Server/src/controllers/postController.ts
-
+// /src/controllers/postController.ts
 import { Request, Response } from 'express';
 import Post from '../models/Post';
 import Draft from '../models/Draft';
@@ -11,14 +10,13 @@ import { generateUniqueSlug } from '../utils/generateUniqueSlug';
 export const getPosts = async (req: Request, res: Response) => {
   try {
     const query: any = {};
-    // Novo: permite filtrar por autor
     if (req.query.author) {
       query.author = req.query.author;
     }
 
     const posts = await Post.find(query)
       .populate('categories', 'name slug logo')
-      .select('title description image slug categories status createdAt author')
+      .select('slug translations categories author createdAt updatedAt')
       .sort({ createdAt: -1 });
 
     return res.status(200).json(posts);
@@ -37,13 +35,38 @@ export const getPostById = async (req: Request, res: Response) => {
   }
 };
 
+// Multilíngue com fallback
 export const getPostBySlug = async (req: Request, res: Response) => {
+  const { slug } = req.params;
+  const lang = (req as any).lang || 'en';
+
   try {
-    const post = await Post.findOne({ slug: req.params.slug });
-    if (!post) return res.status(404).json({ message: 'Post not found' });
-    return res.status(200).json(post);
-  } catch (err) {
-    return res.status(500).json({ message: 'Error fetching post' });
+    const post = await Post.findOne({ slug })
+      .populate('categories', 'name slug logo')
+      .populate('author', 'name');
+
+    if (!post) {
+      return res.status(404).json({ message: 'Post not found' });
+    }
+
+    const translations = post.translations || {};
+    // Fallback para inglês se não existir tradução do idioma pedido
+    const translation = translations[lang] || translations['en'];
+    if (!translation) {
+      return res.status(404).json({ message: 'Translation not found' });
+    }
+
+    return res.status(200).json({
+      slug: post.slug,
+      lang,
+      translation, // { title, content, description }
+      categories: post.categories,
+      author: post.author,
+      createdAt: post.createdAt,
+      updatedAt: post.updatedAt,
+    });
+  } catch (error) {
+    return res.status(500).json({ message: 'Failed to fetch post' });
   }
 };
 
@@ -60,15 +83,17 @@ export const publishDraft = async (req: Request, res: Response) => {
     const slug = await generateUniqueSlug(draft.title);
 
     const newPost = new Post({
-      title: draft.title,
-      description: draft.description,
-      content: draft.content,
-      image: draft.image,
-      tags: draft.tags,
-      status: 'published',
-      author: draft.author,
-      categories: [],
       slug,
+      translations: {
+        en: {
+          title: draft.title,
+          content: draft.content,
+          description: draft.description,
+        },
+        // Outras línguas podem ser adicionadas via updatePost
+      },
+      author: draft.author,
+      categories: draft.categories || [],
     });
 
     await newPost.save();
@@ -95,13 +120,11 @@ export const deletePost = async (req: Request, res: Response) => {
     const post = await Post.findById(postId);
     if (!post) return res.status(404).json({ message: 'Post not found' });
 
-    // Author/admin protection
     if (String(post.author) !== String(user._id) && user.role !== 'admin') {
       return res.status(403).json({ message: 'Forbidden: not the author or admin' });
     }
 
     await post.deleteOne();
-
     await logAdminAction(user._id as Types.ObjectId, 'DELETE_POST', `Deleted post ${postId}`);
 
     return res.status(200).json({ message: 'Post deleted' });
@@ -114,8 +137,7 @@ export const createPost = async (req: Request, res: Response) => {
   const user = req.user as IUser;
 
   try {
-    const slug = await generateUniqueSlug(req.body.title);
-
+    const slug = await generateUniqueSlug(req.body.translations?.en?.title || 'post');
     const newPost = new Post({ ...req.body, author: user._id, slug });
     await newPost.save();
 
@@ -136,7 +158,6 @@ export const updatePost = async (req: Request, res: Response) => {
     const post = await Post.findById(postId);
     if (!post) return res.status(404).json({ message: 'Post not found' });
 
-    // Author/admin protection
     if (String(post.author) !== String(user._id) && user.role !== 'admin') {
       return res.status(403).json({ message: 'Forbidden: not the author or admin' });
     }
@@ -156,27 +177,20 @@ export const searchPosts = async (req: Request, res: Response) => {
   const { q = '', page = 1, limit = 10 } = req.query;
   const query = q.toString().trim();
 
-  console.log('[Search Posts][START]', { query, page, limit });
-
   if (!query) {
-    console.log('[Search Posts][NO QUERY]');
     return res.status(400).json({ message: 'Search query is required.' });
   }
 
   try {
-    // Pesquisa full-text
     const posts = await Post.find({ $text: { $search: query } }, { score: { $meta: 'textScore' } })
       .sort({ score: { $meta: 'textScore' }, createdAt: -1 })
       .skip((Number(page) - 1) * Number(limit))
       .limit(Number(limit))
       .populate('author', 'name')
-      .populate('categories', 'name slug logo')
-      .populate('tags', 'name slug');
+      .populate('categories', 'name slug logo');
 
-    console.log('[Search Posts][RESULT]', posts.length, 'posts found');
     return res.status(200).json(posts);
   } catch (error) {
-    console.error('[Search Posts][ERROR]', error);
     const msg =
       error instanceof Error ? error.message : typeof error === 'string' ? error : 'Unknown error';
     return res.status(500).json({ message: 'Search failed', error: msg });
