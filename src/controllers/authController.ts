@@ -1,3 +1,5 @@
+// The-Human-Tech-Blog-Server/src/controllers/authController.ts
+
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import User from '../models/User';
@@ -31,16 +33,18 @@ export const login = async (req: Request, res: Response) => {
       }
     }
 
+    // Issue tokens and set refreshToken cookie (done inside issueTokens)
     const tokens = await issueTokens(user._id.toString(), res);
 
-    // Access token no header, refreshToken no cookie, xsrf-token cookie para frontend
+    // Set XSRF-TOKEN for frontend usage (non-httpOnly)
     res.cookie('XSRF-TOKEN', tokens.accessToken, {
       httpOnly: false,
       sameSite: 'lax',
       secure: env.isProduction,
-      maxAge: 60 * 60 * 1000,
+      maxAge: 60 * 60 * 1000, // 1 hour
     });
 
+    // Return accessToken in response body
     return res.status(200).json({
       accessToken: tokens.accessToken,
       message: 'Login successful',
@@ -95,15 +99,18 @@ export const refreshToken = async (req: Request, res: Response) => {
 
   try {
     const decoded = jwt.verify(token, env.REFRESH_TOKEN_SECRET) as { id: string };
+    // Issue new tokens and set refreshToken cookie (done inside issueTokens)
     const tokens = await issueTokens(decoded.id, res);
 
+    // Set XSRF-TOKEN for frontend usage (non-httpOnly)
     res.cookie('XSRF-TOKEN', tokens.accessToken, {
       httpOnly: false,
       sameSite: 'lax',
       secure: env.isProduction,
-      maxAge: 60 * 60 * 1000,
+      maxAge: 60 * 60 * 1000, // 1 hour
     });
 
+    // Return accessToken in response body
     return res.status(200).json({ accessToken: tokens.accessToken });
   } catch (error) {
     return res.status(401).json({ message: 'Invalid refresh token' });
