@@ -9,74 +9,146 @@ import { UserActionLog } from '../models/UserActionLog';
 
 export const handleRegister = async (req: Request, res: Response) => {
   const { name, email, password } = req.body;
+  console.log('Admin registration attempt', { email, name });
+
   try {
+    console.log('Checking for existing user with email', { email });
     const existing = await User.findOne({ email });
-    if (existing) return res.status(400).json({ message: 'Email already in use' });
+
+    if (existing) {
+      console.warn('Registration failed - email already in use', { email });
+      return res.status(400).json({ message: 'Email already in use' });
+    }
+
+    console.log('Creating new admin user', { email, name });
     await User.create({ name, email, password });
+
+    console.log('Admin user created successfully', { email, name });
     return res.status(201).json({ message: 'User created' });
   } catch (err) {
+    console.error('Admin registration failed', { error: err, email, name });
     return res.status(500).json({ message: 'Registration failed' });
   }
 };
 
 export const handleLogin = async (req: Request, res: Response) => {
   const { email, password, token } = req.body;
-  const user = (await User.findOne({ email }).select('+password')) as UserDoc;
+  console.log('Admin login attempt', { email });
 
-  if (!user || !(await user.comparePassword(password))) {
-    return res.status(401).json({ message: 'Invalid credentials' });
-  }
+  try {
+    console.log('Looking up user in database', { email });
+    const user = (await User.findOne({ email }).select('+password')) as UserDoc;
 
-  if (user.role === 'admin' && user.twoFactorEnabled) {
-    if (!token) {
-      return res.status(401).json({ message: '2FA token required' });
+    if (!user || !(await user.comparePassword(password))) {
+      console.warn('Invalid credentials provided', { email });
+      return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    const verified = speakeasy.totp.verify({
-      secret: user.twoFactorSecret || '',
-      encoding: 'base32',
-      token,
-    });
+    if (user.role === 'admin' && user.twoFactorEnabled) {
+      console.log('2FA check required for admin user', { userId: user._id });
 
-    if (!verified) {
-      return res.status(401).json({ message: 'Invalid 2FA token' });
+      if (!token) {
+        console.warn('2FA token missing for admin login', { userId: user._id });
+        return res.status(401).json({ message: '2FA token required' });
+      }
+
+      console.log('Verifying 2FA token', { userId: user._id });
+      const verified = speakeasy.totp.verify({
+        secret: user.twoFactorSecret || '',
+        encoding: 'base32',
+        token,
+      });
+
+      if (!verified) {
+        console.warn('Invalid 2FA token provided', { userId: user._id });
+        return res.status(401).json({ message: 'Invalid 2FA token' });
+      }
     }
-  }
 
-  const { accessToken } = await issueTokens(user._id.toString(), res);
-  return res.json({ accessToken });
+    console.log('Issuing tokens for user', { userId: user._id });
+    const { accessToken } = await issueTokens(user._id.toString(), res);
+
+    console.log('Admin login successful', { userId: user._id });
+    return res.json({ accessToken });
+  } catch (err) {
+    console.error('Admin login failed', { error: err, email });
+    return res.status(500).json({ message: 'Login failed' });
+  }
 };
 
 export const handleRefreshToken = async (req: Request, res: Response) => {
   const oldToken = req.cookies.refreshToken;
-  if (!oldToken) return res.status(401).json({ message: 'Missing refresh token' });
+  console.log('Refresh token request received');
 
-  const userId = await redisClient.get(oldToken);
-  if (!userId) return res.status(403).json({ message: 'Refresh token revoked or invalid' });
+  if (!oldToken) {
+    console.warn('Refresh token missing in request');
+    return res.status(401).json({ message: 'Missing refresh token' });
+  }
 
-  await redisClient.del(oldToken);
-  const { accessToken } = await issueTokens(userId, res);
-  return res.json({ accessToken });
+  try {
+    console.log('Checking Redis for refresh token validity', { token: oldToken });
+    const userId = await redisClient.get(oldToken);
+
+    if (!userId) {
+      console.warn('Refresh token not found in Redis or invalid', { token: oldToken });
+      return res.status(403).json({ message: 'Refresh token revoked or invalid' });
+    }
+
+    console.log('Deleting old refresh token from Redis', { token: oldToken });
+    await redisClient.del(oldToken);
+
+    console.log('Issuing new tokens', { userId });
+    const { accessToken } = await issueTokens(userId, res);
+
+    console.log('Token refresh successful', { userId });
+    return res.json({ accessToken });
+  } catch (err) {
+    console.error('Token refresh failed', { error: err, token: oldToken });
+    return res.status(500).json({ message: 'Token refresh failed' });
+  }
 };
 
 export const handleLogout = async (req: Request, res: Response) => {
   const token = req.cookies.refreshToken;
-  if (token) await redisClient.del(token);
-  res.clearCookie('refreshToken', {
-    httpOnly: true,
-    secure: env.isProduction,
-    sameSite: 'strict',
-  });
-  return res.status(200).json({ message: 'Logged out' });
+  console.log('Logout request received');
+
+  try {
+    if (token) {
+      console.log('Revoking refresh token in Redis', { token });
+      await redisClient.del(token);
+    }
+
+    console.log('Clearing refreshToken cookie');
+    res.clearCookie('refreshToken', {
+      httpOnly: true,
+      secure: env.isProduction,
+      sameSite: 'strict',
+    });
+
+    console.log('Logout successful');
+    return res.status(200).json({ message: 'Logged out' });
+  } catch (err) {
+    console.error('Logout failed', { error: err });
+    return res.status(500).json({ message: 'Logout failed' });
+  }
 };
 
 export const handleGetMe = async (req: Request, res: Response) => {
-  if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
+  console.log('GetMe request received');
+
+  if (!req.user) {
+    console.warn('Unauthorized GetMe request - no user in request');
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+
+  console.log('GetMe request successful', { userId: req.user._id });
   return res.status(200).json({ user: req.user });
 };
 
 export const getAdminDashboard = (req: Request, res: Response) => {
   const user = req.user;
+  console.log('Admin dashboard accessed', { userId: user?._id });
+
   return res.status(200).json({
     message: 'Admin dashboard data',
     user,
@@ -84,13 +156,23 @@ export const getAdminDashboard = (req: Request, res: Response) => {
 };
 
 export const getStats = async (_req: Request, res: Response) => {
+  console.log('Admin stats request received');
+
   try {
+    console.log('Fetching statistics from database');
     const [users, posts, drafts, comments] = await Promise.all([
       User.countDocuments(),
       require('../models/Post').default.countDocuments(),
       require('../models/Draft').default.countDocuments(),
       require('../models/Comment').default.countDocuments(),
     ]);
+
+    console.log('Statistics retrieved successfully', {
+      users,
+      posts,
+      drafts,
+      comments,
+    });
 
     return res.status(200).json({
       totalUsers: users,
@@ -99,21 +181,25 @@ export const getStats = async (_req: Request, res: Response) => {
       totalComments: comments,
     });
   } catch (err) {
-    console.error('[Get Stats]', err);
+    console.error('Failed to load statistics', { error: err });
     return res.status(500).json({ message: 'Failed to load stats' });
   }
 };
 
 export const getAdminLogs = async (_req: Request, res: Response) => {
+  console.log('Admin logs request received');
+
   try {
+    console.log('Fetching admin logs from database');
     const logs = await UserActionLog.find()
       .populate('user', 'name email')
       .sort({ createdAt: -1 })
       .limit(100);
 
+    console.log('Admin logs retrieved successfully', { count: logs.length });
     return res.status(200).json(logs);
   } catch (err) {
-    console.error('[Get Admin Logs]', err);
+    console.error('Failed to load admin logs', { error: err });
     return res.status(500).json({ message: 'Failed to load logs' });
   }
 };

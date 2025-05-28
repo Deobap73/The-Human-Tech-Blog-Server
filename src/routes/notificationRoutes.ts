@@ -1,4 +1,4 @@
-// /src/routes/notificationRoutes.ts
+// The-Human-Tech-Blog-Server/src/routes/notificationRoutes.ts
 
 import express from 'express';
 import {
@@ -12,10 +12,15 @@ import { detectLanguage } from '../middleware/detectLanguage';
 
 const router = express.Router();
 
-// Todas protegidas
-router.get('/:lang/notifications', protect, detectLanguage, getNotifications);
-router.patch('/notifications/:id/read', protect, markNotificationRead);
-router.delete('/notifications/:id', protect, deleteNotification);
-router.post('/notifications', protect, createNotification);
+console.log('[notificationRoutes] Notification routes loaded.'); // Added debug log
+// Corrige o endpoint base para corresponder ao frontend!
+router.get('/', protect, detectLanguage, getNotifications);
+console.log('[notificationRoutes] GET / - Get notifications route registered.'); // Added debug log
+router.patch('/:id/read', protect, markNotificationRead);
+console.log('[notificationRoutes] PATCH /:id/read - Mark notification as read route registered.'); // Added debug log
+router.delete('/:id', protect, deleteNotification);
+console.log('[notificationRoutes] DELETE /:id - Delete notification route registered.'); // Added debug log
+router.post('/', protect, createNotification);
+console.log('[notificationRoutes] POST / - Create notification route registered.'); // Added debug log
 
 export default router;
