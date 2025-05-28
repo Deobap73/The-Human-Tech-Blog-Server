@@ -1,0 +1,53 @@
+[33mcommit 524f5ea480c833083c6c563b3edd027fec5cbc65[m
+Author: [1;31mDeobap73[m <contact@deolindobaptista.com>
+Date:   Mon May 26 15:41:22 2025 +0200
+
+    feat(i18n): Add multilanguage support to posts, categories, tags,
+    and notifications APIs
+    
+     Changes to be committed:
+            modified:   package-lock.json
+            modified:   package.json
+            modified:   src/app.ts
+            modified:   src/controllers/categoryController.ts
+            modified:   src/controllers/notificationController.ts
+            modified:   src/controllers/postController.ts
+            modified:   src/controllers/tagController.ts
+            new file:   src/i18n/index.ts
+            new file:   src/locales/de/translation.json
+            new file:   src/locales/en/translation.json
+            new file:   src/locales/es/translation.json
+            new file:   src/locales/pt/translation.json
+            new file:   src/middleware/detectLanguage.ts
+            modified:   src/models/Category.ts
+            modified:   src/models/Draft.ts
+            modified:   src/models/Notification.ts
+            modified:   src/models/Post.ts
+            modified:   src/models/Tag.ts
+            modified:   src/routes/categoryRoutes.ts
+            modified:   src/routes/notificationRoutes.ts
+            modified:   src/routes/postRoutes.ts
+            modified:   src/routes/tagRoutes.ts
+
+M	package-lock.json
+M	package.json
+M	src/app.ts
+M	src/controllers/categoryController.ts
+M	src/controllers/notificationController.ts
+M	src/controllers/postController.ts
+M	src/controllers/tagController.ts
+A	src/i18n/index.ts
+A	src/locales/de/translation.json
+A	src/locales/en/translation.json
+A	src/locales/es/translation.json
+A	src/locales/pt/translation.json
+A	src/middleware/detectLanguage.ts
+M	src/models/Category.ts
+M	src/models/Draft.ts
+M	src/models/Notification.ts
+M	src/models/Post.ts
+M	src/models/Tag.ts
+M	src/routes/categoryRoutes.ts
+M	src/routes/notificationRoutes.ts
+M	src/routes/postRoutes.ts
+M	src/routes/tagRoutes.ts

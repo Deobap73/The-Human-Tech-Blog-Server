@@ -1,5 +1,6 @@
 // /src/controllers/postController.ts
 import { Request, Response } from 'express';
+import mongoose from 'mongoose'; // <--- Importante para validação segura de ObjectId
 import Post from '../models/Post';
 import Draft from '../models/Draft';
 import { IUser } from '../types/User';
@@ -27,7 +28,15 @@ export const getPosts = async (req: Request, res: Response) => {
 
 export const getPostById = async (req: Request, res: Response) => {
   try {
-    const post = await Post.findById(req.params.id);
+    const { id } = req.params;
+
+    // --- PATCH: validação de ObjectId para evitar erro 500 em IDs malformados ---
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(404).json({ message: 'Post not found' });
+    }
+    // --------------------------------------------------------------------------
+
+    const post = await Post.findById(id);
     if (!post) return res.status(404).json({ message: 'Post not found' });
     return res.status(200).json(post);
   } catch (err) {

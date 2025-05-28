@@ -1,4 +1,5 @@
-// /src/routes/postRoutes.ts
+// src/routes/postRoutes.ts
+
 import express from 'express';
 import {
   createPost,
@@ -13,22 +14,37 @@ import {
 import { detectLanguage } from '../middleware/detectLanguage';
 import { protect } from '../middleware/authMiddleware';
 import { authorizeRoles } from '../middleware/roleMiddleware';
+// Se usares upload para imagens
 import upload from '../middleware/uploadMiddleware';
 import { uploadToCloudinary } from '../utils/cloudinaryUpload';
 
 const router = express.Router();
 
-// Rotas multilíngue e padrão
+// Busca todos os posts
 router.get('/', getPosts);
+
+// Busca posts por pesquisa (query param q=)
 router.get('/search', searchPosts);
-// Importante: detectLanguage antes do controller!
-router.get('/:lang/posts/slug/:slug', detectLanguage, getPostBySlug);
+
+// Busca post multilíngue por slug (deteta idioma no middleware)
+router.get('/slug/:slug', detectLanguage, getPostBySlug);
+
+// Busca post por ID
 router.get('/:id', getPostById);
 
+// Criar post (apenas admin/editor)
 router.post('/', protect, authorizeRoles('admin', 'editor'), createPost);
+
+// Atualizar post (apenas admin/editor)
 router.put('/:id', protect, authorizeRoles('admin', 'editor'), updatePost);
+
+// Apagar post (apenas admin/editor)
 router.delete('/:id', protect, authorizeRoles('admin', 'editor'), deletePost);
+
+// Publicar draft
 router.post('/publish/:id', protect, authorizeRoles('admin', 'editor'), publishDraft);
+
+// Opcional: upload de imagem
 
 router.post(
   '/upload',
