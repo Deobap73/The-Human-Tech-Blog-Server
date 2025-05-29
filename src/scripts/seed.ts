@@ -7,6 +7,7 @@ import Category from '../models/Category';
 import User from '../models/User';
 import { Message } from '../models/Message';
 import { Conversation } from '../models/Conversation';
+import Sponsor from '../models/Sponsor';
 
 dotenv.config();
 
@@ -48,80 +49,160 @@ const seed = async () => {
 
     console.log('🏷️ Creating categories...');
     const categories = await Category.insertMany([
-      { name: 'Agile Projects', slug: 'agile-projects', logo: 'agileProjects.webp' },
-      { name: 'Frontend UX', slug: 'frontend-ux', logo: 'frontEndUx.webp' },
-      { name: 'Tech Career', slug: 'tech-career', logo: 'teckCareer.webp' },
-      { name: 'Tech Tools', slug: 'tech-tools', logo: 'teckTools.webp' },
       {
-        name: 'Personal Reflections',
+        translations: {
+          en: {
+            name: 'Agile Projects',
+            description: 'All about agile methodologies and teams.',
+          },
+        },
+        slug: 'agile-projects',
+        logo: 'agileProjects.webp',
+      },
+      {
+        translations: {
+          en: {
+            name: 'Frontend UX',
+            description: 'User experience and frontend practices.',
+          },
+        },
+        slug: 'frontend-ux',
+        logo: 'frontEndUx.webp',
+      },
+      {
+        translations: {
+          en: {
+            name: 'Tech Career',
+            description: 'Career growth and tips for tech professionals.',
+          },
+        },
+        slug: 'tech-career',
+        logo: 'teckCareer.webp',
+      },
+      {
+        translations: {
+          en: {
+            name: 'Tech Tools',
+            description: 'Best tools and resources for modern devs.',
+          },
+        },
+        slug: 'tech-tools',
+        logo: 'teckTools.webp',
+      },
+      {
+        translations: {
+          en: {
+            name: 'Personal Reflections',
+            description: 'Insights and personal thoughts on technology.',
+          },
+        },
         slug: 'personal-reflections',
         logo: 'personalReflections.webp',
       },
     ]);
 
-    const getCategoryId = (name: string) => categories.find((c) => c.name === name)?._id;
+    const getCategoryId = (slug: string) => categories.find((c) => c.slug === slug)?._id;
 
     console.log('📝 Creating posts...');
+    function toSlug(str: string): string {
+      return str
+        .toLowerCase()
+        .replace(/[^\w\s-]/g, '')
+        .trim()
+        .replace(/[\s_-]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+    }
+
     const posts = [
       {
-        title: 'The Human Side of Agile Development',
-        description: 'Exploring how agile methodologies affect teams.',
-        content: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit...',
+        translations: {
+          en: {
+            title: 'The Human Side of Agile Development',
+            description: 'Exploring how agile methodologies affect teams.',
+            content: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit...',
+          },
+        },
+        slug: toSlug('The Human Side of Agile Development'),
         image: '/images/1.jpg',
         status: 'published',
         tags: ['agile', 'teamwork'],
         author: berto._id,
-        categories: [getCategoryId('Agile Projects')],
+        categories: [getCategoryId('agile-projects')],
       },
       {
-        title: 'UX Design: Bridging Humans and Technology',
-        description: 'UX connects humans and digital interfaces.',
-        content: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit...',
+        translations: {
+          en: {
+            title: 'UX Design: Bridging Humans and Technology',
+            description: 'UX connects humans and digital interfaces.',
+            content: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit...',
+          },
+        },
+        slug: toSlug('UX Design: Bridging Humans and Technology'),
         image: '/images/2.jpg',
         status: 'published',
         tags: ['ux', 'design'],
         author: berit._id,
-        categories: [getCategoryId('Frontend UX')],
+        categories: [getCategoryId('frontend-ux')],
       },
       {
-        title: 'Navigating a Career in Tech',
-        description: 'Reflections on tech career paths.',
-        content: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit...',
+        translations: {
+          en: {
+            title: 'Navigating a Career in Tech',
+            description: 'Reflections on tech career paths.',
+            content: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit...',
+          },
+        },
+        slug: toSlug('Navigating a Career in Tech'),
         image: '/images/3.jpg',
         status: 'published',
         tags: ['career'],
         author: alex._id,
-        categories: [getCategoryId('Tech Career')],
+        categories: [getCategoryId('tech-career')],
       },
       {
-        title: 'Essential Tools for Modern Developers',
-        description: 'Top tools for productivity in dev work.',
-        content: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit...',
+        translations: {
+          en: {
+            title: 'Essential Tools for Modern Developers',
+            description: 'Top tools for productivity in dev work.',
+            content: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit...',
+          },
+        },
+        slug: toSlug('Essential Tools for Modern Developers'),
         image: '/images/4.jpg',
         status: 'published',
         tags: ['tools'],
         author: berto._id,
-        categories: [getCategoryId('Tech Tools')],
+        categories: [getCategoryId('tech-tools')],
       },
       {
-        title: 'Why I Write About Technology',
-        description: 'The power of sharing knowledge in tech.',
-        content: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit...',
+        translations: {
+          en: {
+            title: 'Why I Write About Technology',
+            description: 'The power of sharing knowledge in tech.',
+            content: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit...',
+          },
+        },
+        slug: toSlug('Why I Write About Technology'),
         image: '/images/5.jpg',
         status: 'published',
         tags: ['blog'],
         author: berit._id,
-        categories: [getCategoryId('Personal Reflections')],
+        categories: [getCategoryId('personal-reflections')],
       },
       {
-        title: 'Old Programming Techniques',
-        description: 'Retrospective on coding in the 2000s.',
-        content: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit...',
+        translations: {
+          en: {
+            title: 'Old Programming Techniques',
+            description: 'Retrospective on coding in the 2000s.',
+            content: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit...',
+          },
+        },
+        slug: toSlug('Old Programming Techniques'),
         image: '/images/6.jpg',
         status: 'published',
         tags: ['retro'],
         author: alex._id,
-        categories: [getCategoryId('Tech Career')],
+        categories: [getCategoryId('tech-career')],
       },
     ];
 
@@ -129,6 +210,40 @@ const seed = async () => {
       const post = new Post(postData);
       await post.save();
     }
+
+    console.log('🤝 Creating sponsors...');
+    await Sponsor.deleteMany();
+
+    const sponsors = [
+      {
+        name: 'Cloudinary',
+        logoUrl: '/images/cloudinary.webp',
+        website: 'https://cloudinary.com',
+      },
+      {
+        name: 'Confluence',
+        logoUrl: '/images/confluence.webp',
+        website: 'https://www.atlassian.com/software/confluence',
+      },
+      {
+        name: 'Hostinger',
+        logoUrl: '/images/hostinger.webp',
+        website: 'https://www.hostinger.com',
+      },
+      {
+        name: 'Jira',
+        logoUrl: '/images/jira.webp',
+        website: 'https://www.atlassian.com/software/jira',
+      },
+      {
+        name: 'Scrum',
+        logoUrl: '/images/scrum.webp',
+        website: 'https://www.scrum.org/',
+      },
+    ];
+
+    await Sponsor.insertMany(sponsors);
+    console.log('✅ Sponsors created');
 
     console.log('💬 Creating conversations and messages...');
     const conversation = await Conversation.create({ members: [berto._id, berit._id] });
