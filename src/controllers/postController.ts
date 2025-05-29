@@ -1,6 +1,7 @@
 // /src/controllers/postController.ts
+
 import { Request, Response } from 'express';
-import mongoose from 'mongoose'; // <--- Importante para validação segura de ObjectId
+import mongoose from 'mongoose';
 import Post from '../models/Post';
 import Draft from '../models/Draft';
 import { IUser } from '../types/User';
@@ -16,8 +17,8 @@ export const getPosts = async (req: Request, res: Response) => {
     }
 
     const posts = await Post.find(query)
-      .populate('categories', 'name slug logo')
-      .select('slug translations categories author createdAt updatedAt')
+      .populate('categories', 'translations slug logo') // <-- PATCH
+      .select('slug image status translations categories author createdAt updatedAt')
       .sort({ createdAt: -1 });
 
     return res.status(200).json(posts);
@@ -30,13 +31,12 @@ export const getPostById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
-    // --- PATCH: validação de ObjectId para evitar erro 500 em IDs malformados ---
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(404).json({ message: 'Post not found' });
     }
-    // --------------------------------------------------------------------------
 
-    const post = await Post.findById(id);
+    const post = await Post.findById(id).populate('categories', 'translations slug logo'); // <-- PATCH
+
     if (!post) return res.status(404).json({ message: 'Post not found' });
     return res.status(200).json(post);
   } catch (err) {
@@ -47,33 +47,17 @@ export const getPostById = async (req: Request, res: Response) => {
 // Multilíngue com fallback
 export const getPostBySlug = async (req: Request, res: Response) => {
   const { slug } = req.params;
-  const lang = (req as any).lang || 'en';
 
   try {
     const post = await Post.findOne({ slug })
-      .populate('categories', 'name slug logo')
+      .populate('categories', 'translations slug logo')
       .populate('author', 'name');
 
     if (!post) {
       return res.status(404).json({ message: 'Post not found' });
     }
 
-    const translations = post.translations || {};
-    // Fallback para inglês se não existir tradução do idioma pedido
-    const translation = translations[lang] || translations['en'];
-    if (!translation) {
-      return res.status(404).json({ message: 'Translation not found' });
-    }
-
-    return res.status(200).json({
-      slug: post.slug,
-      lang,
-      translation, // { title, content, description }
-      categories: post.categories,
-      author: post.author,
-      createdAt: post.createdAt,
-      updatedAt: post.updatedAt,
-    });
+    return res.status(200).json(post); // Agora retorna o post inteiro
   } catch (error) {
     return res.status(500).json({ message: 'Failed to fetch post' });
   }
@@ -99,7 +83,6 @@ export const publishDraft = async (req: Request, res: Response) => {
           content: draft.content,
           description: draft.description,
         },
-        // Outras línguas podem ser adicionadas via updatePost
       },
       author: draft.author,
       categories: draft.categories || [],
@@ -126,7 +109,8 @@ export const deletePost = async (req: Request, res: Response) => {
   const user = req.user as IUser;
 
   try {
-    const post = await Post.findById(postId);
+    const post = await Post.findById(postId).populate('categories', 'translations slug logo'); // <-- PATCH
+
     if (!post) return res.status(404).json({ message: 'Post not found' });
 
     if (String(post.author) !== String(user._id) && user.role !== 'admin') {
@@ -164,7 +148,8 @@ export const updatePost = async (req: Request, res: Response) => {
   const user = req.user as IUser;
 
   try {
-    const post = await Post.findById(postId);
+    const post = await Post.findById(postId).populate('categories', 'translations slug logo'); // <-- PATCH
+
     if (!post) return res.status(404).json({ message: 'Post not found' });
 
     if (String(post.author) !== String(user._id) && user.role !== 'admin') {
@@ -196,7 +181,7 @@ export const searchPosts = async (req: Request, res: Response) => {
       .skip((Number(page) - 1) * Number(limit))
       .limit(Number(limit))
       .populate('author', 'name')
-      .populate('categories', 'name slug logo');
+      .populate('categories', 'translations slug logo'); // <-- PATCH
 
     return res.status(200).json(posts);
   } catch (error) {

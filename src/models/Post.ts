@@ -1,4 +1,5 @@
 // /src/models/Post.ts
+
 import mongoose, { Schema, Document, Types } from 'mongoose';
 
 export interface PostTranslation {
@@ -9,6 +10,8 @@ export interface PostTranslation {
 
 export interface IPost extends Document {
   slug: string;
+  image: string; // <-- ADICIONA ISTO!
+  status: 'draft' | 'published' | 'archived';
   translations: {
     en?: PostTranslation;
     pt?: PostTranslation;
@@ -31,6 +34,13 @@ const TranslationSchema = new Schema<PostTranslation>({
 const PostSchema = new Schema<IPost>(
   {
     slug: { type: String, required: true, unique: true },
+    image: { type: String, required: false }, // <-- ADICIONA ISTO!
+    status: {
+      type: String,
+      enum: ['draft', 'published', 'archived'],
+      required: true,
+      default: 'draft',
+    },
     translations: {
       en: { type: TranslationSchema, required: true },
       pt: { type: TranslationSchema, required: false },

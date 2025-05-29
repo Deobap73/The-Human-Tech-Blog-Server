@@ -34,6 +34,7 @@ import userRoutes from './routes/userRoutes';
 import tagRoutes from './routes/tagRoutes';
 import commentModerationRoutes from './routes/commentModerationRoutes';
 import analyticsRoutes from './routes/analyticsRoutes';
+import sponsorRoutes from './routes/sponsor.routes';
 
 const app = express();
 console.log('[app.ts] Express app initialized.'); // Added debug log
@@ -135,6 +136,8 @@ app.use('/api/tags', tagRoutes);
 console.log('[app.ts] Mounted tagRoutes at /api/tags.'); // Added debug log
 app.use('/api/analytics', analyticsRoutes);
 console.log('[app.ts] Mounted analyticsRoutes at /api/analytics.'); // Added debug log
+app.use('/api/sponsors', sponsorRoutes);
+console.log('[app.ts] Mounted sponsorRoutes at /api/sponsors.'); // Added debug log
 
 // Posts APENAS EM /api/posts (não monta em /api nem global)
 app.use('/api/posts', postRoutes);
