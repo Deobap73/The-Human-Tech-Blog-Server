@@ -50,14 +50,36 @@ export const getPostBySlug = async (req: Request, res: Response) => {
 
   try {
     const post = await Post.findOne({ slug })
+<<<<<<< HEAD
       .populate('categories', 'translations slug logo')
+=======
+      .populate('categories', 'translations slug logo') // <-- PATCH
+>>>>>>> 053cf2aaef785a1b6179038dfc06a3fa01e0cbc3
       .populate('author', 'name');
 
     if (!post) {
       return res.status(404).json({ message: 'Post not found' });
     }
 
+<<<<<<< HEAD
     return res.status(200).json(post); // Agora retorna o post inteiro
+=======
+    const translations = post.translations || {};
+    const translation = translations[lang] || translations['en'];
+    if (!translation) {
+      return res.status(404).json({ message: 'Translation not found' });
+    }
+
+    return res.status(200).json({
+      slug: post.slug,
+      lang,
+      translation, // { title, content, description }
+      categories: post.categories,
+      author: post.author,
+      createdAt: post.createdAt,
+      updatedAt: post.updatedAt,
+    });
+>>>>>>> 053cf2aaef785a1b6179038dfc06a3fa01e0cbc3
   } catch (error) {
     return res.status(500).json({ message: 'Failed to fetch post' });
   }
