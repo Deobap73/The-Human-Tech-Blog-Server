@@ -62,4 +62,12 @@ export const env = cleanEnv(process.env, {
 
   // Frontend
   CLIENT_URL: url({ default: 'http://localhost:5173' }),
+
+  // Email SMTP (Hostinger)
+  SMTP_HOST: str({ default: '' }),
+  SMTP_PORT: num({ default: 465 }),
+  SMTP_SECURE: bool({ default: true }),
+  SMTP_USER: str({ default: '' }),
+  SMTP_PASS: str({ default: '' }),
+  SMTP_TO: str({ default: '' }),
 });

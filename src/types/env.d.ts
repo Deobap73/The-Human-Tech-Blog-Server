@@ -38,5 +38,13 @@ declare namespace NodeJS {
 
     // Google reCAPTCHA
     RECAPTCHA_SECRET: string;
+
+    // SMTP Email
+    SMTP_HOST: string;
+    SMTP_PORT: string;
+    SMTP_SECURE: string;
+    SMTP_USER: string;
+    SMTP_PASS: string;
+    SMTP_TO: string;
   }
 }
