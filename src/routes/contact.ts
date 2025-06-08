@@ -1,5 +1,4 @@
 // /src/routes/contact.ts
-
 import { Router } from 'express';
 import nodemailer from 'nodemailer';
 import { env } from '../config/env';
@@ -16,7 +15,7 @@ router.post('/', async (req, res) => {
   try {
     const transporter = nodemailer.createTransport({
       host: env.SMTP_HOST,
-      port: env.SMTP_PORT,
+      port: Number(env.SMTP_PORT),
       secure: env.SMTP_SECURE,
       auth: {
         user: env.SMTP_USER,
@@ -25,17 +24,17 @@ router.post('/', async (req, res) => {
     });
 
     await transporter.sendMail({
-      from: `"${name}" <${email}>`,
+      from: `"${name} via The Human Tech Blog" <contact@thehumantechblog.com>`,
       to: env.SMTP_TO,
       subject: subject || 'New Contact Form Message',
-      text: message,
+      text: `From: ${name}\nEmail: ${email}\n\n${message}`,
       replyTo: email,
     });
 
-    return res.status(200).json({ ok: true }); // <-- return aqui
+    return res.status(200).json({ ok: true });
   } catch (err) {
     console.error('Email send error:', err);
-    return res.status(500).json({ error: 'Failed to send email.' }); // <-- return aqui
+    return res.status(500).json({ error: 'Failed to send email.' });
   }
 });
 
