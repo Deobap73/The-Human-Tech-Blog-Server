@@ -104,7 +104,7 @@ app.use('/api/admin/users', userAdminRoutes);
 app.use('/api/drafts', draftRoutes);
 app.use('/api/newsletter', newsletterRoutes);
 app.use('/api/users', userRoutes);
-app.use('/api/tags', tagRoutes);
+app.use('/api', tagRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/sponsors', sponsorRoutes);
 app.use('/api/posts', postRoutes);
