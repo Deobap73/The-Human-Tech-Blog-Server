@@ -1,5 +1,3 @@
-// /src/routes/tagRoutes.ts
-
 import express from 'express';
 import {
   getAllTags,
@@ -14,6 +12,17 @@ import { detectLanguage } from '../middleware/detectLanguage';
 
 const router = express.Router();
 
+// Adiciona endpoint direto para GET /api/tags (default 'en')
+router.get(
+  '/tags',
+  (req, _res, next) => {
+    (req as any).lang = 'en'; // default language
+    next();
+  },
+  getAllTags
+);
+
+// Mantém endpoints multilíngua existentes
 router.get('/:lang/tags', detectLanguage, getAllTags);
 router.get('/:lang/tags/:slug', detectLanguage, getTagBySlug);
 
