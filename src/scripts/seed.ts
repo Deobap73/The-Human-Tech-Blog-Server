@@ -193,7 +193,8 @@ const seed = async () => {
         translations: {
           en: {
             title: 'Old Programming Techniques',
-            description: 'Retrospective on coding in the 2000s.',
+            description:
+              'Explora as técnicas de programação clássicas que moldaram o desenvolvimento de software. Descobre como princípios antigos continuam a influenciar o código moderno..',
             content: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit...',
           },
         },
