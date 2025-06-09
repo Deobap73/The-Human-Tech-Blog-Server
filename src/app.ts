@@ -1,4 +1,4 @@
-// src/app.ts
+// The-Human-Tech-Blog-Server\src\app.ts
 
 import express from 'express';
 import dotenv from 'dotenv';
