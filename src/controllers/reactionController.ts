@@ -3,7 +3,7 @@
 import { Request, Response } from 'express';
 import Reaction from '../models/Reaction';
 import { IUser } from '../types/User';
-import { getSocketIO } from '../socket/io';
+import { getSocketIO } from '../socket';
 
 // Toggle (adicionar/remover) reação a posts/comentários
 export const toggleReaction = async (req: Request, res: Response) => {

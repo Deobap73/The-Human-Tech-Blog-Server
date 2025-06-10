@@ -1,43 +1,38 @@
-// ✅ src/middleware/csrfMiddleware.ts
-import csrf from 'csurf';
-import { env } from '../config/env';
-import { Request, Response, NextFunction } from 'express';
+// /src/middleware/csrfMiddleware.ts
 
-console.log('[csrfMiddleware] Loading CSRF middleware module.'); // Added debug log
+import csrf from 'csurf';
+import { Request, Response, NextFunction } from 'express';
 
 export const csrfProtection = csrf({
   cookie: {
-    key: '_csrf',
-    httpOnly: true,
-    secure: env.isProduction,
-    sameSite: env.isProduction ? 'strict' : 'lax',
+    key: 'XSRF-TOKEN',
+    httpOnly: false,
+    secure: false, // Only true in production with HTTPS
+    sameSite: false, // Disabled in dev to allow localhost:5173 <-> 5000 cookies
     path: '/',
+    domain: undefined, // Let browser manage domain (localhost for dev)
   },
 });
-console.log('[csrfMiddleware] csrfProtection instance created.'); // Added debug log
-console.log(
-  `[csrfMiddleware] CSRF cookie config: httpOnly=${true}, secure=${env.isProduction}, sameSite=${env.isProduction ? 'strict' : 'lax'}, path=/`
-); // Added debug log
 
-// Add logging to CSRF middleware
+// Logging for debug
 export const csrfWithLogging = (req: Request, res: Response, next: NextFunction) => {
-  console.log('---'); // Added debug log for separation
   console.log('[csrfWithLogging] CSRF protection middleware triggered', {
     method: req.method,
     path: req.path,
-    origin: req.headers.origin, // Added debug log for origin
-    'x-csrf-token': req.headers['x-csrf-token'], // Added debug log for CSRF token header
+    origin: req.headers.origin,
+    'x-csrf-token': req.headers['x-csrf-token'],
+    cookies: req.cookies,
   });
 
   return csrfProtection(req, res, (err) => {
     if (err) {
       console.error('[csrfWithLogging] CSRF validation failed', {
-        error: err.message, // Log only the message for brevity
-        code: (err as any).code, // Log error code if available
+        error: err.message,
+        code: (err as any).code,
         method: req.method,
         path: req.path,
-        ip: req.ip, // Added debug log for IP address
-        cookies: req.cookies, // Added debug log for received cookies
+        ip: req.ip,
+        cookies: req.cookies,
       });
       return res.status(403).json({ message: 'CSRF token validation failed' });
     }
@@ -46,8 +41,6 @@ export const csrfWithLogging = (req: Request, res: Response, next: NextFunction)
       method: req.method,
       path: req.path,
     });
-    console.log('---'); // Added debug log for separation
     return next();
   });
 };
-console.log('[csrfMiddleware] csrfWithLogging function defined.'); // Added debug log

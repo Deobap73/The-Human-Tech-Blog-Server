@@ -1,22 +1,33 @@
-// src/utils/jwt.ts
+// The-Human-Tech-Blog-Server/src/utils/jwt.ts
 import jwt from 'jsonwebtoken';
 import { env } from '../config/env';
 
-const ACCESS_SECRET = env.JWT_SECRET;
-const REFRESH_SECRET = env.JWT_SECRET + '_refresh';
-
 export const signAccessToken = (userId: string) => {
-  return jwt.sign({ userId: userId.toString() }, ACCESS_SECRET, { expiresIn: '15m' });
+  // O operador '!' afirma ao TypeScript que estas variáveis não serão 'undefined' em tempo de execução.
+  // Para 'expiresIn', usamos 'as jwt.SignOptions['expiresIn']' para uma asserção de tipo explícita,
+  // garantindo que a string de expiração (e.g., "1h", "7d") seja compatível com a tipagem da biblioteca.
+  return jwt.sign(
+    { id: userId },
+    env.JWT_SECRET!, // Garante que a chave secreta é uma string e não undefined
+    {
+      expiresIn: env.JWT_EXPIRATION as jwt.SignOptions['expiresIn'], // Asserção de tipo mais precisa para expiresIn
+    }
+  );
 };
 
 export const signRefreshToken = (userId: string) => {
-  return jwt.sign({ userId: userId.toString() }, REFRESH_SECRET, { expiresIn: '7d' });
-};
-
-export const verifyAccessToken = (token: string) => {
-  return jwt.verify(token, ACCESS_SECRET) as { userId: string };
+  // Aplicamos a mesma lógica para o refresh token.
+  return jwt.sign(
+    { id: userId },
+    env.REFRESH_TOKEN_SECRET!, // Garante que a chave secreta é uma string e não undefined
+    {
+      expiresIn: env.REFRESH_TOKEN_EXPIRATION as jwt.SignOptions['expiresIn'], // Asserção de tipo mais precisa para expiresIn
+    }
+  );
 };
 
 export const verifyRefreshToken = (token: string) => {
-  return jwt.verify(token, REFRESH_SECRET) as { userId: string };
+  // Para a verificação, também afirmamos que o segredo não será undefined.
+  // O tipo de retorno é explicitamente definido para garantir que TS saiba a estrutura.
+  return jwt.verify(token, env.REFRESH_TOKEN_SECRET!) as { id: string };
 };

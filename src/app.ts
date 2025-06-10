@@ -7,17 +7,17 @@ dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
-import csrf from 'csurf';
-import passport from 'passport';
-import './config/passport';
+import passport from 'passport'; // Keep this import
 import { env } from './config/env';
 import { i18nextMiddleware } from './i18n';
+
+// Import only the centralized and robust CSRF middleware!
+import { csrfWithLogging } from './middleware/csrfMiddleware';
 
 // Import routes
 import setupRoutes from './routes/setupRoutes';
 import authRoutes from './routes/authRoutes';
 import categoryRoutes from './routes/categoryRoutes';
-import csrfRouter from './routes/csrf';
 import contactRoutes from './routes/contact';
 import postRoutes from './routes/postRoutes';
 import commentRoutes from './routes/commentRoutes';
@@ -39,7 +39,7 @@ import sponsorRoutes from './routes/sponsor.routes';
 
 const app = express();
 
-// Debug/inline routes
+// Debug/inline routes (keep for debug)
 app.get('/api/notifications-debug', (_req, res) => {
   res.json({ ok: true, msg: 'Notificações debug OK!' });
 });
@@ -47,7 +47,7 @@ app.get('/api/notifications-inline-test', (_req, res) => {
   res.json({ ok: true, msg: 'Notificações INLINE OK!' });
 });
 
-// Middlewares base
+// Base middlewares
 app.use(cookieParser());
 app.use(
   cors({
@@ -61,33 +61,44 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(i18nextMiddleware.handle(require('./i18n').default));
 
-// CSRF Protection
-const csrfProtection = csrf({
-  cookie: {
-    httpOnly: false,
-    sameSite: 'lax',
-    secure: env.isProduction,
-  },
-});
-app.get('/api/auth/csrf', csrfProtection, (req, res) => {
+// =========================
+// CSRF PROTECTION GLOBAL
+// =========================
+
+// Secure endpoint to get CSRF token (frontend should fetch once per session)
+// This already includes the csrfWithLogging middleware which adds the token to the XSRF-TOKEN cookie
+app.get('/api/auth/csrf', csrfWithLogging, (req, res) => {
+  // req.csrfToken() is added by csrfWithLogging (which uses csurf)
+  // And the cookie XSRF-TOKEN is also set by the middleware csrf({ cookie: true, ... })
   return res.status(200).json({ csrfToken: req.csrfToken() });
 });
+
+// Global middleware to protect ALL /api routes
+// Exceptions: refresh/csrf/health/login/register (do NOT require CSRF token)
 app.use('/api', (req, res, next) => {
   if (
-    (req.method === 'POST' && req.path === '/auth/refresh') ||
+    (req.method === 'POST' &&
+      (req.path === '/auth/refresh' ||
+        req.path === '/auth/login' ||
+        req.path === '/auth/register')) ||
     (req.method === 'GET' && req.path === '/auth/csrf') ||
     (req.method === 'GET' && req.path === '/health')
   ) {
+    // These routes are excluded from CSRF. The refresh, login, and register routes should NOT require CSRF token,
+    // as the goal is to refresh or create the session, and the refresh token is httpOnly.
     return next();
   }
-  return csrfProtection(req, res, next);
+  // Apply CSRF protection to all other /api routes
+  return csrfWithLogging(req, res, next);
 });
-app.get('/api/auth/csrf', (req, res) => {
-  return res.status(200).json({ csrfToken: req.csrfToken() });
-});
+
+// Initialize Passport.js (ONLY ONCE!)
 app.use(passport.initialize());
 
-// Main routes
+// =========================
+// MAIN ROUTES
+// =========================
+
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/comments', commentRoutes);
@@ -96,7 +107,6 @@ app.use('/api/reactions', reactionRoutes);
 app.use('/api/bookmarks', bookmarkRoutes);
 app.use('/api/2fa', twofaRoutes);
 app.use('/api/conversations', conversationRoutes);
-app.use('/api/csrf-token', csrfRouter);
 app.use('/api/contact', contactRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/admin/settings', adminSettingsRoutes);
@@ -104,14 +114,16 @@ app.use('/api/admin/users', userAdminRoutes);
 app.use('/api/drafts', draftRoutes);
 app.use('/api/newsletter', newsletterRoutes);
 app.use('/api/users', userRoutes);
-app.use('/api', tagRoutes);
+app.use('/api', tagRoutes); // Mounts tags directly at /api/tags, etc.
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/sponsors', sponsorRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/setup', setupRoutes);
 app.use('/api/auth', authRoutes);
 
-// Health and base page
+// =========================
+// HEALTH CHECKS & BASE PAGE
+// =========================
 app.get('/health', (_, res) => {
   res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
 });
@@ -123,7 +135,9 @@ app.get('/', (_, res) => {
   `);
 });
 
-// Error handler
+// =========================
+// ERROR HANDLER
+// =========================
 interface HttpError extends Error {
   status?: number;
 }
@@ -142,9 +156,5 @@ app.use(
       .json({ success: false, message, ...(!env.isProduction && { stack: err.stack }) });
   }
 );
-
-if (process.env.NODE_ENV !== 'test') {
-  require('./config/passport');
-}
 
 export default app;

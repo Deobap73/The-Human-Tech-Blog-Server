@@ -4,9 +4,7 @@ import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import User from '../models/User';
 import { issueTokens } from '../utils/issueTokens';
-import { IUser } from '../types/User';
 import { env } from '../config/env';
-import jwt from 'jsonwebtoken';
 
 // 🔐 Login com suporte a 2FA (se aplicável)
 export const login = async (req: Request, res: Response) => {
@@ -14,26 +12,19 @@ export const login = async (req: Request, res: Response) => {
   console.log('Login attempt', { email });
 
   try {
-    console.log('Looking up user in database', { email });
     const user = await User.findOne({ email }).select('+password');
-
     if (!user || !(await bcrypt.compare(password, user.password))) {
-      console.warn('Invalid credentials provided', { email });
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
     if (user.role === 'admin' && user.twoFactorEnabled) {
-      console.log('2FA check required for admin user', { userId: user._id });
-
       if (!token) {
-        console.warn('2FA token missing for admin login', { userId: user._id });
         return res.status(401).json({
           message: '2FA token required',
           twoFactorRequired: true,
         });
       }
 
-      console.log('Verifying 2FA token', { userId: user._id });
       const speakeasy = await import('speakeasy');
       const verified = speakeasy.totp.verify({
         secret: user.twoFactorSecret || '',
@@ -43,29 +34,35 @@ export const login = async (req: Request, res: Response) => {
       });
 
       if (!verified) {
-        console.warn('Invalid 2FA token provided', { userId: user._id });
         return res.status(401).json({ message: 'Invalid 2FA token' });
       }
     }
 
-    console.log('Issuing tokens for user', { userId: user._id });
     const tokens = await issueTokens(user._id.toString(), res);
 
-    console.log('Setting XSRF-TOKEN cookie', { userId: user._id });
-    res.cookie('XSRF-TOKEN', tokens.accessToken, {
+    // XSRF-TOKEN deve ser acessível por JavaScript para o frontend
+    /* res.cookie('XSRF-TOKEN', tokens.accessToken, {
+      // CUIDADO: Este XSRF-TOKEN DEVE ser o token CSRF, não o accessToken!
       httpOnly: false,
       sameSite: 'lax',
       secure: env.isProduction,
-      maxAge: 60 * 60 * 1000, // 1 hour
+      maxAge: 60 * 60 * 1000, // 1 hora
+    }); */
+
+    // RefreshToken deve ser httpOnly e ter path: '/' para ser enviado em todas as requisições para o domínio.
+    res.cookie('refreshToken', tokens.refreshToken, {
+      httpOnly: true,
+      sameSite: 'lax', // Use 'lax' para localhost e produção para maior compatibilidade.
+      secure: env.isProduction, // true em produção (HTTPS), false em desenvolvimento (HTTP)
+      maxAge: env.REFRESH_TOKEN_EXPIRATION_MS,
+      path: '/', // Garante que o cookie é enviado em todas as rotas
     });
 
-    console.log('Login successful', { userId: user._id });
     return res.status(200).json({
       accessToken: tokens.accessToken,
       message: 'Login successful',
     });
   } catch (err) {
-    console.error('Login failed', { error: err, email });
     return res.status(500).json({
       message: 'Login failed',
       error: (err as Error).message,
@@ -74,30 +71,22 @@ export const login = async (req: Request, res: Response) => {
 };
 
 // 📥 Registo
-export const register = async (req: Request, res: Response) => {
+const register = async (req: Request, res: Response) => {
   const { name, email, password } = req.body;
-  console.log('Registration attempt', { email, name });
 
   try {
-    console.log('Hashing password');
     const hashedPassword = await bcrypt.hash(password, 12);
-
-    console.log('Checking for existing user', { email });
     const userExists = await User.findOne({ email });
 
     if (userExists) {
-      console.warn('Registration failed - email already in use', { email });
       return res.status(400).json({ message: 'Email already in use' });
     }
 
-    console.log('Creating new user', { email, name });
     const newUser = new User({ name, email, password: hashedPassword });
     await newUser.save();
 
-    console.log('User registered successfully', { userId: newUser._id });
     return res.status(201).json({ message: 'User registered successfully' });
   } catch (err) {
-    console.error('Registration failed', { error: err, email, name });
     return res.status(500).json({
       message: 'Registration failed',
       error: (err as Error).message,
@@ -106,26 +95,27 @@ export const register = async (req: Request, res: Response) => {
 };
 
 // 🔐 Logout
-export const logout = async (_req: Request, res: Response) => {
-  console.log('Logout request received');
-
+const logout = async (_req: Request, res: Response) => {
   try {
-    console.log('Clearing authentication cookies');
+    // Consistent clearing of refreshToken cookie
     res.clearCookie('refreshToken', {
       httpOnly: true,
-      sameSite: 'strict',
-      secure: env.isProduction,
-    });
-    res.clearCookie('XSRF-TOKEN', {
-      httpOnly: false,
+      // Use 'lax' para ser consistente com a definição de login
       sameSite: 'lax',
       secure: env.isProduction,
+      path: '/', // Importante: usar o mesmo path de quando foi setado
+    });
+    // Consistent clearing of XSRF-TOKEN cookie
+    res.clearCookie('XSRF-TOKEN', {
+      httpOnly: false,
+      // Use 'lax' para ser consistente com a definição de login
+      sameSite: 'lax',
+      secure: env.isProduction,
+      path: '/', // Importante: usar o mesmo path de quando foi setado
     });
 
-    console.log('Logout successful');
     return res.status(200).json({ message: 'Logged out successfully' });
   } catch (err) {
-    console.error('Logout failed', { error: err });
     return res.status(500).json({
       message: 'Logout failed',
       error: (err as Error).message,
@@ -134,48 +124,68 @@ export const logout = async (_req: Request, res: Response) => {
 };
 
 // 🔄 Refresh Token
-export const refreshToken = async (req: Request, res: Response) => {
+const refreshToken = async (req: Request, res: Response) => {
   const token = req.cookies.refreshToken;
-  console.log('Refresh token request received');
 
   if (!token) {
-    console.warn('No refresh token provided');
+    console.warn('[refreshToken] No refresh token found in cookies. Returning 401.');
     return res.status(401).json({ message: 'No refresh token provided' });
   }
 
   try {
-    console.log('Verifying refresh token', { token });
+    const jwt = await import('jsonwebtoken');
     const decoded = jwt.verify(token, env.REFRESH_TOKEN_SECRET) as { id: string };
 
-    console.log('Issuing new tokens', { userId: decoded.id });
+    console.log(`[refreshToken] Refresh token verified for user ID: ${decoded.id}`);
+
+    // Re-issue tokens
     const tokens = await issueTokens(decoded.id, res);
 
-    console.log('Setting new XSRF-TOKEN cookie', { userId: decoded.id });
+    // Set new XSRF-TOKEN (important: it should be the CSRF token from the csurf middleware, not accessToken)
+    // The csrfWithLogging middleware on /api/auth/csrf already sets this.
+    // Here, we just ensure the accessToken is returned.
+    // If you need to refresh the XSRF-TOKEN cookie here, you must call req.csrfToken()
+    // However, the `refreshToken` endpoint is excluded from CSRF checks in app.ts,
+    // so req.csrfToken() might not be available here directly, or might not be intended.
+    // The XSRF-TOKEN cookie is primarily set by the initial GET /api/auth/csrf request.
+    // If it's a new session, the client will fetch it.
+    // If the token is being refreshed, the XSRF-TOKEN should ideally persist or be re-issued
+    // by a separate mechanism or by the client fetching it again if needed.
+    // For now, removing the direct setting of XSRF-TOKEN based on accessToken here,
+    // as it seems incorrect. The accessToken is not a CSRF token.
+    /*
     res.cookie('XSRF-TOKEN', tokens.accessToken, {
       httpOnly: false,
       sameSite: 'lax',
       secure: env.isProduction,
-      maxAge: 60 * 60 * 1000, // 1 hour
+      maxAge: 60 * 60 * 1000,
     });
+    */
 
-    console.log('Token refresh successful', { userId: decoded.id });
+    console.log('[refreshToken] New access token issued.');
     return res.status(200).json({ accessToken: tokens.accessToken });
   } catch (error) {
-    console.error('Invalid refresh token', { error, token });
+    console.error('[refreshToken] Invalid refresh token:', (error as Error).message);
+    // Clear the invalid refresh token cookie to prevent continuous attempts with a bad token
+    res.clearCookie('refreshToken', {
+      httpOnly: true,
+      sameSite: 'lax', // Consistent with how it was set
+      secure: env.isProduction,
+      path: '/',
+    });
     return res.status(401).json({ message: 'Invalid refresh token' });
   }
 };
 
 // 👤 Obter utilizador atual
-export const getMe = async (req: Request, res: Response) => {
-  const user = req.user as IUser;
-  console.log('GetMe request received');
-
+const getMe = async (req: Request, res: Response) => {
+  const user = req.user;
   if (!user) {
-    console.warn('Unauthorized GetMe request - no user in request');
+    console.warn('[getMe] No user found in request after protection. Returning 401.');
     return res.status(401).json({ message: 'Unauthorized' });
   }
 
-  console.log('GetMe request successful', { userId: user._id });
   return res.status(200).json({ user });
 };
+
+export { logout, register, refreshToken, getMe };
