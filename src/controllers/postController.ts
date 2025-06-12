@@ -1,7 +1,7 @@
 // /src/controllers/postController.ts
 
 import { Request, Response } from 'express';
-import mongoose from 'mongoose';
+import mongoose, { isValidObjectId } from 'mongoose';
 import Post from '../models/Post';
 import Draft from '../models/Draft';
 import { IUser } from '../types/User';
@@ -17,7 +17,7 @@ export const getPosts = async (req: Request, res: Response) => {
     }
 
     const posts = await Post.find(query)
-      .populate('categories', 'translations slug logo') // <-- PATCH
+      .populate('categories', 'translations slug logo')
       .select('slug image status translations categories author createdAt updatedAt')
       .sort({ createdAt: -1 });
 
@@ -35,7 +35,7 @@ export const getPostById = async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'Post not found' });
     }
 
-    const post = await Post.findById(id).populate('categories', 'translations slug logo'); // <-- PATCH
+    const post = await Post.findById(id).populate('categories', 'translations slug logo');
 
     if (!post) return res.status(404).json({ message: 'Post not found' });
     return res.status(200).json(post);
@@ -57,7 +57,7 @@ export const getPostBySlug = async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'Post not found' });
     }
 
-    return res.status(200).json(post); // Agora retorna o post inteiro
+    return res.status(200).json(post);
   } catch (error) {
     return res.status(500).json({ message: 'Failed to fetch post' });
   }
@@ -109,7 +109,7 @@ export const deletePost = async (req: Request, res: Response) => {
   const user = req.user as IUser;
 
   try {
-    const post = await Post.findById(postId).populate('categories', 'translations slug logo'); // <-- PATCH
+    const post = await Post.findById(postId).populate('categories', 'translations slug logo');
 
     if (!post) return res.status(404).json({ message: 'Post not found' });
 
@@ -130,8 +130,21 @@ export const createPost = async (req: Request, res: Response) => {
   const user = req.user as IUser;
 
   try {
+    // Robust validation for ObjectId arrays
+    let tags = Array.isArray(req.body.tags) ? req.body.tags : [];
+    let categories = Array.isArray(req.body.categories) ? req.body.categories : [];
+
+    tags = tags.filter((id: any) => isValidObjectId(id));
+    categories = categories.filter((id: any) => isValidObjectId(id));
+
     const slug = await generateUniqueSlug(req.body.translations?.en?.title || 'post');
-    const newPost = new Post({ ...req.body, author: user._id, slug });
+    const newPost = new Post({
+      ...req.body,
+      author: user._id,
+      slug,
+      tags,
+      categories,
+    });
     await newPost.save();
 
     await logAdminAction(user._id as Types.ObjectId, 'CREATE_POST', `Created post ${newPost._id}`);
@@ -148,7 +161,7 @@ export const updatePost = async (req: Request, res: Response) => {
   const user = req.user as IUser;
 
   try {
-    const post = await Post.findById(postId).populate('categories', 'translations slug logo'); // <-- PATCH
+    const post = await Post.findById(postId).populate('categories', 'translations slug logo');
 
     if (!post) return res.status(404).json({ message: 'Post not found' });
 
@@ -156,7 +169,13 @@ export const updatePost = async (req: Request, res: Response) => {
       return res.status(403).json({ message: 'Forbidden: not the author or admin' });
     }
 
-    Object.assign(post, req.body);
+    // Robust validation for ObjectId arrays (update scenario)
+    let tags = Array.isArray(req.body.tags) ? req.body.tags : [];
+    let categories = Array.isArray(req.body.categories) ? req.body.categories : [];
+    tags = tags.filter((id: any) => isValidObjectId(id));
+    categories = categories.filter((id: any) => isValidObjectId(id));
+
+    Object.assign(post, { ...req.body, tags, categories });
     await post.save();
 
     await logAdminAction(user._id as Types.ObjectId, 'UPDATE_POST', `Updated post ${postId}`);
@@ -181,7 +200,7 @@ export const searchPosts = async (req: Request, res: Response) => {
       .skip((Number(page) - 1) * Number(limit))
       .limit(Number(limit))
       .populate('author', 'name')
-      .populate('categories', 'translations slug logo'); // <-- PATCH
+      .populate('categories', 'translations slug logo');
 
     return res.status(200).json(posts);
   } catch (error) {
