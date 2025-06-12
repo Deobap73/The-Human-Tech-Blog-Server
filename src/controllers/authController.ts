@@ -95,25 +95,24 @@ const register = async (req: Request, res: Response) => {
 };
 
 // 🔐 Logout
-const logout = async (_req: Request, res: Response) => {
+const logout = async (req: Request, res: Response) => {
   try {
-    // Consistent clearing of refreshToken cookie
+    console.log('[authController:logout] Called', {
+      cookies: req.cookies,
+      headers: req.headers,
+    });
     res.clearCookie('refreshToken', {
       httpOnly: true,
-      // Use 'lax' para ser consistente com a definição de login
       sameSite: 'lax',
       secure: env.isProduction,
-      path: '/', // Importante: usar o mesmo path de quando foi setado
+      path: '/',
     });
-    // Consistent clearing of XSRF-TOKEN cookie
     res.clearCookie('XSRF-TOKEN', {
       httpOnly: false,
-      // Use 'lax' para ser consistente com a definição de login
       sameSite: 'lax',
       secure: env.isProduction,
-      path: '/', // Importante: usar o mesmo path de quando foi setado
+      path: '/',
     });
-
     return res.status(200).json({ message: 'Logged out successfully' });
   } catch (err) {
     return res.status(500).json({

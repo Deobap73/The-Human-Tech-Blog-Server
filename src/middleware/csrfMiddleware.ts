@@ -22,6 +22,7 @@ export const csrfWithLogging = (req: Request, res: Response, next: NextFunction)
     origin: req.headers.origin,
     'x-csrf-token': req.headers['x-csrf-token'],
     cookies: req.cookies,
+    allHeaders: req.headers, // <- loga todos os headers
   });
 
   return csrfProtection(req, res, (err) => {
@@ -33,6 +34,7 @@ export const csrfWithLogging = (req: Request, res: Response, next: NextFunction)
         path: req.path,
         ip: req.ip,
         cookies: req.cookies,
+        allHeaders: req.headers,
       });
       return res.status(403).json({ message: 'CSRF token validation failed' });
     }
@@ -40,6 +42,8 @@ export const csrfWithLogging = (req: Request, res: Response, next: NextFunction)
     console.log('[csrfWithLogging] CSRF validation successful', {
       method: req.method,
       path: req.path,
+      cookies: req.cookies,
+      allHeaders: req.headers,
     });
     return next();
   });
