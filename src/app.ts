@@ -15,6 +15,7 @@ import { i18nextMiddleware } from './i18n';
 import { csrfWithLogging } from './middleware/csrfMiddleware';
 
 // Import routes
+import csrfRouter from './routes/csrf';
 import setupRoutes from './routes/setupRoutes';
 import authRoutes from './routes/authRoutes';
 import categoryRoutes from './routes/categoryRoutes';
@@ -94,6 +95,11 @@ app.use('/api', (req, res, next) => {
 
 // Initialize Passport.js (ONLY ONCE!)
 app.use(passport.initialize());
+
+// =========================
+// CSRF LEGACY ROUTE
+// =========================
+app.use('/api', csrfRouter);
 
 // =========================
 // MAIN ROUTES
