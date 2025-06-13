@@ -1,34 +1,16 @@
-// src/controllers/tagController.ts
+// /src/controllers/tagController.ts
 
 import { Request, Response } from 'express';
-import Tag, { ITag, TagTranslation } from '../models/Tag';
+import Tag, { ITag } from '../models/Tag';
 import Post from '../models/Post';
-
-// Util to get tag translation with fallback
-function getTagTranslation(
-  translations: ITag['translations'],
-  lang: string
-): TagTranslation | null {
-  if (!translations) return null;
-  const t = translations[lang];
-  if (t && t.name) return t;
-  const fallback = translations['en'];
-  return fallback && fallback.name ? fallback : null;
-}
 
 // GET /tags
 export const getAllTags = async (req: Request, res: Response) => {
-  const lang = (req as any).lang || 'en';
   try {
-    const tags = await Tag.find();
-    const result = tags.map((tag: ITag) => ({
-      slug: tag.slug,
-      color: tag.color,
-      translation: getTagTranslation(tag.translations, lang),
-      createdAt: tag.createdAt,
-      updatedAt: tag.updatedAt,
-    }));
-    return res.status(200).json(result);
+    // Busca todos os campos do model (inclui translations completo!)
+    const tags = await Tag.find().lean();
+    // Envia o documento inteiro, incluindo o objeto translations multilíngua
+    return res.status(200).json(tags);
   } catch (error) {
     return res.status(500).json({ message: 'Failed to fetch tags' });
   }
@@ -36,17 +18,10 @@ export const getAllTags = async (req: Request, res: Response) => {
 
 // GET /tags/:slug
 export const getTagBySlug = async (req: Request, res: Response) => {
-  const lang = (req as any).lang || 'en';
   try {
-    const tag = (await Tag.findOne({ slug: req.params.slug })) as ITag;
+    const tag = await Tag.findOne({ slug: req.params.slug }).lean();
     if (!tag) return res.status(404).json({ message: 'Tag not found' });
-    return res.status(200).json({
-      slug: tag.slug,
-      color: tag.color,
-      translation: getTagTranslation(tag.translations, lang),
-      createdAt: tag.createdAt,
-      updatedAt: tag.updatedAt,
-    });
+    return res.status(200).json(tag);
   } catch (error) {
     return res.status(500).json({ message: 'Failed to fetch tag' });
   }

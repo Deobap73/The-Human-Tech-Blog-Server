@@ -77,11 +77,13 @@ app.get('/api/auth/csrf', csrfWithLogging, (req, res) => {
 // Global middleware to protect ALL /api routes
 // Exceptions: refresh/csrf/health/login/register (do NOT require CSRF token)
 app.use('/api', (req, res, next) => {
+  // Exclude upload, login, refresh, register, health, csrf
   if (
     (req.method === 'POST' &&
       (req.path === '/auth/refresh' ||
         req.path === '/auth/login' ||
-        req.path === '/auth/register')) ||
+        req.path === '/auth/register' ||
+        req.path === '/posts/upload')) ||
     (req.method === 'GET' && req.path === '/auth/csrf') ||
     (req.method === 'GET' && req.path === '/health')
   ) {

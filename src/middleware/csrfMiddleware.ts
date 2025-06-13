@@ -3,6 +3,11 @@
 import csrf from 'csurf';
 import { Request, Response, NextFunction } from 'express';
 
+/**
+ * Custom CSRF middleware supporting token via header (X-CSRF-Token) or cookie.
+ * This is required for multipart/form-data requests, since browsers can't set headers automatically for FormData,
+ * so the frontend must ensure the correct header is always set (handled in frontend code).
+ */
 export const csrfProtection = csrf({
   cookie: {
     key: 'XSRF-TOKEN',
@@ -12,9 +17,17 @@ export const csrfProtection = csrf({
     path: '/',
     domain: undefined, // Let browser manage domain (localhost for dev)
   },
+  value: (req) =>
+    req.headers['x-csrf-token']?.toString() ||
+    req.body?._csrf ||
+    req.query?._csrf ||
+    req.cookies['XSRF-TOKEN'] ||
+    '', // Fallback for all sources
 });
 
-// Logging for debug
+/**
+ * Debug CSRF middleware with detailed logging.
+ */
 export const csrfWithLogging = (req: Request, res: Response, next: NextFunction) => {
   console.log('[csrfWithLogging] CSRF protection middleware triggered', {
     method: req.method,
@@ -22,7 +35,7 @@ export const csrfWithLogging = (req: Request, res: Response, next: NextFunction)
     origin: req.headers.origin,
     'x-csrf-token': req.headers['x-csrf-token'],
     cookies: req.cookies,
-    allHeaders: req.headers, // <- loga todos os headers
+    allHeaders: req.headers,
   });
 
   return csrfProtection(req, res, (err) => {

@@ -13,46 +13,36 @@ import {
 } from '../controllers/postController';
 import { detectLanguage } from '../middleware/detectLanguage';
 import { protect } from '../middleware/authMiddleware';
+import { csrfWithLogging } from '../middleware/csrfMiddleware';
 import { authorizeRoles } from '../middleware/roleMiddleware';
-// CSRF is already applied globally in app.ts!
-// import { csrfWithLogging } from '../middleware/csrfMiddleware';
 import upload from '../middleware/uploadMiddleware';
 import { uploadToCloudinary } from '../utils/cloudinaryUpload';
 
 const router = express.Router();
 
-console.log('[postRoutes] Post routes loaded.'); // Added debug log
-
 router.get('/', getPosts);
-console.log('[postRoutes] GET / - Get all posts route registered.');
-
 router.get('/search', searchPosts);
-console.log('[postRoutes] GET /search - Search posts route registered.');
-
 router.get('/slug/:slug', detectLanguage, getPostBySlug);
-console.log('[postRoutes] GET /slug/:slug - Get post by slug route registered.');
-
 router.get('/:id', getPostById);
-console.log('[postRoutes] GET /:id - Get post by ID route registered.');
 
-router.post('/', protect, authorizeRoles('admin', 'editor'), createPost);
-console.log('[postRoutes] POST / - Create post route registered (admin/editor).');
+router.post('/', protect, authorizeRoles('admin', 'editor'), csrfWithLogging, createPost);
+router.put('/:id', protect, authorizeRoles('admin', 'editor'), csrfWithLogging, updatePost);
+router.delete('/:id', protect, authorizeRoles('admin', 'editor'), csrfWithLogging, deletePost);
+router.post(
+  '/publish/:id',
+  protect,
+  authorizeRoles('admin', 'editor'),
+  csrfWithLogging,
+  publishDraft
+);
 
-router.put('/:id', protect, authorizeRoles('admin', 'editor'), updatePost);
-console.log('[postRoutes] PUT /:id - Update post route registered (admin/editor).');
-
-router.delete('/:id', protect, authorizeRoles('admin', 'editor'), deletePost);
-console.log('[postRoutes] DELETE /:id - Delete post route registered (admin/editor).');
-
-router.post('/publish/:id', protect, authorizeRoles('admin', 'editor'), publishDraft);
-console.log('[postRoutes] POST /publish/:id - Publish draft route registered (admin/editor).');
-
-// (OPCIONAL) POST /api/posts/upload — Upload image for posts
+// Image upload: multer needs to parse FormData BEFORE CSRF!
 router.post(
   '/upload',
   protect,
   authorizeRoles('admin', 'editor'),
-  upload.single('image'),
+  upload.single('image'), // multer primeiro!
+  csrfWithLogging, // csrf depois
   async (req, res) => {
     console.log('[postRoutes] POST /upload - Image upload attempt.');
     if (!req.file) {
@@ -70,6 +60,5 @@ router.post(
     }
   }
 );
-console.log('[postRoutes] POST /upload - Image upload route registered.');
 
 export default router;
