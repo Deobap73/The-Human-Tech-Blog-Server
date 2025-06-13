@@ -1,4 +1,5 @@
 // src/controllers/adminController.ts
+
 import { Request, Response } from 'express';
 import User, { UserDoc } from '../models/User';
 import { env } from '../config/env';
