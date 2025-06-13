@@ -40,7 +40,7 @@ export const env = cleanEnv(process.env, {
   REFRESH_TOKEN_EXPIRATION_MS: num({ default: 604800000 }), // 7 days in ms
 
   // Redis
-  REDIS_URL: str({ default: 'redis://localhost:6379' }),
+  /* REDIS_URL: str({ default: 'redis://localhost:6379' }), */
 
   // Cloudinary
   CLOUDINARY_CLOUD_NAME: str({ default: '' }),
