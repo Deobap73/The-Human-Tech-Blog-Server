@@ -12,17 +12,17 @@ export const csrfProtection = csrf({
   cookie: {
     key: 'XSRF-TOKEN',
     httpOnly: false,
-    secure: false, // Only true in production with HTTPS
-    sameSite: false, // Disabled in dev to allow localhost:5173 <-> 5000 cookies
+    secure: process.env.NODE_ENV === 'production', // ou env.isProduction
+    sameSite: process.env.NODE_ENV === 'production' ? 'lax' : false,
     path: '/',
-    domain: undefined, // Let browser manage domain (localhost for dev)
+    domain: undefined,
   },
   value: (req) =>
     req.headers['x-csrf-token']?.toString() ||
     req.body?._csrf ||
     req.query?._csrf ||
     req.cookies['XSRF-TOKEN'] ||
-    '', // Fallback for all sources
+    '',
 });
 
 /**

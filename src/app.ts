@@ -57,12 +57,13 @@ setupSecurityMiddleware(app);
 app.use(cookieParser());
 app.use(
   cors({
-    origin: 'http://localhost:5173',
+    origin: env.isProduction ? 'https://thehumantechblog.com' : 'http://localhost:5173',
     credentials: true,
     allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token'],
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   })
 );
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(i18nextMiddleware.handle(require('./i18n').default));
