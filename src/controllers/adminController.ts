@@ -5,6 +5,7 @@ import { env } from '../config/env';
 import { issueTokens } from '../utils/issueTokens';
 import speakeasy from 'speakeasy';
 import { UserActionLog } from '../models/UserActionLog';
+import TokenBlacklist from '../models/TokenBlacklist';
 
 export const handleRegister = async (req: Request, res: Response) => {
   const { name, email, password } = req.body;
@@ -55,7 +56,11 @@ export const handleRefreshToken = async (req: Request, res: Response) => {
     return res.status(401).json({ message: 'Missing refresh token' });
   }
   try {
-    // Stateless: Just verify JWT signature and expiry
+    // Verifica se está na blacklist!
+    const blacklisted = await TokenBlacklist.findOne({ token: oldToken });
+    if (blacklisted) {
+      return res.status(403).json({ message: 'Refresh token revoked or invalid' });
+    }
     const { id } = require('../utils/jwt').verifyRefreshToken(oldToken);
     const { accessToken } = await issueTokens(id, res);
     return res.json({ accessToken });
@@ -64,14 +69,28 @@ export const handleRefreshToken = async (req: Request, res: Response) => {
   }
 };
 
-export const handleLogout = async (_req: Request, res: Response) => {
-  // Stateless: Just clear the cookie
-  res.clearCookie('refreshToken', {
-    httpOnly: true,
-    secure: env.isProduction,
-    sameSite: 'strict',
-  });
-  return res.status(200).json({ message: 'Logged out' });
+export const handleLogout = async (req: Request, res: Response) => {
+  const token = req.cookies.refreshToken;
+  try {
+    if (token) {
+      // Adiciona o token à blacklist com data de expiração igual ao JWT
+      const { exp } = require('../utils/jwt').decodeJWT(token) as { exp: number };
+      if (exp) {
+        await TokenBlacklist.create({
+          token,
+          expiresAt: new Date(exp * 1000), // JWT exp é em segundos, JS Date usa ms
+        });
+      }
+    }
+    res.clearCookie('refreshToken', {
+      httpOnly: true,
+      secure: env.isProduction,
+      sameSite: 'strict',
+    });
+    return res.status(200).json({ message: 'Logged out' });
+  } catch (err) {
+    return res.status(500).json({ message: 'Logout failed' });
+  }
 };
 
 export const handleGetMe = async (req: Request, res: Response) => {
