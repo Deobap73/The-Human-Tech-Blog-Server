@@ -8,6 +8,7 @@ dotenv.config({ path: path.resolve(__dirname, '../.env') });
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import passport from 'passport'; // Keep this import
+import './config/passport';
 import { env } from './config/env';
 import { i18nextMiddleware } from './i18n';
 
