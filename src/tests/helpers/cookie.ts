@@ -1,7 +1,7 @@
 // tests/helpers/cookie.ts
 
 import jwt from 'jsonwebtoken';
-import { env } from '@/config/env';
+import { env } from '../../config/env';
 
 export function getCookieByName(cookies: string[], name: string): string | undefined {
   const cookie = cookies.find((c) => c.startsWith(`${name}=`));
