@@ -3,25 +3,15 @@
 import { cleanEnv, str, num, url, bool } from 'envalid';
 import dotenv from 'dotenv';
 import path from 'path';
-import fs from 'fs';
 
 // 1. Verify .env exists
 const envPath = path.resolve(__dirname, '../../.env');
-console.log('.env exists:', fs.existsSync(envPath));
 
 // 2. Load with debug
 const result = dotenv.config({ path: envPath });
 if (result.error) {
-  console.error('Dotenv load error:', result.error);
 } else {
-  console.log('Loaded variables:', Object.keys(result.parsed || {}));
 }
-
-// 3. Directly check process.env
-console.log('In process.env:', {
-  JWT_SECRET: !!process.env.JWT_SECRET,
-  SETUP_KEY: !!process.env.SETUP_KEY,
-});
 
 export const env = cleanEnv(process.env, {
   isProduction: bool({ default: process.env.NODE_ENV === 'production' }),
