@@ -86,7 +86,7 @@ blog-server/
 PORT=5000
 MONGO_URI=*
 
-# JWT 
+# JWT
 JWT_SECRET=****************************************
 JWT_EXPIRATION=15m
 
@@ -108,9 +108,6 @@ GITHUB_CALLBACK_URL=*
 
 # Redirect to your frontend
 CLIENT_URL=http://localhost:5173
-
-# Redis URL
-REDIS_URL=redis://localhost:6379
 
 # Setup Key
 SETUP_KEY=********************

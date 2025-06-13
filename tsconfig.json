@@ -8,14 +8,10 @@
     "strict": true,
     "skipLibCheck": true,
     "outDir": "./dist",
-    "rootDir": "./src", // Changed from "./" to "./src"
+    "rootDir": "./src",
     "baseUrl": "./",
-    "paths": {
-      "@/*": ["src/*"],
-      "@shared/*": ["../shared/*"]
-    },
     "typeRoots": ["./node_modules/@types", "./src/types"],
-    "sourceMap": true,
+    "sourceMap": false,
     "removeComments": true,
     "noImplicitAny": true,
     "strictNullChecks": true,
