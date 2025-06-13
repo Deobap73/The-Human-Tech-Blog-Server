@@ -1,3 +1,4 @@
+// The-Human-Tech-Blog-Server\src\models\User.ts
 import mongoose, { Schema, InferSchemaType } from 'mongoose';
 import bcrypt from 'bcrypt';
 

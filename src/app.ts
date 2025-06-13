@@ -1,4 +1,4 @@
-// The-Human-Tech-Blog-Server\src\app.ts
+// src/app.ts
 
 import express from 'express';
 import dotenv from 'dotenv';
@@ -7,10 +7,13 @@ dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
-import passport from 'passport'; // Keep this import
+import passport from 'passport';
 import './config/passport';
 import { env } from './config/env';
 import { i18nextMiddleware } from './i18n';
+
+// Import security middleware (Helmet, mongoSanitize)
+import { setupSecurityMiddleware } from './middleware/securityMiddleware';
 
 // Import only the centralized and robust CSRF middleware!
 import { csrfWithLogging } from './middleware/csrfMiddleware';
@@ -41,15 +44,16 @@ import sponsorRoutes from './routes/sponsor.routes';
 
 const app = express();
 
-// Debug/inline routes (keep for debug)
-app.get('/api/notifications-debug', (_req, res) => {
-  res.json({ ok: true, msg: 'Notificações debug OK!' });
-});
-app.get('/api/notifications-inline-test', (_req, res) => {
-  res.json({ ok: true, msg: 'Notificações INLINE OK!' });
-});
+// =========================
+// Security Middlewares
+// =========================
 
+// Apply Helmet and mongoSanitize (critical for production)
+setupSecurityMiddleware(app);
+
+// =========================
 // Base middlewares
+// =========================
 app.use(cookieParser());
 app.use(
   cors({
@@ -68,15 +72,11 @@ app.use(i18nextMiddleware.handle(require('./i18n').default));
 // =========================
 
 // Secure endpoint to get CSRF token (frontend should fetch once per session)
-// This already includes the csrfWithLogging middleware which adds the token to the XSRF-TOKEN cookie
 app.get('/api/auth/csrf', csrfWithLogging, (req, res) => {
-  // req.csrfToken() is added by csrfWithLogging (which uses csurf)
-  // And the cookie XSRF-TOKEN is also set by the middleware csrf({ cookie: true, ... })
   return res.status(200).json({ csrfToken: req.csrfToken() });
 });
 
 // Global middleware to protect ALL /api routes
-// Exceptions: refresh/csrf/health/login/register (do NOT require CSRF token)
 app.use('/api', (req, res, next) => {
   // Exclude upload, login, refresh, register, health, csrf
   if (
@@ -88,11 +88,8 @@ app.use('/api', (req, res, next) => {
     (req.method === 'GET' && req.path === '/auth/csrf') ||
     (req.method === 'GET' && req.path === '/health')
   ) {
-    // These routes are excluded from CSRF. The refresh, login, and register routes should NOT require CSRF token,
-    // as the goal is to refresh or create the session, and the refresh token is httpOnly.
     return next();
   }
-  // Apply CSRF protection to all other /api routes
   return csrfWithLogging(req, res, next);
 });
 
@@ -123,7 +120,7 @@ app.use('/api/admin/users', userAdminRoutes);
 app.use('/api/drafts', draftRoutes);
 app.use('/api/newsletter', newsletterRoutes);
 app.use('/api/users', userRoutes);
-app.use('/api', tagRoutes); // Mounts tags directly at /api/tags, etc.
+app.use('/api', tagRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/sponsors', sponsorRoutes);
 app.use('/api/posts', postRoutes);
