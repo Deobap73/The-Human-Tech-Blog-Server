@@ -1,15 +1,13 @@
 // /src/controllers/tagController.ts
 
 import { Request, Response } from 'express';
-import Tag, { ITag } from '../models/Tag';
+import Tag from '../models/Tag';
 import Post from '../models/Post';
 
 // GET /tags
-export const getAllTags = async (req: Request, res: Response) => {
+export const getAllTags = async (_req: Request, res: Response) => {
   try {
-    // Busca todos os campos do model (inclui translations completo!)
     const tags = await Tag.find().lean();
-    // Envia o documento inteiro, incluindo o objeto translations multilíngua
     return res.status(200).json(tags);
   } catch (error) {
     return res.status(500).json({ message: 'Failed to fetch tags' });

@@ -3,9 +3,9 @@
 import mongoose, { Schema, Document, Types } from 'mongoose';
 
 export interface PostTranslation {
-  title: string;
-  content: string;
-  description: string;
+  title?: string;
+  content?: string;
+  description?: string;
 }
 
 export interface IPost extends Document {
@@ -13,24 +13,27 @@ export interface IPost extends Document {
   image: string;
   status: 'draft' | 'published' | 'archived';
   translations: {
-    en?: PostTranslation;
-    pt?: PostTranslation;
-    de?: PostTranslation;
-    es?: PostTranslation;
+    en: PostTranslation; // OBRIGATÓRIO
+    pt?: PostTranslation; // OPCIONAL
+    de?: PostTranslation; // OPCIONAL
+    es?: PostTranslation; // OPCIONAL
     [key: string]: PostTranslation | undefined;
   };
   categories: Types.ObjectId[];
-  tags: Types.ObjectId[]; // <-- ADICIONA ISTO!
+  tags: Types.ObjectId[];
   author: Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }
 
-const TranslationSchema = new Schema<PostTranslation>({
-  title: { type: String, required: true },
-  content: { type: String, required: true },
-  description: { type: String, required: true },
-});
+const TranslationSchema = new Schema<PostTranslation>(
+  {
+    title: { type: String },
+    content: { type: String },
+    description: { type: String },
+  },
+  { _id: false }
+);
 
 const PostSchema = new Schema<IPost>(
   {
@@ -43,13 +46,22 @@ const PostSchema = new Schema<IPost>(
       default: 'draft',
     },
     translations: {
-      en: { type: TranslationSchema, required: true },
+      en: {
+        type: TranslationSchema,
+        required: true, // Só EN é obrigatório!
+        validate: {
+          validator: function (v: any) {
+            return v && v.title && v.content && v.description;
+          },
+          message: 'English translation (title, content, description) is required!',
+        },
+      },
       pt: { type: TranslationSchema, required: false },
       de: { type: TranslationSchema, required: false },
       es: { type: TranslationSchema, required: false },
     },
     categories: [{ type: Schema.Types.ObjectId, ref: 'Category' }],
-    tags: [{ type: Schema.Types.ObjectId, ref: 'Tag' }], // <-- ADICIONA ISTO!
+    tags: [{ type: Schema.Types.ObjectId, ref: 'Tag' }],
     author: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   },
   { timestamps: true }
