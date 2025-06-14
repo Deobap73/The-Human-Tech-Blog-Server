@@ -1,4 +1,4 @@
-// src/app.ts
+// /src/app.ts
 
 import express from 'express';
 import dotenv from 'dotenv';
@@ -47,17 +47,30 @@ const app = express();
 // =========================
 // Security Middlewares
 // =========================
-
-// Apply Helmet and mongoSanitize (critical for production)
 setupSecurityMiddleware(app);
 
 // =========================
 // Base middlewares
 // =========================
 app.use(cookieParser());
+
+const allowedOrigins = env.isProduction
+  ? [
+      'https://thehumantechblog.com',
+      'https://www.thehumantechblog.com',
+      'https://api.thehumantechblog.com',
+    ]
+  : ['http://localhost:5173'];
+
 app.use(
   cors({
-    origin: env.isProduction ? 'https://thehumantechblog.com' : 'http://localhost:5173',
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     credentials: true,
     allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token'],
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
@@ -71,15 +84,11 @@ app.use(i18nextMiddleware.handle(require('./i18n').default));
 // =========================
 // CSRF PROTECTION GLOBAL
 // =========================
-
-// Secure endpoint to get CSRF token (frontend should fetch once per session)
 app.get('/api/auth/csrf', csrfWithLogging, (req, res) => {
   return res.status(200).json({ csrfToken: req.csrfToken() });
 });
 
-// Global middleware to protect ALL /api routes
 app.use('/api', (req, res, next) => {
-  // Exclude upload, login, refresh, register, health, csrf
   if (
     (req.method === 'POST' &&
       (req.path === '/auth/refresh' ||
@@ -94,7 +103,6 @@ app.use('/api', (req, res, next) => {
   return csrfWithLogging(req, res, next);
 });
 
-// Initialize Passport.js (ONLY ONCE!)
 app.use(passport.initialize());
 
 // =========================
