@@ -18,7 +18,7 @@ connectDB()
     // Inicialize o Socket.IO com o *mesmo* httpServer
     const io = new Server(httpServer, {
       cors: {
-        origin: 'http://localhost:5173',
+        origin: ['https://thehumantechblog.com', 'https://www.thehumantechblog.com'],
         credentials: true,
       },
     });
