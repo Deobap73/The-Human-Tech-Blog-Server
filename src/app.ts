@@ -12,10 +12,10 @@ import './config/passport';
 import { env } from './config/env';
 import { i18nextMiddleware } from './i18n';
 
-// Import security middleware (Helmet, mongoSanitize)
+// Security middleware (Helmet, mongoSanitize)
 import { setupSecurityMiddleware } from './middleware/securityMiddleware';
 
-// Import only the centralized and robust CSRF middleware!
+// Only the centralized and robust CSRF middleware!
 import { csrfWithLogging } from './middleware/csrfMiddleware';
 
 // Import routes
@@ -54,25 +54,25 @@ setupSecurityMiddleware(app);
 // =========================
 app.use(cookieParser());
 
-const allowedOrigins = env.isProduction
-  ? [
-      'https://thehumantechblog.com',
-      'https://www.thehumantechblog.com',
-      'https://api.thehumantechblog.com',
-    ]
-  : ['http://localhost:5173'];
+// Define allowed origins for CORS
+const allowedOrigins = [
+  'https://thehumantechblog.com',
+  'https://www.thehumantechblog.com',
+  // Do NOT add api.* unless you truly use it
+];
 
 app.use(
   cors({
-    origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error('Not allowed by CORS'));
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true); // allow server-to-server or CLI tools
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
       }
+      return callback(new Error('Not allowed by CORS'));
     },
     credentials: true,
     allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token'],
+    exposedHeaders: ['Set-Cookie'],
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   })
 );

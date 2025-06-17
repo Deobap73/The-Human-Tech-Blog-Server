@@ -5,17 +5,16 @@ import { Request, Response, NextFunction } from 'express';
 
 /**
  * Custom CSRF middleware supporting token via header (X-CSRF-Token) or cookie.
- * This is required for multipart/form-data requests, since browsers can't set headers automatically for FormData,
- * so the frontend must ensure the correct header is always set (handled in frontend code).
+ * This version is ready for cross-origin (CORS) scenarios, with SameSite=None for the cookie in production.
  */
 export const csrfProtection = csrf({
   cookie: {
     key: 'XSRF-TOKEN',
     httpOnly: false,
-    secure: process.env.NODE_ENV === 'production', // ou env.isProduction
-    sameSite: process.env.NODE_ENV === 'production' ? 'lax' : false,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : false, // Cross-domain: must be 'none'
     path: '/',
-    domain: undefined,
+    domain: undefined, // Keep undefined for now; only set if you have custom domain needs
   },
   value: (req) =>
     req.headers['x-csrf-token']?.toString() ||
