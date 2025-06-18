@@ -1,6 +1,7 @@
 // src/controllers/categoryController.ts
 
 import { Request, Response } from 'express';
+import mongoose from 'mongoose';
 import Category from '../models/Category';
 import Post from '../models/Post';
 import slugify from 'slugify';
@@ -120,6 +121,33 @@ export const getPostsByCategorySlug = async (req: Request, res: Response) => {
     return res.status(200).json(posts);
   } catch (error) {
     console.error('[getPostsByCategorySlug]', error);
+    return res.status(500).json({ message: 'Failed to fetch posts for category' });
+  }
+};
+
+export const getPostsByCategory = async (req: Request, res: Response) => {
+  try {
+    const slugOrId = req.params.slugOrId;
+    let category;
+
+    // Determine if parameter is an ObjectId or slug
+    if (mongoose.Types.ObjectId.isValid(slugOrId)) {
+      category = await Category.findById(slugOrId);
+    } else {
+      category = await Category.findOne({ slug: slugOrId });
+    }
+
+    if (!category) {
+      return res.status(404).json({ message: 'Category not found' });
+    }
+
+    const posts = await Post.find({ categories: category._id, status: 'published' })
+      .populate('author', 'name')
+      .sort({ createdAt: -1 });
+
+    return res.status(200).json(posts);
+  } catch (error) {
+    console.error('[getPostsByCategory]', error);
     return res.status(500).json({ message: 'Failed to fetch posts for category' });
   }
 };
