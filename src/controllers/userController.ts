@@ -1,11 +1,11 @@
-// src/controllers/userController.ts
-
+// /src/controllers/userController.ts
 import { Request, Response } from 'express';
 import Post from '../models/Post';
 import Draft from '../models/Draft';
 import Bookmark from '../models/Bookmark';
 import Comment from '../models/Comment';
 import User from '../models/User';
+import { uploadImageBuffer } from '../services/cloudinaryService';
 
 // GET /api/users/me
 export const getMe = async (req: Request, res: Response) => {
@@ -56,14 +56,26 @@ export const getMyComments = async (req: Request, res: Response) => {
 };
 
 export const updateMe = async (req: Request, res: Response) => {
-  const { name, email, avatar } = req.body;
+  const { name, email } = req.body;
   const userId = req.user?._id;
   try {
-    const user = await User.findByIdAndUpdate(
-      userId,
-      { name, email, avatar },
-      { new: true, runValidators: true, context: 'query' }
-    ).select('-password');
+    let avatarUrl: string | undefined = req.body.avatar; // fallback: url da body, legacy
+
+    // Se veio um ficheiro avatar (form-data)
+    if (req.file) {
+      const uploadResult = await uploadImageBuffer(req.file.buffer, `user_${userId}_avatar`);
+      avatarUrl = uploadResult.url;
+    }
+
+    // Atualiza só campos definidos
+    const updateFields: any = { name, email };
+    if (avatarUrl) updateFields.avatar = avatarUrl;
+
+    const user = await User.findByIdAndUpdate(userId, updateFields, {
+      new: true,
+      runValidators: true,
+      context: 'query',
+    }).select('-password');
     if (!user) return res.status(404).json({ message: 'User not found' });
     return res.json({ user });
   } catch (err: any) {
