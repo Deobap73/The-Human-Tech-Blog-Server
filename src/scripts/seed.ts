@@ -44,8 +44,35 @@ const seed = async () => {
       password: '123456',
       role: 'user',
     });
+    const joana = new User({
+      name: 'Joana',
+      email: 'joana@example.com',
+      password: '123456',
+      role: 'user',
+    });
+    const markus = new User({
+      name: 'Markus',
+      email: 'markus@example.com',
+      password: '123456',
+      role: 'user',
+    });
+    const mia = new User({
+      name: 'Mia',
+      email: 'mia@example.com',
+      password: '123456',
+      role: 'user',
+    });
 
-    await Promise.all([berto.save(), berit.save(), alex.save()]);
+    await Promise.all([
+      berto.save(),
+      berit.save(),
+      alex.save(),
+      joana.save(),
+      markus.save(),
+      mia.save(),
+    ]);
+
+    // CATEGORIAS E POSTS... (mantém igual ao teu seed)
 
     console.log('🏷️ Creating categories...');
     const categories = await Category.insertMany([
@@ -246,16 +273,44 @@ const seed = async () => {
     await Sponsor.insertMany(sponsors);
     console.log('✅ Sponsors created');
 
+    // CHAT DEMO DATA
     console.log('💬 Creating conversations and messages...');
-    const conversation = await Conversation.create({ members: [berto._id, berit._id] });
 
+    const chatUsers = [alex, joana, markus, mia];
+
+    // Cria uma conversa 1:1 entre berto (admin) e cada user
+    for (const normalUser of chatUsers) {
+      const conv = await Conversation.create({ participants: [berto._id, normalUser._id] });
+
+      await Message.insertMany([
+        {
+          text: `Hello ${normalUser.name}, how can I help you?`,
+          sender: berto._id,
+          conversation: conv._id,
+        },
+        {
+          text: `Hi Berto! I just wanted to say hello and test the chat feature.`,
+          sender: normalUser._id,
+          conversation: conv._id,
+        },
+        {
+          text: `Happy to hear from you, ${normalUser.name}. Let me know if you have questions!`,
+          sender: berto._id,
+          conversation: conv._id,
+        },
+      ]);
+    }
+
+    // Exemplo de conversa entre admin e berit (editor)
+    const convAdminEditor = await Conversation.create({ participants: [berto._id, berit._id] });
     await Message.insertMany([
-      { text: 'Hi berit, welcome!', sender: berto._id, conversation: conversation._id },
-      { text: 'Thanks berto!', sender: berit._id, conversation: conversation._id },
-      { text: 'Hey, can we chat tomorrow?', sender: alex._id, conversation: conversation._id },
+      { text: 'Hi Berit, welcome!', sender: berto._id, conversation: convAdminEditor._id },
+      { text: 'Thanks Berto!', sender: berit._id, conversation: convAdminEditor._id },
     ]);
 
-    console.log('✅ Seed completed with posts, users, categories and messages');
+    console.log(
+      '✅ Seed completed with posts, users, categories, sponsors, conversations and messages'
+    );
     process.exit(0);
   } catch (err) {
     console.error('❌ Seed error:', err);
