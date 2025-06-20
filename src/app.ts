@@ -55,14 +55,12 @@ setupSecurityMiddleware(app);
 app.use(cookieParser());
 
 // Define allowed origins for CORS
-const allowedOrigins = [
-  'https://thehumantechblog.com',
-  'https://www.thehumantechblog.com',
-  // Do NOT add api.* unless you truly use it
+const allowedOrigins = ['https://thehumantechblog.com', 'https://www.thehumantechblog.com'];
 
-  // Em desenvolvimento, adicionar:
-  'http://localhost:5173',
-];
+if (!env.isProduction) {
+  // Allow local frontend during development
+  allowedOrigins.push('http://localhost:5173', 'http://127.0.0.1:5173');
+}
 
 app.use(
   cors({
