@@ -59,6 +59,9 @@ const allowedOrigins = [
   'https://thehumantechblog.com',
   'https://www.thehumantechblog.com',
   // Do NOT add api.* unless you truly use it
+
+  // Em desenvolvimento, adicionar:
+  'http://localhost:5173',
 ];
 
 app.use(
