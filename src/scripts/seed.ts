@@ -1,4 +1,4 @@
-// src/scripts/seed.ts
+// /src/scripts/seed.ts
 
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
@@ -8,8 +8,17 @@ import User from '../models/User';
 import { Message } from '../models/Message';
 import { Conversation } from '../models/Conversation';
 import Sponsor from '../models/Sponsor';
+import Tag from '../models/Tag';
 
 dotenv.config();
+
+const toSlug = (str: string): string =>
+  str
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, '')
+    .trim()
+    .replace(/[\s_-]+/g, '-')
+    .replace(/^-+|-+$/g, '');
 
 const seed = async () => {
   try {
@@ -21,8 +30,10 @@ const seed = async () => {
       Post.deleteMany(),
       Category.deleteMany(),
       User.deleteMany(),
+      Tag.deleteMany(),
       Message.deleteMany(),
       Conversation.deleteMany(),
+      Sponsor.deleteMany(),
     ]);
 
     console.log('👤 Creating users...');
@@ -44,21 +55,22 @@ const seed = async () => {
       password: '123456',
       role: 'user',
     });
-    const joana = new User({
-      name: 'Joana',
-      email: 'joana@example.com',
+    // Extra normal users
+    const maria = new User({
+      name: 'Maria',
+      email: 'maria@example.com',
       password: '123456',
       role: 'user',
     });
-    const markus = new User({
-      name: 'Markus',
-      email: 'markus@example.com',
+    const john = new User({
+      name: 'John',
+      email: 'john@example.com',
       password: '123456',
       role: 'user',
     });
-    const mia = new User({
-      name: 'Mia',
-      email: 'mia@example.com',
+    const sofia = new User({
+      name: 'Sofia',
+      email: 'sofia@example.com',
       password: '123456',
       role: 'user',
     });
@@ -67,12 +79,37 @@ const seed = async () => {
       berto.save(),
       berit.save(),
       alex.save(),
-      joana.save(),
-      markus.save(),
-      mia.save(),
+      maria.save(),
+      john.save(),
+      sofia.save(),
     ]);
 
-    // CATEGORIAS E POSTS... (mantém igual ao teu seed)
+    console.log('🏷️ Creating tags...');
+    const tagList = [
+      { name: 'agile', description: 'Agile practices', color: '#1da1f2' },
+      { name: 'teamwork', description: 'Teamwork', color: '#2995e2' },
+      { name: 'ux', description: 'User Experience', color: '#a1a1a3' },
+      { name: 'design', description: 'Design', color: '#23262f' },
+      { name: 'career', description: 'Career', color: '#2ecc40' },
+      { name: 'tools', description: 'Tools', color: '#17a2b8' },
+      { name: 'blog', description: 'Blogging', color: '#ff9800' },
+      { name: 'retro', description: 'Retro', color: '#f41919' },
+    ];
+    // Cria as tags já no formato correto
+    const tagDocs = await Tag.insertMany(
+      tagList.map((tag) => ({
+        slug: toSlug(tag.name),
+        color: tag.color,
+        translations: {
+          en: {
+            name: tag.name,
+            description: tag.description,
+          },
+        },
+      }))
+    );
+    const getTagId = (name: string) =>
+      tagDocs.find((tag) => tag.translations.en.name === name)?._id;
 
     console.log('🏷️ Creating categories...');
     const categories = await Category.insertMany([
@@ -127,19 +164,9 @@ const seed = async () => {
         logo: 'personalReflections.webp',
       },
     ]);
-
     const getCategoryId = (slug: string) => categories.find((c) => c.slug === slug)?._id;
 
     console.log('📝 Creating posts...');
-    function toSlug(str: string): string {
-      return str
-        .toLowerCase()
-        .replace(/[^\w\s-]/g, '')
-        .trim()
-        .replace(/[\s_-]+/g, '-')
-        .replace(/^-+|-+$/g, '');
-    }
-
     const posts = [
       {
         translations: {
@@ -152,7 +179,7 @@ const seed = async () => {
         slug: toSlug('The Human Side of Agile Development'),
         image: '/images/1.jpg',
         status: 'published',
-        tags: ['agile', 'teamwork'],
+        tags: [getTagId('agile'), getTagId('teamwork')],
         author: berto._id,
         categories: [getCategoryId('agile-projects')],
       },
@@ -167,7 +194,7 @@ const seed = async () => {
         slug: toSlug('UX Design: Bridging Humans and Technology'),
         image: '/images/2.jpg',
         status: 'published',
-        tags: ['ux', 'design'],
+        tags: [getTagId('ux'), getTagId('design')],
         author: berit._id,
         categories: [getCategoryId('frontend-ux')],
       },
@@ -182,7 +209,7 @@ const seed = async () => {
         slug: toSlug('Navigating a Career in Tech'),
         image: '/images/3.jpg',
         status: 'published',
-        tags: ['career'],
+        tags: [getTagId('career')],
         author: alex._id,
         categories: [getCategoryId('tech-career')],
       },
@@ -197,7 +224,7 @@ const seed = async () => {
         slug: toSlug('Essential Tools for Modern Developers'),
         image: '/images/4.jpg',
         status: 'published',
-        tags: ['tools'],
+        tags: [getTagId('tools')],
         author: berto._id,
         categories: [getCategoryId('tech-tools')],
       },
@@ -212,7 +239,7 @@ const seed = async () => {
         slug: toSlug('Why I Write About Technology'),
         image: '/images/5.jpg',
         status: 'published',
-        tags: ['blog'],
+        tags: [getTagId('blog')],
         author: berit._id,
         categories: [getCategoryId('personal-reflections')],
       },
@@ -228,7 +255,7 @@ const seed = async () => {
         slug: toSlug('Old Programming Techniques'),
         image: '/images/6.jpg',
         status: 'published',
-        tags: ['retro'],
+        tags: [getTagId('retro')],
         author: alex._id,
         categories: [getCategoryId('tech-career')],
       },
@@ -240,8 +267,6 @@ const seed = async () => {
     }
 
     console.log('🤝 Creating sponsors...');
-    await Sponsor.deleteMany();
-
     const sponsors = [
       {
         name: 'Cloudinary',
@@ -269,47 +294,43 @@ const seed = async () => {
         website: 'https://www.scrum.org/',
       },
     ];
-
     await Sponsor.insertMany(sponsors);
     console.log('✅ Sponsors created');
 
-    // CHAT DEMO DATA
     console.log('💬 Creating conversations and messages...');
+    // Berto <-> outros users (cada conversa 1:1)
+    const convs = await Promise.all([
+      Conversation.create({ participants: [berto._id, alex._id] }),
+      Conversation.create({ participants: [berto._id, maria._id] }),
+      Conversation.create({ participants: [berto._id, john._id] }),
+      Conversation.create({ participants: [berto._id, sofia._id] }),
+    ]);
 
-    const chatUsers = [alex, joana, markus, mia];
-
-    // Cria uma conversa 1:1 entre berto (admin) e cada user
-    for (const normalUser of chatUsers) {
-      const conv = await Conversation.create({ participants: [berto._id, normalUser._id] });
-
-      await Message.insertMany([
-        {
-          text: `Hello ${normalUser.name}, how can I help you?`,
-          sender: berto._id,
-          conversation: conv._id,
-        },
-        {
-          text: `Hi Berto! I just wanted to say hello and test the chat feature.`,
-          sender: normalUser._id,
-          conversation: conv._id,
-        },
-        {
-          text: `Happy to hear from you, ${normalUser.name}. Let me know if you have questions!`,
-          sender: berto._id,
-          conversation: conv._id,
-        },
-      ]);
-    }
-
-    // Exemplo de conversa entre admin e berit (editor)
-    const convAdminEditor = await Conversation.create({ participants: [berto._id, berit._id] });
     await Message.insertMany([
-      { text: 'Hi Berit, welcome!', sender: berto._id, conversation: convAdminEditor._id },
-      { text: 'Thanks Berto!', sender: berit._id, conversation: convAdminEditor._id },
+      // Berto <-> Alex
+      { text: 'Hi Alex, welcome to the chat!', sender: berto._id, conversation: convs[0]._id },
+      { text: 'Thanks Berto! Glad to be here.', sender: alex._id, conversation: convs[0]._id },
+      // Berto <-> Maria
+      { text: 'Bom dia Maria, tudo bem?', sender: berto._id, conversation: convs[1]._id },
+      { text: 'Olá Berto, tudo ótimo!', sender: maria._id, conversation: convs[1]._id },
+      // Berto <-> John
+      { text: 'Hello John! Any tech news today?', sender: berto._id, conversation: convs[2]._id },
+      {
+        text: "Hey Berto, not yet! But I'll let you know.",
+        sender: john._id,
+        conversation: convs[2]._id,
+      },
+      // Berto <-> Sofia
+      {
+        text: 'Sofia, precisas de ajuda com o projeto?',
+        sender: berto._id,
+        conversation: convs[3]._id,
+      },
+      { text: 'Sim Berto, podes ligar mais tarde?', sender: sofia._id, conversation: convs[3]._id },
     ]);
 
     console.log(
-      '✅ Seed completed with posts, users, categories, sponsors, conversations and messages'
+      '✅ Seed completed with posts, users, categories, tags, sponsors, conversations and messages'
     );
     process.exit(0);
   } catch (err) {
