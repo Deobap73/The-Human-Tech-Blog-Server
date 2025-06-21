@@ -66,17 +66,19 @@ if (!env.isProduction) {
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Permite requests sem origem (ex: Postman, CLI, server2server)
-      if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin)) {
+      // Permite requests sem origem só em dev (CLI, Postman)
+      if (!origin && !env.isProduction) return callback(null, true);
+
+      if (origin && allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
       return callback(new Error('Not allowed by CORS'));
     },
     credentials: true,
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token', 'XSRF-TOKEN'],
     exposedHeaders: ['Set-Cookie'],
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    optionsSuccessStatus: 200, // Garante 200 nos preflight
   })
 );
 
