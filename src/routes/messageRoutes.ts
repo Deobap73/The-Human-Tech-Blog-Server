@@ -3,10 +3,13 @@
 import express from 'express';
 import { getMessages, sendMessage } from '../controllers/messageController';
 import { isAuthenticated } from '../middleware/authMiddleware';
+import upload from '../middleware/uploadMiddleware';
 
 const router = express.Router();
 
 router.get('/:conversationId', isAuthenticated, getMessages);
-router.post('/:conversationId', isAuthenticated, sendMessage);
+
+// Use .single('file') to handle single file uploads
+router.post('/:conversationId', isAuthenticated, upload.single('file'), sendMessage);
 
 export default router;
