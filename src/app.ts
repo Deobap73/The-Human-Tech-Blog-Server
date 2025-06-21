@@ -57,15 +57,17 @@ app.use(cookieParser());
 // Define allowed origins for CORS
 const allowedOrigins = ['https://thehumantechblog.com', 'https://www.thehumantechblog.com'];
 
+// Permite acesso local APENAS em desenvolvimento (útil para debugging de styles e integração local)
+// Em produção, este bloco NÃO será executado (env.isProduction == true)
 if (!env.isProduction) {
-  // Allow local frontend during development
   allowedOrigins.push('http://localhost:5173', 'http://127.0.0.1:5173');
 }
 
 app.use(
   cors({
     origin: function (origin, callback) {
-      if (!origin) return callback(null, true); // allow server-to-server or CLI tools
+      // Permite requests sem origem (ex: Postman, CLI, server2server)
+      if (!origin) return callback(null, true);
       if (allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
