@@ -10,25 +10,15 @@ import { getSocketIO } from '../socket/index'; // Import for socket emit
 export const getMessages = async (req: Request, res: Response) => {
   const user = req.user as IUser;
   const { conversationId } = req.params;
-
   try {
-    const conv = await Conversation.findById(conversationId);
-    if (!conv) {
-      return res.status(404).json({ error: 'Conversation not found' });
-    }
+    const messages = await Message.find({ conversation: conversationId }).sort('createdAt').lean();
 
-    // Accepts ObjectId or string
-    const idStr = typeof user._id === 'string' ? user._id : String(user._id);
-    const isParticipant = conv.participants.some((p) => String(p) === idStr);
-
-    if (!isParticipant && user.role !== 'admin') {
-      return res.status(403).json({ error: 'Not a participant' });
-    }
-
-    const messages = await Message.find({ conversation: conversationId }).populate(
-      'sender',
-      'name email avatar role'
+    // Marcar mensagens recebidas como lidas
+    await Message.updateMany(
+      { conversation: conversationId, sender: { $ne: user._id }, seen: false },
+      { $set: { seen: true } }
     );
+
     return res.status(200).json(messages);
   } catch (err) {
     return res.status(500).json({ error: 'Failed to fetch messages' });

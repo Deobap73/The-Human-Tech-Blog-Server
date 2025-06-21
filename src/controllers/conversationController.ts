@@ -22,24 +22,23 @@ export const getUserConversations = async (req: Request, res: Response) => {
     // Busca o último message e unreadCount para cada conversa
     const conversationsWithLast = await Promise.all(
       conversations.map(async (conv: any) => {
-        // Última mensagem desta conversa
+        // Última mensagem
         const lastMessage = await Message.findOne({ conversation: conv._id })
           .sort({ createdAt: -1 })
           .select('text createdAt')
           .lean();
 
-        // Unread count (exemplo: mensagens não lidas pelo user e não enviadas pelo próprio)
-        // Para versão básica, podes remover se ainda não tens este campo.
-        // const unreadCount = await Message.countDocuments({
-        //   conversation: conv._id,
-        //   sender: { $ne: user._id },
-        //   seen: false, // só se implementares "seen" no model
-        // });
+        // Mensagens não lidas pelo user (recebidas, seen: false)
+        const unreadCount = await Message.countDocuments({
+          conversation: conv._id,
+          sender: { $ne: user._id },
+          seen: false,
+        });
 
         return {
           ...conv,
           lastMessage: lastMessage || null,
-          // unreadCount: unreadCount || 0, // Descomenta se quiseres!
+          unreadCount,
         };
       })
     );
