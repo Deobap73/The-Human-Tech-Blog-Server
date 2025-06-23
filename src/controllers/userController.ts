@@ -84,9 +84,8 @@ export const updateMe = async (req: Request, res: Response) => {
 };
 
 // GET /api/users - List all users (for chat, show only basic info)
-export const getUsers = async (req: Request, res: Response) => {
+export const getUsers = async (_req: Request, res: Response) => {
   try {
-    // Só retorna campos necessários
     const users = await User.find({}, 'name _id avatar role').lean();
     res.status(200).json(users);
   } catch (err) {
