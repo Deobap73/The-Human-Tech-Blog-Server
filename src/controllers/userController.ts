@@ -82,3 +82,14 @@ export const updateMe = async (req: Request, res: Response) => {
     return res.status(500).json({ message: 'Failed to update profile' });
   }
 };
+
+// GET /api/users - List all users (for chat, show only basic info)
+export const getUsers = async (req: Request, res: Response) => {
+  try {
+    // Só retorna campos necessários
+    const users = await User.find({}, 'name _id avatar role').lean();
+    res.status(200).json(users);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
+};

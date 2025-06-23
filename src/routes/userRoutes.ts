@@ -9,6 +9,7 @@ import {
   getMyBookmarks,
   getMyComments,
   updateMe,
+  getUsers,
 } from '../controllers/userController';
 
 const router = express.Router();
@@ -18,6 +19,7 @@ router.get('/me/posts', protect, getMyPosts);
 router.get('/me/drafts', protect, getMyDrafts);
 router.get('/me/bookmarks', protect, getMyBookmarks);
 router.get('/me/comments', protect, getMyComments);
+router.get('/', protect, getUsers);
 
 // Agora aceita avatar por multipart/form-data
 router.patch('/me', protect, upload.single('avatar'), updateMe);
