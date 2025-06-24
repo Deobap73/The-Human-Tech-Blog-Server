@@ -2,6 +2,11 @@
 
 A robust, secure, and scalable backend built with Node.js, Express, and TypeScript to power the **The Human Tech Blog**. Handles post creation, authentication (JWT & OAuth), comment management, category tags, token lifecycle with Redis, and now includes **Two-Factor Authentication (2FA)** for admins.
 
+**NEW:**
+
+- 🛠️ Professional DevOps scripts for database reset and admin setup (see **Database Maintenance & Admin Setup** below).
+- 🧑‍💻 All critical CLI scripts are TypeScript, strict mode, with robust error handling and security in mind.
+
 ---
 
 ## 🏠 Technologies Used
@@ -18,6 +23,7 @@ A robust, secure, and scalable backend built with Node.js, Express, and TypeScri
 | Cloudinary           | Image upload support (via frontend)  |
 | dotenv + envalid     | Environment variable validation      |
 | Speakeasy            | Time-based One-Time Passwords (TOTP) |
+| Inquirer             | Secure interactive CLI prompts       |
 
 ---
 
@@ -33,7 +39,7 @@ blog-server/
 │   ├── middleware/           # JWT, CSRF, captcha, roles, 2FA guard
 │   ├── models/               # Mongoose schemas (User, Post, Comment, etc)
 │   ├── routes/               # Express route modules
-│   ├── scripts/              # DB seeding scripts
+│   ├── scripts/              # DB seeding, reset, admin creation
 │   ├── services/             # Token services (JWT, refresh, etc)
 │   ├── socket.ts             # WebSocket handling
 │   ├── tests/                # Jest tests (unit/integration)
@@ -77,6 +83,61 @@ blog-server/
 - Redis-powered token cleanup & revocation
 - Express middlewares for CSRF-safe cookies
 - 2FA via Speakeasy (TOTP with QR code)
+
+## 💬 Chat Module — Backend Features & Architecture
+
+The backend Chat module powers real-time, secure, and scalable messaging for The Human Tech Blog, enabling fast, reliable communication for all authenticated users.
+
+### Core Features
+
+- Real-time Messaging Engine
+- RESTful API Endpoints
+- Authentication & Security
+- Data Model
+- Notification Integration
+- Scalability & Performance
+
+### Roadmap & Future Improvements
+
+- Group conversations (multi-user rooms)
+- Media/file sharing in chat
+- Message editing/deleting
+- Real-time typing indicators
+- End-to-end encryption (optional)
+- Advanced moderation tools for admins
+
+---
+
+## 🛠️ Database Maintenance & Admin Setup
+
+1. Reset the Database (Keep only Categories & Sponsors)
+   Use this script to clean the database, removing all seeded/dev data except categories and sponsors.
+
+```bash
+npx ts-node src/scripts/reset-db.ts
+```
+
+2. Create the Real Admin User (Secure CLI Prompt)
+   Creates a new admin interactively and securely (password input is hidden).
+
+First, install dependencies:
+
+```bash
+npm install inquirer
+```
+
+Then run:
+
+```bash
+npx ts-node src/scripts/create-admin.ts
+```
+
+You will be prompted to enter the admin's name, email, and password (input is masked for security).
+
+- The script ensures unique email and hashes the password.
+- No sensitive data is stored in the code.
+
+Repeat to add more admins if needed.
 
 ---
 
@@ -123,38 +184,6 @@ RECAPTCHA_SECRET=***********************************
 
 ---
 
-## 🔒 How Auth Works
-
-1. **Login Flows**
-
-   - Email/password → `/api/auth/login`
-   - Google OAuth2 → `/api/auth/google`
-   - GitHub OAuth2 → `/api/auth/github`
-
-2. **Tokens**
-
-   - Short-lived `accessToken` (JWT, 15 min)
-   - Long-lived `refreshToken` (Redis + cookie, 7d)
-   - Refresh flow: `/api/auth/refresh` replaces token
-
-3. **2FA (Two-Factor Authentication)**
-
-   - Enabled for admins only
-   - `/api/2fa/generate` → Generate TOTP secret + QR Code
-   - `/api/2fa/verify` → Confirm token & enable 2FA
-   - `/api/2fa/disable` → Disable 2FA
-
-4. **Rotation & Revocation**
-
-   - Redis TTL auto-expires stale tokens
-   - Revoked on logout, rotated on refresh
-
-5. **Secure Cookies**
-   - `httpOnly`, `secure`, `sameSite=strict`
-   - Stored in browser, never exposed to JS
-
----
-
 ## 💡 Getting Started
 
 ```bash
@@ -190,12 +219,12 @@ open coverage/lcov-report/index.html
 
 ---
 
-## 🚀 Deployment (Railway)
+## 🚀 Deployment (Railway or Render)
 
 1. Push to GitHub
-2. Connect repo to [Railway](https://railway.app)
+2. Connect repo to [Railway](https://railway.app) or [Render](https://render.com)
 3. Add Redis plugin
-4. Set environment variables via Railway
+4. Set environment variables via platform
 5. Done 🎉
 
 ---
