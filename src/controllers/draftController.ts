@@ -3,7 +3,7 @@
 import { Request, Response } from 'express';
 import Draft from '../models/Draft';
 import { IUser } from '../types/User';
-import Post from 'src/models/Post';
+import Post from '../models/Post';
 import { generateUniqueSlug } from '../utils/generateUniqueSlug';
 
 // Utility to check if user is author
