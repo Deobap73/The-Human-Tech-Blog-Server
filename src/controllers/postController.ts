@@ -9,6 +9,7 @@ import { logAdminAction } from '../utils/logAdminAction';
 import { Types } from 'mongoose';
 import { generateUniqueSlug } from '../utils/generateUniqueSlug';
 
+// Get all posts, optionally filtered by author
 export const getPosts = async (req: Request, res: Response) => {
   try {
     const query: any = {};
@@ -18,6 +19,7 @@ export const getPosts = async (req: Request, res: Response) => {
 
     const posts = await Post.find(query)
       .populate('categories', 'translations slug logo')
+      .populate('author', 'name avatar _id') // Populate avatar for author
       .select('slug image status translations categories author createdAt updatedAt')
       .sort({ createdAt: -1 });
 
@@ -27,6 +29,7 @@ export const getPosts = async (req: Request, res: Response) => {
   }
 };
 
+// Get post by ObjectId
 export const getPostById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -35,7 +38,9 @@ export const getPostById = async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'Post not found' });
     }
 
-    const post = await Post.findById(id).populate('categories', 'translations slug logo');
+    const post = await Post.findById(id)
+      .populate('categories', 'translations slug logo')
+      .populate('author', 'name avatar _id'); // Populate avatar for author
 
     if (!post) return res.status(404).json({ message: 'Post not found' });
     return res.status(200).json(post);
@@ -44,14 +49,14 @@ export const getPostById = async (req: Request, res: Response) => {
   }
 };
 
-// Multilíngue com fallback
+// Get post by slug (multilingual with fallback)
 export const getPostBySlug = async (req: Request, res: Response) => {
   const { slug } = req.params;
 
   try {
     const post = await Post.findOne({ slug })
       .populate('categories', 'translations slug logo')
-      .populate('author', 'name');
+      .populate('author', 'name avatar _id'); // Populate avatar for author
 
     if (!post) {
       return res.status(404).json({ message: 'Post not found' });
@@ -63,6 +68,7 @@ export const getPostBySlug = async (req: Request, res: Response) => {
   }
 };
 
+// Publish a draft as a post
 export const publishDraft = async (req: Request, res: Response) => {
   const draftId = req.params.id;
   const user = req.user as IUser;
@@ -97,6 +103,10 @@ export const publishDraft = async (req: Request, res: Response) => {
       `Draft ${draftId} published as post ${newPost._id}`
     );
 
+    // Populate author (consistência na resposta)
+    await newPost.populate('author', 'name avatar _id');
+    await newPost.populate('categories', 'translations slug logo');
+
     return res.status(201).json({ message: 'Draft published successfully', post: newPost });
   } catch (error) {
     console.error('[Publish Draft]', error);
@@ -104,16 +114,19 @@ export const publishDraft = async (req: Request, res: Response) => {
   }
 };
 
+// Delete a post (admin or author)
 export const deletePost = async (req: Request, res: Response) => {
   const postId = req.params.id;
   const user = req.user as IUser;
 
   try {
-    const post = await Post.findById(postId).populate('categories', 'translations slug logo');
+    const post = await Post.findById(postId)
+      .populate('categories', 'translations slug logo')
+      .populate('author', 'name avatar _id');
 
     if (!post) return res.status(404).json({ message: 'Post not found' });
 
-    if (String(post.author) !== String(user._id) && user.role !== 'admin') {
+    if (String(post.author._id) !== String(user._id) && user.role !== 'admin') {
       return res.status(403).json({ message: 'Forbidden: not the author or admin' });
     }
 
@@ -126,6 +139,7 @@ export const deletePost = async (req: Request, res: Response) => {
   }
 };
 
+// Create a new post
 export const createPost = async (req: Request, res: Response) => {
   const user = req.user as IUser;
 
@@ -149,6 +163,10 @@ export const createPost = async (req: Request, res: Response) => {
 
     await logAdminAction(user._id as Types.ObjectId, 'CREATE_POST', `Created post ${newPost._id}`);
 
+    // Populate author and categories for the response
+    await newPost.populate('author', 'name avatar _id');
+    await newPost.populate('categories', 'translations slug logo');
+
     return res.status(201).json({ message: 'Post created', post: newPost });
   } catch (error) {
     console.error('[Create Post]', error);
@@ -156,16 +174,19 @@ export const createPost = async (req: Request, res: Response) => {
   }
 };
 
+// Update an existing post
 export const updatePost = async (req: Request, res: Response) => {
   const postId = req.params.id;
   const user = req.user as IUser;
 
   try {
-    const post = await Post.findById(postId).populate('categories', 'translations slug logo');
+    const post = await Post.findById(postId)
+      .populate('categories', 'translations slug logo')
+      .populate('author', 'name avatar _id');
 
     if (!post) return res.status(404).json({ message: 'Post not found' });
 
-    if (String(post.author) !== String(user._id) && user.role !== 'admin') {
+    if (String(post.author._id) !== String(user._id) && user.role !== 'admin') {
       return res.status(403).json({ message: 'Forbidden: not the author or admin' });
     }
 
@@ -180,12 +201,17 @@ export const updatePost = async (req: Request, res: Response) => {
 
     await logAdminAction(user._id as Types.ObjectId, 'UPDATE_POST', `Updated post ${postId}`);
 
+    // Repopulate author and categories for up-to-date response
+    await post.populate('author', 'name avatar _id');
+    await post.populate('categories', 'translations slug logo');
+
     return res.status(200).json({ message: 'Post updated', post });
   } catch (error) {
     return res.status(500).json({ message: 'Failed to update post' });
   }
 };
 
+// Search posts by text
 export const searchPosts = async (req: Request, res: Response) => {
   const { q = '', page = 1, limit = 10 } = req.query;
   const query = q.toString().trim();
@@ -199,7 +225,7 @@ export const searchPosts = async (req: Request, res: Response) => {
       .sort({ score: { $meta: 'textScore' }, createdAt: -1 })
       .skip((Number(page) - 1) * Number(limit))
       .limit(Number(limit))
-      .populate('author', 'name')
+      .populate('author', 'name avatar _id')
       .populate('categories', 'translations slug logo');
 
     return res.status(200).json(posts);
