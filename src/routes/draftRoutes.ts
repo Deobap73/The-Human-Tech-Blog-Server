@@ -7,6 +7,7 @@ import {
   updateDraft,
   getMyDrafts,
   getAllDrafts,
+  publishDraft,
 } from '../controllers/draftController';
 import { protect } from '../middleware/authMiddleware';
 import { authorizeRoles } from '../middleware/roleMiddleware';
@@ -34,5 +35,8 @@ router.patch('/:id', verifyDraftOwnership, updateDraft);
 
 // ❌ Excluir rascunho (apenas se for o autor)
 router.delete('/:id', verifyDraftOwnership, deleteDraft);
+
+// 📝 publica draft
+router.post('/:id/publish', verifyDraftOwnership, publishDraft);
 
 export default router;

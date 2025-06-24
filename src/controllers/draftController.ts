@@ -3,6 +3,8 @@
 import { Request, Response } from 'express';
 import Draft from '../models/Draft';
 import { IUser } from '../types/User';
+import Post from 'src/models/Post';
+import { generateUniqueSlug } from '../utils/generateUniqueSlug';
 
 // Utility to check if user is author
 const isAuthor = (resource: any, userId: string) =>
@@ -115,5 +117,40 @@ export const deleteAllMyDrafts = async (req: Request, res: Response) => {
   } catch (error) {
     console.error('[Delete All Drafts]', error);
     return res.status(500).json({ message: 'Failed to delete drafts' });
+  }
+};
+
+export const publishDraft = async (req: Request, res: Response) => {
+  try {
+    const user = req.user as IUser;
+    const draft = await Draft.findOne({ _id: req.params.id, author: user._id });
+    if (!draft) return res.status(404).json({ message: 'Draft not found' });
+
+    const slug = await generateUniqueSlug(draft.title);
+    // Copia todos os campos relevantes para Post (adapta para multi-language se necessário)
+    const newPost = new Post({
+      slug,
+      translations: {
+        en: {
+          title: draft.title,
+          content: draft.content,
+          description: draft.description,
+        },
+        // ... outros idiomas se existirem no draft
+      },
+      author: draft.author,
+      categories: draft.categories,
+      tags: draft.tags,
+      image: draft.image,
+      status: 'published',
+    });
+
+    await newPost.save();
+    await Draft.findByIdAndDelete(draft._id);
+
+    return res.status(201).json({ message: 'Draft published successfully', post: newPost });
+  } catch (error) {
+    console.error('[Publish Draft]', error);
+    return res.status(500).json({ message: 'Failed to publish draft' });
   }
 };
