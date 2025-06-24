@@ -150,7 +150,11 @@ export const publishDraft = async (req: Request, res: Response) => {
 
     return res.status(201).json({ message: 'Draft published successfully', post: newPost });
   } catch (error) {
-    console.error('[Publish Draft]', error);
+    if (error instanceof Error) {
+      console.error('[Publish Draft ERROR]', error.message, error.stack);
+    } else {
+      console.error('[Publish Draft ERROR]', error);
+    }
     return res.status(500).json({ message: 'Failed to publish draft' });
   }
 };
