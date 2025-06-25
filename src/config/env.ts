@@ -23,7 +23,7 @@ export const env = cleanEnv(process.env, {
 
   // JWT e Autenticação
   JWT_SECRET: str(),
-  JWT_EXPIRATION: str({ default: '15m' }),
+  JWT_EXPIRATION: str({ default: '20m' }),
   REFRESH_TOKEN_SECRET: str(),
   REFRESH_TOKEN_EXPIRATION: str({ default: '7d' }),
   REFRESH_TOKEN_EXPIRATION_MS: num({ default: 604800000 }), // 7 days in ms
