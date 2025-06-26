@@ -14,7 +14,7 @@ export const csrfProtection = csrf({
     secure: process.env.NODE_ENV === 'production',
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : false, // Cross-domain: must be 'none'
     path: '/',
-    domain: undefined, // Keep undefined for now; only set if you have custom domain needs
+    domain: process.env.NODE_ENV === 'production' ? '.thehumantechblog.com' : undefined,
   },
   value: (req) =>
     req.headers['x-csrf-token']?.toString() ||
