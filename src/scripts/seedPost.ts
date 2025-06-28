@@ -3,8 +3,8 @@
 import 'dotenv/config';
 import mongoose from 'mongoose';
 import { Types } from 'mongoose';
-import Post from './src/models/Post';
-import Tag, { ITag } from './src/models/Tag';
+import Post from 'src/models/Post';
+import Tag, { ITag } from 'src/models/Tag';
 
 const MONGO_URI = process.env.MONGO_URI;
 if (!MONGO_URI) throw new Error('MONGO_URI not set in environment variables (.env)');
