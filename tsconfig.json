@@ -25,6 +25,6 @@
     "types": ["jest", "node", "express"],
     "isolatedModules": true
   },
-  "include": ["src/**/*", "../shared/**/*"],
+  "include": ["src/**/*", "../shared/**/*", "*.ts"],
   "exclude": ["node_modules", "dist"]
 }

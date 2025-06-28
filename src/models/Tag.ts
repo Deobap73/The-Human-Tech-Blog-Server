@@ -23,8 +23,7 @@ export interface ITag extends Document {
   updatedAt: Date;
 }
 
-// REMOVE <ITag> aqui
-const tagSchema = new Schema(
+const tagSchema = new Schema<ITag>(
   {
     slug: {
       type: String,
@@ -34,7 +33,7 @@ const tagSchema = new Schema(
       trim: true,
     },
     color: {
-      type: String, // Ex: "#ffaa00"
+      type: String,
     },
     translations: {
       en: {
@@ -59,7 +58,6 @@ const tagSchema = new Schema(
 );
 
 tagSchema.pre('validate', function (next) {
-  // Use translations.en.name as canonical
   // @ts-ignore
   if (!this.slug && this.translations && this.translations.en && this.translations.en.name) {
     // @ts-ignore
@@ -77,4 +75,5 @@ tagSchema.post('save', function (error: CallbackError, _doc: any, next: (err?: a
   }
 });
 
-export default model<ITag>('Tag', tagSchema);
+const Tag = model<ITag>('Tag', tagSchema);
+export default Tag;
