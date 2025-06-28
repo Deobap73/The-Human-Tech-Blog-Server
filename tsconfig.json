@@ -8,7 +8,7 @@
     "strict": true,
     "skipLibCheck": true,
     "outDir": "./dist",
-    "rootDir": "./src",
+    "rootDir": ".",
     "baseUrl": "./",
     "typeRoots": ["./node_modules/@types", "./src/types"],
     "sourceMap": false,
@@ -25,6 +25,6 @@
     "types": ["jest", "node", "express"],
     "isolatedModules": true
   },
-  "include": ["src/**/*", "../shared/**/*", "*.ts"],
+  "include": ["src/**/*", "../shared/**/*", "seedPost.ts"],
   "exclude": ["node_modules", "dist"]
 }
