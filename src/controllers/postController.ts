@@ -16,12 +16,17 @@ export const getPosts = async (req: Request, res: Response) => {
     if (req.query.author) {
       query.author = req.query.author;
     }
+    if (req.query.quick === 'true') {
+      query.isQuickPost = true;
+    }
 
     const posts = await Post.find(query)
       .populate('categories', 'translations slug logo')
-      .populate('tags', 'slug translations') // <---- ADICIONA tags aqui!
+      .populate('tags', 'slug translations')
       .populate('author', 'name avatar _id')
-      .select('slug image status translations categories tags author createdAt updatedAt')
+      .select(
+        'slug image status isQuickPost translations categories tags author createdAt updatedAt'
+      )
       .sort({ createdAt: -1 });
 
     return res.status(200).json(posts);

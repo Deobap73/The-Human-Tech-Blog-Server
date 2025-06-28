@@ -1,5 +1,3 @@
-// /src/models/Post.ts
-
 import mongoose, { Schema, Document, Types } from 'mongoose';
 
 export interface PostTranslation {
@@ -12,11 +10,12 @@ export interface IPost extends Document {
   slug: string;
   image: string;
   status: 'draft' | 'published' | 'archived';
+  isQuickPost?: boolean; // 🔥 NEW FIELD
   translations: {
-    en: PostTranslation; // OBRIGATÓRIO
-    pt?: PostTranslation; // OPCIONAL
-    de?: PostTranslation; // OPCIONAL
-    es?: PostTranslation; // OPCIONAL
+    en: PostTranslation;
+    pt?: PostTranslation;
+    de?: PostTranslation;
+    es?: PostTranslation;
     [key: string]: PostTranslation | undefined;
   };
   categories: Types.ObjectId[];
@@ -45,10 +44,14 @@ const PostSchema = new Schema<IPost>(
       required: true,
       default: 'draft',
     },
+    isQuickPost: {
+      type: Boolean,
+      default: false,
+    },
     translations: {
       en: {
         type: TranslationSchema,
-        required: true, // Só EN é obrigatório!
+        required: true,
         validate: {
           validator: function (v: any) {
             return v && v.title && v.content && v.description;
@@ -56,9 +59,9 @@ const PostSchema = new Schema<IPost>(
           message: 'English translation (title, content, description) is required!',
         },
       },
-      pt: { type: TranslationSchema, required: false },
-      de: { type: TranslationSchema, required: false },
-      es: { type: TranslationSchema, required: false },
+      pt: { type: TranslationSchema },
+      de: { type: TranslationSchema },
+      es: { type: TranslationSchema },
     },
     categories: [{ type: Schema.Types.ObjectId, ref: 'Category' }],
     tags: [{ type: Schema.Types.ObjectId, ref: 'Tag' }],
