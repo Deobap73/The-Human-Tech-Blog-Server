@@ -3,8 +3,8 @@
 import 'dotenv/config';
 import mongoose from 'mongoose';
 import { Types } from 'mongoose';
-import Post from 'src/models/Post';
-import Tag, { ITag } from 'src/models/Tag';
+import Post from '../models/Post';
+import Tag, { ITag } from '../models/Tag';
 
 const MONGO_URI = process.env.MONGO_URI;
 if (!MONGO_URI) throw new Error('MONGO_URI not set in environment variables (.env)');
@@ -19,46 +19,47 @@ const tagInfo = [
 
 // Define postSeed SEMPRE com tags: []
 let postSeed = {
-  'slug': 'embracing-agility-lessons-from-my-first-agile-project',
-  'image': 'https://res.cloudinary.com/dleir1jqn/image/upload/v1751020709/image2_ae0wcp.webp',
+  'slug': 'typescript-catches-your-mistakes',
+  'image': 'https://res.cloudinary.com/dleir1jqn/image/upload/v1751134853/image11_muvv6q.webp',
   'status': 'published',
+  'isQuickPost': true,
   'translations': {
     'en': {
-      'title': 'Embracing Agility: Lessons Learned Leading My First Agile Project',
+      'title': 'Stop Guessing: How TypeScript Catches Your Mistakes Before You Do',
       'description':
-        'Discover the real-life journey of a web developer transitioning into project management, leading a cross-functional team using agile principles, facing unexpected challenges, and learning lessons that go beyond any certification.',
+        'Discover how TypeScript helps you prevent bugs by adding static types to JavaScript, making your code safer and more predictable.',
       'content':
-        '<p>When I look back at my professional path, there are a few moments that truly reshaped how I work and lead teams. One of those was my first experience leading an Agile project. It wasn’t just a change in methodology—it was a complete shift in mindset.</p><p>As someone who transitioned from web development to project management, I believed I had enough technical skills to guide any team to success. But nothing had quite prepared me for the human and process-oriented challenges that come with Agile.</p><h2><em>The Wake-Up Call: Why Traditional Project Management Wasn’t Enough</em></h2><p>For years, I had managed projects in a very traditional, waterfall-inspired way... [resumo aqui para manter tamanho limitado, mas o conteúdo completo segue o mesmo padrão do ficheiro original]</p><h2><em>Lessons Learned and the Road Ahead</em></h2><ul><li><strong>Agile is not a toolset, it’s a mindset.</strong></li><li><strong>Honest communication trumps flawless processes.</strong></li><li><strong>Celebrate learning, not just delivery.</strong></li><li><strong>Customization is key.</strong></li></ul><p>Leading my first Agile project was more than a milestone; it changed how I view teams, leadership, and growth.</p>',
+        "<p>Let’s face it — JavaScript is flexible, sometimes too flexible. That’s great until your code breaks because <code>undefined</code> isn’t a function. Enter TypeScript, your code’s early warning system.</p><br><br><p>TypeScript adds static typing to JavaScript. This means you define the shape of your data, and TypeScript tells you when something doesn’t match.</p><br><br><strong><em>🛡️ Quick Win Example</em></strong><pre><code class=\"language-js\">function greet(name: string) {\n  return `Hello, ${name.toUpperCase()}`;\n}\n\ngreet(42); // ❌ Error: Argument of type 'number' is not assignable to parameter of type 'string'</code></pre><br><br><p>Without TypeScript, this error might only show up at runtime. With it, you catch it instantly — before even hitting the browser.</p><br><br><strong><em>🔍 Why It Matters</em></strong><ul><li>Fewer runtime bugs</li><li>Smarter autocompletion in your IDE</li><li>Safer refactoring</li><li>Better team collaboration</li></ul><br><br><p>You don’t have to use all of TypeScript’s features to get the benefits. Even just typing your function parameters and return values already makes a huge difference.</p><br><br><p>Start small, and you’ll wonder how you ever coded without it.</p><br><br><p>💬 Have you already used TypeScript in your projects? What was the biggest bug you avoided with it? Tell us!</p>",
     },
     'pt': {
-      'title': 'Abraçando a Agilidade: Lições do Meu Primeiro Projeto Agile',
+      'title': 'Pare de Adivinhar: Como o TypeScript Apanha os Seus Erros Antes de Si',
       'description':
-        'Descobre a jornada real de um programador a transitar para gestão de projetos, liderando uma equipa multidisciplinar com princípios ágeis e aprendendo lições que vão além de qualquer certificação.',
+        'Descubra como o TypeScript ajuda a evitar bugs adicionando tipos estáticos ao JavaScript, tornando o código mais seguro e previsível.',
       'content':
-        '<p>Ao refletir sobre o meu percurso profissional, há momentos que redefiniram a minha forma de trabalhar e liderar equipas. Um desses momentos foi a experiência de liderar o meu primeiro projeto Agile. Não foi apenas uma mudança de método — foi uma transformação de mentalidade.</p><p>Como alguém que veio do desenvolvimento web para a gestão de projetos, achava que as competências técnicas seriam suficientes. Mas os desafios humanos e de processo foram muito além do que eu esperava.</p><h2><em>O Despertar: Por Que o Modelo Tradicional Não Bastava</em></h2><p>Durante anos usei métodos tradicionais, com planos fixos e prazos rígidos. Mas ao liderar uma equipa para criar uma app social, tudo mudou... [resumo técnico do conteúdo, mantendo coerência com o original]</p><h2><em>Lições Aprendidas e Caminho Futuro</em></h2><ul><li><strong>Agile é uma mentalidade, não apenas um conjunto de ferramentas.</strong></li><li><strong>Comunicação honesta é mais valiosa que processos perfeitos.</strong></li><li><strong>Celebrar a aprendizagem, não só as entregas.</strong></li><li><strong>Adaptar é essencial.</strong></li></ul><p>Este projeto mudou a minha forma de ver equipas, liderança e o valor do erro como ferramenta de evolução.</p>',
+        "<p>Vamos ser sinceros — o JavaScript é flexível, às vezes até demais. Isso é ótimo até que o código falha porque <code>undefined</code> não é uma função. É aí que entra o TypeScript — o sistema de alerta precoce do seu código.</p><br><br><p>O TypeScript adiciona tipagem estática ao JavaScript. Isto significa que defines a estrutura dos teus dados, e o TypeScript avisa quando algo não bate certo.</p><br><br><strong><em>🛡️ Exemplo Rápido</em></strong><pre><code class=\"language-js\">function greet(name: string) {\n  return `Hello, ${name.toUpperCase()}`;\n}\n\ngreet(42); // ❌ Erro: Argumento do tipo 'number' não é atribuível ao parâmetro do tipo 'string'</code></pre><br><br><p>Sem TypeScript, este erro só apareceria em tempo de execução. Com ele, apanhas o erro imediatamente — antes mesmo de abrir o navegador.</p><br><br><strong><em>🔍 Por que Importa</em></strong><ul><li>Menos bugs em tempo de execução</li><li>Autocompletar mais inteligente no IDE</li><li>Refatoração mais segura</li><li>Melhor colaboração em equipa</li></ul><br><br><p>Não é necessário usar todos os recursos do TypeScript para ter benefícios. Tipar os parâmetros das funções e valores de retorno já faz muita diferença.</p><br><br><p>Começa pequeno e vais perguntar-te como programavas sem ele.</p><br><br><p>💬 Já usaste TypeScript nos teus projetos? Qual foi o maior bug que evitaste com ele? Conta-nos!</p>",
     },
     'de': {
-      'title': 'Agilität Annehmen: Lektionen aus meinem ersten Agile-Projekt',
+      'title': 'Hör auf zu raten: Wie TypeScript deine Fehler erkennt, bevor du es tust',
       'description':
-        'Ein echter Erfahrungsbericht über den Übergang vom Webentwickler zum Projektleiter, mit agilen Prinzipien, Herausforderungen und Erkenntnissen, die über Zertifikate hinausgehen.',
+        'Erfahre, wie TypeScript dir hilft, Bugs zu vermeiden, indem es statische Typen zu JavaScript hinzufügt – für sichereren und vorhersehbaren Code.',
       'content':
-        '<p>Wenn ich auf meinen beruflichen Werdegang zurückblicke, gab es Momente, die meine Arbeitsweise grundlegend verändert haben. Einer davon war mein erstes Agile-Projekt. Es war mehr als ein neues Vorgehen – es war ein neuer Denkansatz.</p><p>Als Entwickler, der in das Projektmanagement wechselte, dachte ich, technisches Wissen reiche aus. Doch Agile brachte ganz andere, menschliche Herausforderungen mit sich.</p><h2><em>Der Weckruf: Warum Klassisches Projektmanagement Nicht Reichte</em></h2><p>Ich hatte Projekte jahrelang klassisch gemanagt – mit fixen Plänen und engen Deadlines. Doch in einem sozialen App-Projekt funktionierte das nicht mehr... [restante conteúdo segue fiel ao original]</p><h2><em>Lektionen und Ausblick</em></h2><ul><li><strong>Agilität ist eine Denkweise, kein Werkzeugkasten.</strong></li><li><strong>Ehrliche Kommunikation ist wichtiger als perfekte Prozesse.</strong></li><li><strong>Lernen zählt mehr als reine Lieferung.</strong></li><li><strong>Anpassung ist entscheidend.</strong></li></ul><p>Mein erstes Agile-Projekt veränderte nicht nur meine Karriere – es veränderte mich.</p>',
+        "<p>Seien wir ehrlich – JavaScript ist flexibel, manchmal zu flexibel. Das ist großartig, bis dein Code abstürzt, weil <code>undefined</code> keine Funktion ist. Hier kommt TypeScript ins Spiel – dein Frühwarnsystem für Codefehler.</p><br><br><p>TypeScript ergänzt JavaScript mit statischer Typisierung. Das bedeutet: Du definierst die Struktur deiner Daten, und TypeScript sagt dir, wenn etwas nicht passt.</p><br><br><strong><em>🛡️ Schnelles Beispiel</em></strong><pre><code class=\"language-js\">function greet(name: string) {\n  return `Hello, ${name.toUpperCase()}`;\n}\n\ngreet(42); // ❌ Fehler: Argument vom Typ 'number' ist nicht dem Parameter vom Typ 'string' zuweisbar</code></pre><br><br><p>Ohne TypeScript würdest du diesen Fehler erst zur Laufzeit bemerken. Mit TypeScript erkennst du ihn sofort – noch bevor du den Browser startest.</p><br><br><strong><em>🔍 Warum das wichtig ist</em></strong><ul><li>Weniger Laufzeitfehler</li><li>Intelligentere Autovervollständigung im Editor</li><li>Sichereres Refactoring</li><li>Bessere Teamarbeit</li></ul><br><br><p>Du musst nicht alle TypeScript-Funktionen nutzen, um Vorteile zu haben. Schon das Typisieren von Parametern und Rückgabewerten bringt große Verbesserungen.</p><br><br><p>Fang klein an – du wirst TypeScript nicht mehr missen wollen.</p><br><br><p>💬 Hast du TypeScript bereits in Projekten verwendet? Welchen großen Bug konntest du damit verhindern? Erzähl es uns!</p>",
     },
     'es': {
-      'title': 'Adoptando la Agilidad: Lecciones de Mi Primer Proyecto Ágil',
+      'title': 'Deja de Adivinar: Cómo TypeScript Detecta tus Errores Antes que Tú',
       'description':
-        'Conoce la historia real de un desarrollador web que se convierte en gestor de proyectos, lidera un equipo ágil multidisciplinar y aprende lecciones que van más allá de cualquier certificado.',
+        'Descubre cómo TypeScript te ayuda a prevenir errores agregando tipos estáticos a JavaScript, haciendo tu código más seguro y predecible.',
       'content':
-        '<p>Mirando hacia atrás, hubo momentos que cambiaron por completo mi forma de trabajar y liderar. Uno de esos momentos fue dirigir mi primer proyecto ágil. No fue solo un cambio de metodología, fue un cambio de mentalidad.</p><p>Viniendo del desarrollo web, pensé que tenía las habilidades técnicas necesarias. Pero los desafíos humanos fueron lo que realmente me transformó.</p><h2><em>El Despertar: Por Qué la Gestión Tradicional No Funcionó</em></h2><p>Durante años usé modelos clásicos. Pero al liderar un equipo para una app social, vi cómo todo fallaba sin agilidad... [continua conforme ao artigo original]</p><h2><em>Lecciones Aprendidas y Futuro</em></h2><ul><li><strong>Agile es una mentalidad, no solo herramientas.</strong></li><li><strong>La comunicación honesta supera los procesos perfectos.</strong></li><li><strong>Aprender es más importante que solo entregar.</strong></li><li><strong>Adaptar es esencial.</strong></li></ul><p>Liderar este proyecto fue más que un hito: cambió cómo veo al trabajo y a las personas.</p>',
+        "<p>Aceptémoslo — JavaScript es flexible, a veces demasiado. Eso está bien hasta que tu código falla porque <code>undefined</code> no es una función. Ahí entra TypeScript, el sistema de alerta temprana de tu código.</p><br><br><p>TypeScript agrega tipado estático a JavaScript. Esto significa que defines la forma de tus datos, y TypeScript te avisa cuando algo no coincide.</p><br><br><strong><em>🛡️ Ejemplo Rápido</em></strong><pre><code class=\"language-js\">function greet(name: string) {\n  return `Hello, ${name.toUpperCase()}`;\n}\n\ngreet(42); // ❌ Error: El argumento de tipo 'number' no es asignable al parámetro de tipo 'string'</code></pre><br><br><p>Sin TypeScript, este error solo aparecería en tiempo de ejecución. Con él, lo detectas al instante — antes de abrir el navegador.</p><br><br><strong><em>🔍 Por qué Importa</em></strong><ul><li>Menos errores en tiempo de ejecución</li><li>Autocompletado más inteligente en tu editor</li><li>Refactorización más segura</li><li>Mejor colaboración en equipo</li></ul><br><br><p>No necesitas usar todas las funciones de TypeScript para beneficiarte. Solo tipar parámetros y retornos ya hace una gran diferencia.</p><br><br><p>Empieza poco a poco, y te preguntarás cómo programabas sin él.</p><br><br><p>💬 ¿Ya has usado TypeScript en tus proyectos? ¿Cuál fue el mayor error que evitaste gracias a él? ¡Cuéntanoslo!</p>",
     },
   },
-  'categories': ['685451e9cd43910d97372ea3'],
+  'categories': ['685451e9cd43910d97372ea5'],
   'tags': [
-    '685a68f667f294b10371dbef', // agile-projects
-    '685a691867f294b10371dbf3', // team-leadership
-    '685a694367f294b10371dbf7', // project-management
-    '685d788d1efb1a82984ecb3a', // scrum
-    '685a696c67f294b10371dbff', // tech-experiences
+    '685bcf4f354ad20a4f0642dc',
+    '685a68f667f294b10371dbef',
+    '685a694367f294b10371dbf7',
+    '685a696c67f294b10371dbff',
+    '685bcf97354ad20a4f0642e0',
   ],
   'author': '685a4f2b474c412402675f8a',
 };
