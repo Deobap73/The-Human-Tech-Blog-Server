@@ -1,0 +1,9 @@
+{
+  "services": {
+    "server": {
+      "dockerfilePath": "Dockerfile",
+      "context": ".",
+      "port": 5000
+    }
+  }
+}

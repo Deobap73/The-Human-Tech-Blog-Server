@@ -8,7 +8,7 @@
     "strict": true,
     "skipLibCheck": true,
     "outDir": "./dist",
-    "rootDir": "./src", // ✅ CORRIGIDO
+    "rootDir": "./src",
     "baseUrl": "./",
     "typeRoots": ["./node_modules/@types", "./src/types"],
     "sourceMap": false,
