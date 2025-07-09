@@ -1,0 +1,13 @@
+# Railway configuration for both server and client services
+[services]
+  [services.server]
+    # Path to the server Dockerfile
+    dockerfilePath = "The-Human-Tech-Blog-Server/Dockerfile"
+    # Port your Express app listens on
+    port = 5000
+
+  [services.client]
+    # Path to the React client Dockerfile
+    dockerfilePath = "The-Human-Tech-Blog-React/Dockerfile"
+    # Port for serving static assets (nginx default)
+    port = 80
