@@ -1,25 +1,33 @@
-# Ignore dependencies and logs
+# Node dependencies and logs
 node_modules
 npm-debug.log
 
-# Git and Docker
+# Git metadata
 .git
 .gitignore
+
+# Docker files
 Dockerfile
-
 docker-compose*
+railway.json
 
-# Documentation and local build artifacts
+# Documentation and markdown
 *.md
 
 # Build output
 dist/
 
-# Tests, coverage and temp files
+# Tests, coverage, and temp files
 tests/
 *.test.ts
 *.spec.ts
 coverage/
 
-# Local environment files managed by Railway
+# Local environment files (examples and actual)
 .env
+.env.local
+.env.*.local
+
+# IDE/editor settings
+.vscode/
+.idea/
