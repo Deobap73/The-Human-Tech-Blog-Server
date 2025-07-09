@@ -6,9 +6,6 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 
-# Copy environment example for later use
-COPY .env.example ./
-
 # Copy tsconfig and source
 COPY tsconfig.json ./tsconfig.json
 COPY src ./src
@@ -25,13 +22,8 @@ ENV NODE_ENV=production
 COPY package*.json ./
 RUN npm ci --omit=dev
 
-# Copy built artifacts
+# Copy built artifacts from the builder stage
 COPY --from=builder /app/dist ./dist
-
-# Copy environment example (for reference)
-# This will create a .env file in the runtime image, but em produção
-# Railway gerencia as variáveis diretamente no dashboard.
-COPY --from=builder /app/.env.example .env
 
 # Expose application port
 EXPOSE 5000
