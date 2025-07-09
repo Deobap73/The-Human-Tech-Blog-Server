@@ -2,19 +2,21 @@
  FROM node:20-alpine AS builder
  WORKDIR /app
 
-# Install build tools for native modules
-RUN apk add --no-cache python3 make g++
+ # Install build tools for native modules
+ RUN apk add --no-cache python3 make g++
 
- # Copy package definitions and install dependencies (including dev for build)
+ # Copy package definitions
  COPY package*.json ./
 
-RUN npm ci
+
+# Install dependencies and compile native modules, but skip lifecycle scripts (prepare/build)
+RUN npm ci --ignore-scripts
 
  # Copy tsconfig and source
  COPY tsconfig.json ./tsconfig.json
  COPY src ./src
 
- # Build the project into /app/dist
+ # Now run the build
  RUN npm run build
 
  # Stage 2: Runtime image
@@ -23,8 +25,10 @@ RUN npm ci
  ENV NODE_ENV=production
 
 
-# Copy package.json, built code, and prebuilt modules
+# Copy package.json
 COPY package*.json ./
+
+# Copy built code and prebuilt native modules
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 
