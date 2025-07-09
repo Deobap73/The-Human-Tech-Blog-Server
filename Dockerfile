@@ -2,7 +2,7 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-# Copy package definitions and install dependencies
+# Copy package definitions and install dependencies (including dev for build)
 COPY package*.json ./
 RUN npm ci
 
@@ -18,9 +18,10 @@ FROM node:20-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 
-# Copy only production dependencies
+# Copy package definitions
 COPY package*.json ./
-RUN npm ci --omit=dev
+# Install production dependencies and skip lifecycle scripts (prepare)
+RUN npm ci --omit=dev --ignore-scripts
 
 # Copy built artifacts from the builder stage
 COPY --from=builder /app/dist ./dist
