@@ -37,7 +37,7 @@ import analyticsRoutes from './routes/analyticsRoutes';
 import sponsorRoutes from './routes/sponsor.routes';
 
 const app = express();
-
+app.set('trust proxy', 1);
 // =========================
 // Security Middlewares
 // =========================
