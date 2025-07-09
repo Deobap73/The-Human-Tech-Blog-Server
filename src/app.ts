@@ -37,7 +37,10 @@ import analyticsRoutes from './routes/analyticsRoutes';
 import sponsorRoutes from './routes/sponsor.routes';
 
 const app = express();
-app.set('trust proxy', 1);
+
+// 🚀 TRUST PROXY
+app.set('trust proxy', 1); // Allow Express to trust X-Forwarded-For from Railway/Cloudflare proxies
+
 // =========================
 // Security Middlewares
 // =========================
@@ -63,7 +66,10 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: (origin, callback) => {
+      // Permite sempre requests sem origin (ex: health-checks, Postman, favicon)
       if (!origin) return callback(null, true);
+
+      // DEBUG: mostra no log qual origin está a ser testado
       if (!allowedOrigins.includes(origin)) {
         console.warn(`Blocked by CORS: ${origin}`);
         return callback(new Error('Not allowed by CORS'), false);
@@ -72,10 +78,7 @@ app.use(
     },
     credentials: true,
     allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token', 'XSRF-TOKEN'],
-    exposedHeaders: [
-      'Set-Cookie',
-      'XSRF-TOKEN', // <--- adiciona aqui
-    ],
+    exposedHeaders: ['Set-Cookie', 'XSRF-TOKEN'],
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     optionsSuccessStatus: 200,
   })
