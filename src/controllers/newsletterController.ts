@@ -5,7 +5,7 @@ import NewsletterSubscriber from '../models/NewsletterSubscriber';
 import { sendMail } from '../utils/sendMail';
 import crypto from 'crypto';
 
-const FRONTEND_URL = process.env.FRONTEND_URL || 'https://thehumantechblog.com'; // ajuste conforme necessário
+const FRONTEND_URL = process.env.FRONTEND_URL || 'https://thehumantechblog.com';
 
 // POST /api/newsletter/subscribe — Public subscribe endpoint
 export const subscribeNewsletter = async (req: Request, res: Response) => {
@@ -16,7 +16,7 @@ export const subscribeNewsletter = async (req: Request, res: Response) => {
     let subscriber = await NewsletterSubscriber.findOne({ email });
 
     if (subscriber && subscriber.unsubscribed) {
-      // Reativar subscrição (reset flags/tokens)
+      // Reactivate subscription
       subscriber.confirmed = false;
       subscriber.unsubscribed = false;
       subscriber.unsubscribedAt = null;
@@ -28,7 +28,7 @@ export const subscribeNewsletter = async (req: Request, res: Response) => {
     } else if (subscriber) {
       return res.status(400).json({ message: 'Email already subscribed' });
     } else {
-      // Novo subscritor
+      // New subscriber
       const confirmationToken = crypto.randomBytes(32).toString('hex');
       const unsubscribeToken = crypto.randomBytes(32).toString('hex');
       subscriber = await NewsletterSubscriber.create({
@@ -41,7 +41,7 @@ export const subscribeNewsletter = async (req: Request, res: Response) => {
       });
     }
 
-    // Enviar email de confirmação (double opt-in)
+    // Send confirmation email (double opt-in)
     const confirmLink = `${FRONTEND_URL}/newsletter/confirm/${subscriber.confirmationToken}`;
     await sendMail({
       to: subscriber.email,
@@ -52,7 +52,7 @@ export const subscribeNewsletter = async (req: Request, res: Response) => {
         <a href="${confirmLink}">${confirmLink}</a>
         <p>If you didn't request this, please ignore this email.</p>
       `,
-    });
+    } as any);
 
     return res.status(201).json({ message: 'Confirmation email sent. Please check your inbox.' });
   } catch (err) {
@@ -61,7 +61,7 @@ export const subscribeNewsletter = async (req: Request, res: Response) => {
   }
 };
 
-// GET /api/newsletter/confirm/:token — Confirm subscription (user clicks link)
+// GET /api/newsletter/confirm/:token — Confirm subscription
 export const confirmNewsletter = async (req: Request, res: Response) => {
   const { token } = req.params;
   if (!token) return res.status(400).json({ message: 'Token is required' });
@@ -77,14 +77,13 @@ export const confirmNewsletter = async (req: Request, res: Response) => {
     subscriber.confirmed = true;
     subscriber.confirmationToken = null;
     await subscriber.save();
-    // Pode redirecionar para página de sucesso no frontend, se desejar
     return res.status(200).json({ message: 'Subscription confirmed!' });
   } catch (err) {
     return res.status(500).json({ message: 'Confirmation failed' });
   }
 };
 
-// POST /api/newsletter/unsubscribe/:token — Unsubscribe (user clicks link)
+// POST /api/newsletter/unsubscribe/:token — Unsubscribe
 export const unsubscribeNewsletter = async (req: Request, res: Response) => {
   const { token } = req.params;
   if (!token) return res.status(400).json({ message: 'Token is required' });
@@ -100,7 +99,6 @@ export const unsubscribeNewsletter = async (req: Request, res: Response) => {
     subscriber.unsubscribed = true;
     subscriber.unsubscribedAt = new Date();
     await subscriber.save();
-    // Pode redirecionar para página de sucesso no frontend, se desejar
     return res.status(200).json({ message: 'Unsubscribed successfully.' });
   } catch (err) {
     return res.status(500).json({ message: 'Unsubscribe failed' });

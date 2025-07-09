@@ -6,7 +6,7 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
-    "build": "rimraf dist && tsc",
+    "build": "npx rimraf dist && tsc",
     "start": "node dist/server.js",
     "start:prod": "node dist/server.js",
     "deploy": "npm run build && railway up --detach",
@@ -72,7 +72,8 @@
     "speakeasy": "^2.0.0",
     "streamifier": "^0.1.1",
     "winston": "^3.11.0",
-    "zod": "^3.22.4"
+    "zod": "^3.22.4",
+    "rimraf": "^5.0.0"
   },
   "devDependencies": {
     "@types/axios": "^0.9.36",

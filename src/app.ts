@@ -6,9 +6,8 @@ import cors from 'cors';
 import passport from 'passport';
 import './config/passport';
 import { env } from './config/env';
-import i18next from 'i18next';
+import i18next from './i18n';
 import i18nextMiddleware from 'i18next-http-middleware';
-import i18nextConfig from './i18n';
 
 import { setupSecurityMiddleware } from './middleware/securityMiddleware';
 import { csrfWithLogging } from './middleware/csrfMiddleware';
@@ -49,8 +48,7 @@ setupSecurityMiddleware(app);
 // =========================
 app.use(cookieParser());
 
-// Initialize i18n
-i18next.use(i18nextMiddleware.LanguageDetector).init(i18nextConfig);
+// Initialize i18n (configured in src/i18n.ts)
 app.use(i18nextMiddleware.handle(i18next));
 
 // CORS Configuration
