@@ -1,14 +1,25 @@
-#The-Human-Tech-Blog-Server\.dockerignore
+# Ignore dependencies and logs
 node_modules
 npm-debug.log
+
+# Git and Docker
 .git
 .gitignore
 Dockerfile
+
 docker-compose*
+
+# Documentation and local build artifacts
 *.md
+
+# Build output
 dist/
+
+# Tests, coverage and temp files
 tests/
 *.test.ts
 *.spec.ts
 coverage/
+
+# Local environment files managed by Railway
 .env
