@@ -63,10 +63,7 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Permite sempre requests sem origin (ex: health-checks, Postman, favicon)
       if (!origin) return callback(null, true);
-
-      // DEBUG: mostra no log qual origin está a ser testado
       if (!allowedOrigins.includes(origin)) {
         console.warn(`Blocked by CORS: ${origin}`);
         return callback(new Error('Not allowed by CORS'), false);
@@ -75,7 +72,10 @@ app.use(
     },
     credentials: true,
     allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token', 'XSRF-TOKEN'],
-    exposedHeaders: ['Set-Cookie'],
+    exposedHeaders: [
+      'Set-Cookie',
+      'XSRF-TOKEN', // <--- adiciona aqui
+    ],
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     optionsSuccessStatus: 200,
   })
