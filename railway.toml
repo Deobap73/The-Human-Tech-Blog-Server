@@ -1,7 +1,6 @@
 # Railway configuration for the server service only
 [services]
   [services.server]
-    # Path to the server Dockerfile
     dockerfilePath = "The-Human-Tech-Blog-Server/Dockerfile"
-    # Port your Express app listens on
-    port = 5000
+    context        = "The-Human-Tech-Blog-Server"
+    port           = 5000
