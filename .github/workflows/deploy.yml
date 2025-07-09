@@ -1,0 +1,29 @@
+# GitHub Actions workflow to deploy the server to Railway on push to main
+name: Deploy Server to Railway
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy-server:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      - name: Build and deploy server
+        working-directory: The-Human-Tech-Blog-Server
+        run: |
+          npm ci
+          npm run build
+
+      - name: Deploy to Railway
+        uses: railwayapp/railway-action@v1
+        with:
+          railwayToken: ${{ secrets.RAILWAY_TOKEN }}

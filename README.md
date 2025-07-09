@@ -219,13 +219,28 @@ open coverage/lcov-report/index.html
 
 ---
 
-## 🚀 Deployment (Railway or Render)
+## 🚀 Deployment to Railway
 
-1. Push to GitHub
-2. Connect repo to [Railway](https://railway.app) or [Render](https://render.com)
-3. Add Redis plugin
-4. Set environment variables via platform
-5. Done 🎉
+1. Ensure you have the Railway CLI installed:
+
+   ```bash
+   npm install -g railway
+
+   ```
+
+2. Login and link project:
+
+railway login
+railway link
+
+3. Deploy with:
+
+npm run deploy
+
+4. Set environment variables in Railway dashboard under Settings > Variables.
+
+5. Monitor logs:
+   railway logs
 
 ---
 

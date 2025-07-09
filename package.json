@@ -5,10 +5,11 @@
   "main": "dist/server.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "build": "rimraf dist && tsc",
     "start": "node dist/server.js",
     "start:prod": "node dist/server.js",
+    "deploy": "npm run build && railway up --detach",
     "lint": "eslint . --ext .ts",
     "test": "jest",
     "test:watch": "jest --watchAll",

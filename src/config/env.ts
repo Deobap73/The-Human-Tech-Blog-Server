@@ -1,71 +1,60 @@
-// /src/config/env.ts
-
 import path from 'path';
 import dotenv from 'dotenv';
 import { cleanEnv, str, num, url, bool } from 'envalid';
 
-// 1. Resolve .env path para 1 nível acima de /src
-const envPath = path.resolve(__dirname, '../../.env');
+// Load .env file only in non-production environments
+if (process.env.NODE_ENV !== 'production') {
+  const envPath = path.resolve(__dirname, '../../.env');
+  dotenv.config({ path: envPath });
+}
 
-// 2. Carrega variáveis do .env file (apenas local/dev)
-dotenv.config({ path: envPath });
-
-// 3. Valida e limpa variáveis de ambiente
+// Validate environment variables
 export const env = cleanEnv(process.env, {
-  // Ambiente
-  isProduction: bool({ default: process.env.NODE_ENV === 'production' }),
   NODE_ENV: str({ choices: ['development', 'production', 'test'], default: 'development' }),
+  isProduction: bool({ default: process.env.NODE_ENV === 'production' }),
 
-  // Básico
   PORT: num({ default: 5000 }),
-  MONGO_URI: str({ default: 'mongodb://localhost:27017/thehumantechblog' }),
+  MONGO_URI: str(),
   SETUP_KEY: str(),
 
-  // JWT e Autenticação
   JWT_SECRET: str(),
-  JWT_EXPIRATION: str({ default: '1h' }),
+  JWT_EXPIRATION: str({ default: '2h' }),
   REFRESH_TOKEN_SECRET: str(),
   REFRESH_TOKEN_EXPIRATION: str({ default: '7d' }),
-  REFRESH_TOKEN_EXPIRATION_MS: num({ default: 604800000 }), // 7 days in ms
+  REFRESH_TOKEN_EXPIRATION_MS: num({ default: 604800000 }),
 
-  // Cloudinary
-  CLOUDINARY_CLOUD_NAME: str({ default: '' }),
-  CLOUDINARY_API_KEY: str({ default: '' }),
-  CLOUDINARY_API_SECRET: str({ default: '' }),
+  CLOUDINARY_CLOUD_NAME: str(),
+  CLOUDINARY_API_KEY: str(),
+  CLOUDINARY_API_SECRET: str(),
 
-  // OAuth - Google
-  GOOGLE_CLIENT_ID: str({ default: '' }),
-  GOOGLE_CLIENT_SECRET: str({ default: '' }),
-  GOOGLE_CALLBACK_URL: url({ default: 'http://localhost:5000/api/auth/google/callback' }),
+  GOOGLE_CLIENT_ID: str(),
+  GOOGLE_CLIENT_SECRET: str(),
+  GOOGLE_CALLBACK_URL: url(),
 
-  // OAuth - GitHub
-  GITHUB_CLIENT_ID: str({ default: '' }),
-  GITHUB_CLIENT_SECRET: str({ default: '' }),
-  GITHUB_CALLBACK_URL: url({ default: 'http://localhost:5000/api/auth/github/callback' }),
+  GITHUB_CLIENT_ID: str(),
+  GITHUB_CLIENT_SECRET: str(),
+  GITHUB_CALLBACK_URL: url(),
 
-  // Google reCAPTCHA
   RECAPTCHA_SECRET: str(),
 
-  // Frontend
-  CLIENT_URL: url({ default: 'http://localhost:5173' }),
+  CLIENT_URL: url(),
 
-  // SMTP Email
-  SMTP_HOST: str({ default: '' }),
-  SMTP_PORT: num({ default: 465 }),
-  SMTP_SECURE: bool({ default: true }),
-  SMTP_USER: str({ default: '' }),
-  SMTP_PASS: str({ default: '' }),
-  SMTP_TO: str({ default: '' }),
+  SMTP_HOST: str(),
+  SMTP_PORT: num(),
+  SMTP_SECURE: bool(),
+  SMTP_USER: str(),
+  SMTP_PASS: str(),
+  SMTP_TO: str(),
 });
 
-// 4. Bloqueio de produção com URLs localhost em OAuth/callbacks!
-if (env.NODE_ENV === 'production') {
-  const localhostUrls = [env.CLIENT_URL, env.GOOGLE_CALLBACK_URL, env.GITHUB_CALLBACK_URL].filter(
-    (urlVal) => urlVal.includes('localhost')
+// Prevent localhost URLs in production
+if (env.isProduction) {
+  const invalidUrls = [env.CLIENT_URL, env.GOOGLE_CALLBACK_URL, env.GITHUB_CALLBACK_URL].filter(
+    (u) => u.includes('localhost')
   );
-  if (localhostUrls.length > 0) {
+  if (invalidUrls.length) {
     throw new Error(
-      `❌ ERROR: OAUTH/CLIENT_URL points to localhost in production!\nCorrija em Render/Railway:\n${localhostUrls.join(
+      `❌ ERROR: The following URLs must not point to localhost in production:\n${invalidUrls.join(
         '\n'
       )}`
     );
