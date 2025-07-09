@@ -1,4 +1,4 @@
- # Stage 1: Build the TypeScript server
+# Stage 1: Build the TypeScript server
  FROM node:20-alpine AS builder
  WORKDIR /app
 
@@ -9,8 +9,10 @@
  COPY package*.json ./
 
 
-# Install dependencies and compile native modules, but skip lifecycle scripts (prepare/build)
+# Install dependencies without running prepare/build
 RUN npm ci --ignore-scripts
+# Rebuild bcrypt (and any other native addons) from source
+RUN npm rebuild bcrypt --build-from-source
 
  # Copy tsconfig and source
  COPY tsconfig.json ./tsconfig.json
@@ -24,13 +26,12 @@ RUN npm ci --ignore-scripts
  WORKDIR /app
  ENV NODE_ENV=production
 
+ # Copy package.json
+ COPY package*.json ./
 
-# Copy package.json
-COPY package*.json ./
-
-# Copy built code and prebuilt native modules
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/dist ./dist
+ # Copy built code and prebuilt native modules
+ COPY --from=builder /app/node_modules ./node_modules
+ COPY --from=builder /app/dist ./dist
 
  # Expose application port
  EXPOSE 5000
