@@ -52,16 +52,26 @@ app.use(cookieParser());
 app.use(i18nextMiddleware.handle(i18next));
 
 // CORS Configuration
-const allowedOrigins = [env.CLIENT_URL];
-if (!env.isProduction) {
-  allowedOrigins.push('http://localhost:5173', 'http://127.0.0.1:5173');
-}
+const allowedOrigins = [
+  env.CLIENT_URL, // Frontend principal (ex: https://thehumantechblog.com)
+  process.env.RAILWAY_FRONTEND_URL, // (Opcional: staging ou preview)
+  process.env.RAILWAY_BACKEND_URL, // (Opcional: backend domain, para debug/testes)
+  'http://localhost:5173', // Dev local Vite
+  'http://127.0.0.1:5173',
+].filter(Boolean); // Remove undefined/null
+
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin && !env.isProduction) return callback(null, true);
-      if (origin && allowedOrigins.includes(origin)) return callback(null, true);
-      return callback(new Error('Not allowed by CORS'), false);
+      // Permite sempre requests sem origin (ex: health-checks, Postman, favicon)
+      if (!origin) return callback(null, true);
+
+      // DEBUG: mostra no log qual origin está a ser testado
+      if (!allowedOrigins.includes(origin)) {
+        console.warn(`Blocked by CORS: ${origin}`);
+        return callback(new Error('Not allowed by CORS'), false);
+      }
+      return callback(null, true);
     },
     credentials: true,
     allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token', 'XSRF-TOKEN'],
