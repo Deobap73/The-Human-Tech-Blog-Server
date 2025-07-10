@@ -158,7 +158,6 @@ app.get('/', (_, res) => {
 interface HttpError extends Error {
   status?: number;
   stack?: string;
-  name?: string;
 }
 
 app.use(
