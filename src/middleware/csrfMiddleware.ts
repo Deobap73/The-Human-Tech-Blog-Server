@@ -1,32 +1,30 @@
-// src/middleware/csrfMiddleware.ts
+// /src/middleware/csrfMiddleware.ts
 
 import csrf from 'csurf';
 import { Request, Response, NextFunction } from 'express';
 
-const isProd = process.env.NODE_ENV === 'production';
+const isProduction = process.env.NODE_ENV === 'production';
 
 export const csrfProtection = csrf({
   cookie: {
     key: 'XSRF-TOKEN',
     httpOnly: false,
-    secure: isProd,
-    sameSite: isProd ? 'none' : 'lax',
+    secure: isProduction, // TRUE só em produção
+    sameSite: isProduction ? 'none' : false,
     path: '/',
-    domain: isProd ? '.thehumantechblog.com' : undefined,
+    domain: isProduction ? '.thehumantechblog.com' : undefined, // undefined local!
   },
   value: (req) =>
     req.headers['x-csrf-token']?.toString() ||
+    req.headers['X-CSRF-Token']?.toString() ||
     req.body?._csrf ||
     req.query?._csrf ||
     req.cookies['XSRF-TOKEN'] ||
     '',
 });
 
-/**
- * Debug CSRF middleware with detailed logging.
- */
 export const csrfWithLogging = (req: Request, res: Response, next: NextFunction) => {
-  console.log('[csrfWithLogging] CSRF protection middleware triggered', {
+  console.log('[csrfWithLogging] CSRF middleware triggered', {
     method: req.method,
     path: req.path,
     origin: req.headers.origin,
