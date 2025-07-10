@@ -157,20 +157,30 @@ app.get('/', (_, res) => {
 // =========================
 interface HttpError extends Error {
   status?: number;
+  stack?: string;
+  name?: string;
 }
+
 app.use(
   (err: HttpError, req: express.Request, res: express.Response, _next: express.NextFunction) => {
+    // Always log the error details in the console
     console.error('🚨 Global Error Handler:', {
       path: req.path,
       method: req.method,
       body: req.body,
       error: err.stack || err.message,
+      name: err.name,
+      full: err,
     });
     const status = err.status || 500;
-    const message = env.isProduction && status === 500 ? 'Something went wrong' : err.message;
-    return res
-      .status(status)
-      .json({ success: false, message, ...(!env.isProduction && { stack: err.stack }) });
+    // Always return full error details in response for debug
+    return res.status(status).json({
+      success: false,
+      message: err.message,
+      stack: err.stack,
+      name: err.name,
+      error: err, // full error object (may be useful)
+    });
   }
 );
 
