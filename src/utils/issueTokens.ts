@@ -1,4 +1,5 @@
 // src/utils/issueTokens.ts
+
 import jwt from 'jsonwebtoken';
 import { env } from '../config/env';
 import { Response } from 'express';
@@ -27,9 +28,10 @@ export const issueTokens = async (userId: string, res: Response): Promise<Tokens
   res.cookie('refreshToken', refreshToken, {
     httpOnly: true,
     secure: env.isProduction,
-    sameSite: 'lax',
+    sameSite: env.isProduction ? 'none' : 'lax',
     maxAge: env.REFRESH_TOKEN_EXPIRATION_MS,
     path: '/',
+    domain: env.isProduction ? '.thehumantechblog.com' : undefined,
   });
 
   return { accessToken, refreshToken };

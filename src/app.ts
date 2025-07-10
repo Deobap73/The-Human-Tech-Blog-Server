@@ -94,19 +94,9 @@ app.get('/api/auth/csrf', csrfWithLogging, (req, res) => {
   res.status(200).json({ csrfToken: req.csrfToken() });
 });
 app.use((req, res, next) => {
-  const openPaths = [
-    '/auth/refresh',
-    '/auth/login',
-    '/auth/register',
-    '/posts/upload',
-    '/auth/csrf',
-    '/health',
-  ];
   if (req.method === 'GET' && req.path === '/health') return next();
-  if (req.method === 'POST' && openPaths.includes(req.path)) return next();
   return csrfWithLogging(req, res, next);
 });
-
 // =========================
 // Passport Initialization
 // =========================
