@@ -1,4 +1,4 @@
-// The-Human-Tech-Blog-Server/src/controllers/authController.ts
+// /src/controllers/authController.ts
 
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
@@ -14,7 +14,7 @@ import type { CookieOptions } from 'express';
  */
 const getCookieOptions = (isClear = false): CookieOptions => ({
   httpOnly: true,
-  sameSite: env.isProduction ? 'none' : 'lax', // must be typed as literal, not string
+  sameSite: env.isProduction ? 'none' : 'lax',
   secure: env.isProduction,
   domain: env.isProduction ? '.thehumantechblog.com' : undefined,
   path: '/',
@@ -109,7 +109,10 @@ export const logout = async (req: Request, res: Response) => {
       cookies: req.cookies,
       headers: req.headers,
     });
+
+    // Clear main session refreshToken (HTTPOnly, cross-domain)
     res.clearCookie('refreshToken', getCookieOptions(true));
+    // Clear XSRF-TOKEN (frontend, not HTTPOnly)
     res.clearCookie('XSRF-TOKEN', {
       httpOnly: false,
       sameSite: env.isProduction ? 'none' : 'lax',
@@ -117,6 +120,10 @@ export const logout = async (req: Request, res: Response) => {
       domain: env.isProduction ? '.thehumantechblog.com' : undefined,
       path: '/',
     });
+
+    // Optionally, you may handle Google/GitHub social logout here if needed
+    // (e.g., invalidate session at provider)
+
     return res.status(200).json({ message: 'Logged out successfully' });
   } catch (err) {
     console.error('[authController:logout] Error:', err);
