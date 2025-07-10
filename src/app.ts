@@ -96,6 +96,7 @@ app.get('/api/auth/csrf', csrfWithLogging, (req, res) => {
 app.use((req, res, next) => {
   if (req.method === 'GET' && req.path === '/health') return next();
   if (req.method === 'POST' && req.path === '/api/auth/refresh') return next();
+  if (req.method === 'OPTIONS') return next();
   return csrfWithLogging(req, res, next);
 });
 
