@@ -2,6 +2,7 @@
 
 import axios from 'axios';
 import { Request, Response, NextFunction } from 'express';
+
 import { env } from '../config/env';
 
 export const verifyCaptcha = async (req: Request, res: Response, next: NextFunction) => {
