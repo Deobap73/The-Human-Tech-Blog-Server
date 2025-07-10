@@ -11,10 +11,10 @@ export const csrfProtection = csrf({
   cookie: {
     key: 'XSRF-TOKEN',
     httpOnly: false, // So browser JS can read it for sending in header
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    secure: true,
+    sameSite: 'none',
     path: '/',
-    domain: process.env.NODE_ENV === 'production' ? '.thehumantechblog.com' : undefined,
+    domain: '.thehumantechblog.com',
   },
   value: (req) =>
     req.headers['x-csrf-token']?.toString() ||
