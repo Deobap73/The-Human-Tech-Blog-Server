@@ -90,13 +90,19 @@ app.use(express.urlencoded({ extended: true }));
 // =========================
 // CSRF Protection
 // =========================
+
+// Rota de CSRF token está protegida normalmente
 app.get('/api/auth/csrf', csrfWithLogging, (req, res) => {
   res.status(200).json({ csrfToken: req.csrfToken() });
 });
+
+// PULAR CSRF SÓ para refresh!
 app.use((req, res, next) => {
   if (req.method === 'GET' && req.path === '/health') return next();
+  if (req.method === 'POST' && req.path === '/api/auth/refresh') return next();
   return csrfWithLogging(req, res, next);
 });
+
 // =========================
 // Passport Initialization
 // =========================
