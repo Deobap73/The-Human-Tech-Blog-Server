@@ -1,31 +1,26 @@
+// The-Human-Tech-Blog-Server\src\middleware\csrfMiddleware.ts
+
 import csrf from 'csurf';
 import { Request, Response, NextFunction } from 'express';
 
-/**
- * Custom CSRF middleware supporting token via header (X-CSRF-Token) or cookie.
- * Ready for cross-origin (CORS) with SameSite=None for production.
- */
 export const csrfProtection = csrf({
   cookie: {
     key: 'XSRF-TOKEN',
-    httpOnly: false, // Must be readable by browser JavaScript for XHR headers
+    httpOnly: false, // Browser JS needs access for XHR header
     secure: true,
     sameSite: 'none',
     path: '/',
-    domain: 'thehumantechblog.com', // Correct: no leading dot!
+    domain: '.thehumantechblog.com', // PONTO para subdomínios
   },
   value: (req) =>
     req.headers['x-csrf-token']?.toString() ||
-    req.headers['X-CSRF-Token']?.toString() || // Case-insensitive
+    req.headers['X-CSRF-Token']?.toString() ||
     req.body?._csrf ||
     req.query?._csrf ||
     req.cookies['XSRF-TOKEN'] ||
     '',
 });
 
-/**
- * Debug CSRF middleware with detailed logging.
- */
 export const csrfWithLogging = (req: Request, res: Response, next: NextFunction) => {
   console.log('[csrfWithLogging] CSRF middleware triggered', {
     method: req.method,
