@@ -38,8 +38,7 @@ import sponsorRoutes from './routes/sponsor.routes';
 
 const app = express();
 
-// 🚀 TRUST PROXY
-app.set('trust proxy', 1); // Allow Express to trust X-Forwarded-For from Railway/Cloudflare proxies
+app.set('trust proxy', 1); // Para Railway/Cloudflare
 
 // =========================
 // Security Middlewares
@@ -51,25 +50,19 @@ setupSecurityMiddleware(app);
 // =========================
 app.use(cookieParser());
 
-// Initialize i18n (configured in src/i18n.ts)
-app.use(i18nextMiddleware.handle(i18next));
-
-// CORS Configuration
+// CORS deve vir ANTES do body parser
 const allowedOrigins = [
-  env.CLIENT_URL, // Frontend principal (ex: https://thehumantechblog.com)
-  process.env.RAILWAY_FRONTEND_URL, // (Opcional: staging ou preview)
-  process.env.RAILWAY_BACKEND_URL, // (Opcional: backend domain, para debug/testes)
-  'http://localhost:5173', // Dev local Vite
+  env.CLIENT_URL, // Ex: https://thehumantechblog.com
+  process.env.RAILWAY_FRONTEND_URL,
+  process.env.RAILWAY_BACKEND_URL,
+  'http://localhost:5173',
   'http://127.0.0.1:5173',
-].filter(Boolean); // Remove undefined/null
+].filter(Boolean);
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Permite sempre requests sem origin (ex: health-checks, Postman, favicon)
       if (!origin) return callback(null, true);
-
-      // DEBUG: mostra no log qual origin está a ser testado
       if (!allowedOrigins.includes(origin)) {
         console.warn(`Blocked by CORS: ${origin}`);
         return callback(new Error('Not allowed by CORS'), false);
@@ -87,16 +80,19 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Inicializa i18n depois do body parser!
+app.use(i18nextMiddleware.handle(i18next));
+
 // =========================
 // CSRF Protection
 // =========================
 
-// Rota de CSRF token está protegida normalmente
+// 1. Endpoint para obter o CSRF token (gera e envia cookie)
 app.get('/api/auth/csrf', csrfWithLogging, (req, res) => {
   res.status(200).json({ csrfToken: req.csrfToken() });
 });
 
-// PULAR CSRF SÓ para refresh!
+// 2. Aplica CSRF a todas as rotas POST/PUT/DELETE, EXCETO /health e /api/auth/refresh
 app.use((req, res, next) => {
   if (req.method === 'GET' && req.path === '/health') return next();
   if (req.method === 'POST' && req.path === '/api/auth/refresh') return next();
@@ -158,7 +154,6 @@ interface HttpError extends Error {
 
 app.use(
   (err: HttpError, req: express.Request, res: express.Response, _next: express.NextFunction) => {
-    // Always log the error details in the console
     console.error('🚨 Global Error Handler:', {
       path: req.path,
       method: req.method,
@@ -168,13 +163,12 @@ app.use(
       full: err,
     });
     const status = err.status || 500;
-    // Always return full error details in response for debug
     return res.status(status).json({
       success: false,
       message: err.message,
       stack: err.stack,
       name: err.name,
-      error: err, // full error object (may be useful)
+      error: err,
     });
   }
 );
