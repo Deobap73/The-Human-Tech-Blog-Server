@@ -65,6 +65,7 @@ export const login = async (req: Request, res: Response) => {
       message: 'Login successful',
     });
   } catch (err) {
+    console.error('[authController:login] Error:', err);
     return res.status(500).json({
       message: 'Login failed',
       error: (err as Error).message,
@@ -118,6 +119,7 @@ export const logout = async (req: Request, res: Response) => {
     });
     return res.status(200).json({ message: 'Logged out successfully' });
   } catch (err) {
+    console.error('[authController:logout] Error:', err);
     return res.status(500).json({
       message: 'Logout failed',
       error: (err as Error).message,
