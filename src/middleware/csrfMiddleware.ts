@@ -1,33 +1,38 @@
-// The-Human-Tech-Blog-Server\src\middleware\csrfMiddleware.ts
+// src/middleware/csrfMiddleware.ts
 
 import csrf from 'csurf';
 import { Request, Response, NextFunction } from 'express';
 
+const isProd = process.env.NODE_ENV === 'production';
+
 export const csrfProtection = csrf({
   cookie: {
     key: 'XSRF-TOKEN',
-    httpOnly: false, // Browser JS needs access for XHR header
-    secure: true,
-    sameSite: 'none',
+    httpOnly: false,
+    secure: isProd,
+    sameSite: isProd ? 'none' : 'lax',
     path: '/',
-    domain: '.thehumantechblog.com', // PONTO para subdomínios
+    domain: isProd ? '.thehumantechblog.com' : undefined,
   },
   value: (req) =>
     req.headers['x-csrf-token']?.toString() ||
-    req.headers['X-CSRF-Token']?.toString() ||
     req.body?._csrf ||
     req.query?._csrf ||
     req.cookies['XSRF-TOKEN'] ||
     '',
 });
 
+/**
+ * Debug CSRF middleware with detailed logging.
+ */
 export const csrfWithLogging = (req: Request, res: Response, next: NextFunction) => {
-  console.log('[csrfWithLogging] CSRF middleware triggered', {
+  console.log('[csrfWithLogging] CSRF protection middleware triggered', {
     method: req.method,
     path: req.path,
     origin: req.headers.origin,
     'x-csrf-token': req.headers['x-csrf-token'],
     cookies: req.cookies,
+    allHeaders: req.headers,
   });
 
   return csrfProtection(req, res, (err) => {
@@ -48,6 +53,7 @@ export const csrfWithLogging = (req: Request, res: Response, next: NextFunction)
       method: req.method,
       path: req.path,
       cookies: req.cookies,
+      allHeaders: req.headers,
     });
     return next();
   });
