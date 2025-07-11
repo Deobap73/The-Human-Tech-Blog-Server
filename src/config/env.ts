@@ -39,7 +39,7 @@ export const env = cleanEnv(process.env, {
 
   RECAPTCHA_SECRET: str(),
   RECAPTCHA_SITE_KEY: str({ default: '' }),
-  RECAPTCHA_MIN_SCORE: num({ default: 0.5 }),
+  RECAPTCHA_MIN_SCORE: num({ default: 0.1 }),
 
   CLIENT_URL: url(),
 
