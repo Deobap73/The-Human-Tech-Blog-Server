@@ -1,6 +1,10 @@
-# <h1 align="center">The Human Tech Blog — Backend (blog-server) — by Deolindo Baptista</h1>
+# <h1 align="center">[_The Human Tech Blog_](https://thehumantechblog.com) — Backend (blog-server) — by Deolindo Baptista</h1>
 
 A robust, secure, and scalable backend built with Node.js, Express, and TypeScript to power the **The Human Tech Blog**. Handles post creation, authentication (JWT & OAuth), comment management, category tags, token lifecycle with Redis, and now includes **Two-Factor Authentication (2FA)** for admins.
+
+<br> <br>
+<img src="https://github.com/Deobap73/The-Human-Tech-Blog-React/blob/main/public/images/HomePage.webp">
+<br> <br>
 
 **NEW:**
 
@@ -54,6 +58,7 @@ blog-server/
 
 ---
 
+
 ## 🚀 Features
 
 ### ✅ Authentication (Advanced)
@@ -75,6 +80,12 @@ blog-server/
 
 - Category CRUD (admin only)
 - Auto-association with posts
+
+
+<br> <br>
+<img src="https://github.com/Deobap73/The-Human-Tech-Blog-React/blob/main/public/images/CategoriesPage.webp">
+<br> <br>
+
 
 ### ✅ Security Layers
 
@@ -138,6 +149,12 @@ You will be prompted to enter the admin's name, email, and password (input is ma
 - No sensitive data is stored in the code.
 
 Repeat to add more admins if needed.
+
+---
+<br> <br>
+<img src="https://github.com/Deobap73/The-Human-Tech-Blog-React/blob/main/public/images/AdminPage.webp">
+<br> <br>
+
 
 ---
 
@@ -303,3 +320,11 @@ Licensed under MIT. Use freely for educational or personal projects.
 3. Submit PR with details
 
 Happy coding! ✨
+
+  <br> <br>
+
+[![Top Langs](https://github-readme-stats.vercel.app/api/top-langs/?username=Deobap73)](https://github.com/anuraghazra/github-readme-stats)
+
+![GitHub streak stats](https://streak-stats.demolab.com/?user=Deobap73) &nbsp;&nbsp;&nbsp;&nbsp; ![GitHub stats](https://github-readme-stats.vercel.app/api?username=Deobap73&show_icons=true&count_private=true)
+
+[![trophy](https://github-profile-trophy.vercel.app/?username=Deobap73)](https://github.com/ryo-ma/github-profile-trophy)
