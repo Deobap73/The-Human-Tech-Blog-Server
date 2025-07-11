@@ -1,8 +1,7 @@
-// src/middleware/verifyCaptcha.ts
+// File: src/middleware/verifyCaptcha.ts
 
 import axios from 'axios';
 import { Request, Response, NextFunction } from 'express';
-import { env } from '../config/env';
 
 /**
  * Middleware to verify Google reCAPTCHA v3 token from frontend.
@@ -27,12 +26,12 @@ export const verifyCaptcha = async (req: Request, res: Response, next: NextFunct
 
   try {
     // 3) Call Google API
-    const verifyUrl = `https://www.google.com/recaptcha/api/siteverify?secret=${env.RECAPTCHA_SECRET}&response=${captcha}`;
+    const verifyUrl = `https://www.google.com/recaptcha/api/siteverify?secret=${process.env.RECAPTCHA_SECRET}&response=${captcha}`;
     const { data } = await axios.post(verifyUrl);
     console.log('[verifyCaptcha] Google reCAPTCHA response:', data);
 
-    // 4) Check success & score
-    const minScore = Number(env.RECAPTCHA_MIN_SCORE) || 0.5;
+    // 4) Check success & score (hard-coded threshold)
+    const minScore = 0.5;
     if (!data.success || (data.score ?? 0) < minScore) {
       console.warn('[verifyCaptcha] Captcha verification failed:', {
         success: data.success,
@@ -42,7 +41,7 @@ export const verifyCaptcha = async (req: Request, res: Response, next: NextFunct
       return res.status(403).json({ message: 'Captcha verification failed', details: data });
     }
 
-    // 5) Tudo ok
+    // 5) All good
     return next();
   } catch (err) {
     console.error('[verifyCaptcha] Error during captcha verification:', err);
