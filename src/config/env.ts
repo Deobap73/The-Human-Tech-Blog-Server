@@ -1,3 +1,5 @@
+// src/config/env.ts
+
 import path from 'path';
 import dotenv from 'dotenv';
 import { cleanEnv, str, num, url, bool } from 'envalid';
@@ -36,6 +38,8 @@ export const env = cleanEnv(process.env, {
   GITHUB_CALLBACK_URL: url(),
 
   RECAPTCHA_SECRET: str(),
+  RECAPTCHA_SITE_KEY: str({ default: '' }),
+  RECAPTCHA_MIN_SCORE: num({ default: 0.5 }),
 
   CLIENT_URL: url(),
 
