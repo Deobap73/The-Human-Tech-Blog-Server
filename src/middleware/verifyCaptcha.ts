@@ -6,24 +6,46 @@ import { env } from '../config/env';
 
 /**
  * Middleware to verify Google reCAPTCHA v3 token from frontend.
- * Checks token with Google API and requires a minimum score.
+ * • Logs token and API response for debugging.
+ * • Skips verification when NODE_ENV !== 'production'.
  */
 export const verifyCaptcha = async (req: Request, res: Response, next: NextFunction) => {
-  if (process.env.NODE_ENV === 'test') return next();
+  // 1) Skip in non-production
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('[verifyCaptcha] Skipping captcha verification in non-production');
+    return next();
+  }
 
+  // 2) Extract token
   const { captcha } = req.body;
-  if (!captcha) return res.status(400).json({ message: 'Captcha token missing' });
+  console.log('[verifyCaptcha] Received captcha token:', captcha);
+
+  if (!captcha) {
+    console.warn('[verifyCaptcha] Missing captcha token');
+    return res.status(400).json({ message: 'Captcha token missing' });
+  }
 
   try {
-    const { data } = await axios.post(
-      `https://www.google.com/recaptcha/api/siteverify?secret=${env.RECAPTCHA_SECRET}&response=${captcha}`
-    );
+    // 3) Call Google API
+    const verifyUrl = `https://www.google.com/recaptcha/api/siteverify?secret=${env.RECAPTCHA_SECRET}&response=${captcha}`;
+    const { data } = await axios.post(verifyUrl);
+    console.log('[verifyCaptcha] Google reCAPTCHA response:', data);
 
-    if (!data.success || data.score < 0.5) {
+    // 4) Check success & score
+    const minScore = Number(env.RECAPTCHA_MIN_SCORE) || 0.5;
+    if (!data.success || (data.score ?? 0) < minScore) {
+      console.warn('[verifyCaptcha] Captcha verification failed:', {
+        success: data.success,
+        score: data.score,
+        'error-codes': data['error-codes'],
+      });
       return res.status(403).json({ message: 'Captcha verification failed', details: data });
     }
+
+    // 5) Tudo ok
     return next();
-  } catch (error) {
+  } catch (err) {
+    console.error('[verifyCaptcha] Error during captcha verification:', err);
     return res.status(500).json({ message: 'Captcha verification error' });
   }
 };
