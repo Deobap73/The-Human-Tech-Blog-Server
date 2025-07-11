@@ -1,4 +1,4 @@
-// /src/app.ts
+// File: src/app.ts
 
 import express from 'express';
 import cookieParser from 'cookie-parser';
@@ -38,7 +38,7 @@ import sponsorRoutes from './routes/sponsor.routes';
 
 const app = express();
 
-app.set('trust proxy', 1); // Para Railway/Cloudflare
+app.set('trust proxy', 1); // Trust first proxy for correct client IP
 
 // =========================
 // Security Middlewares
@@ -50,9 +50,9 @@ setupSecurityMiddleware(app);
 // =========================
 app.use(cookieParser());
 
-// CORS deve vir ANTES do body parser
+// CORS must come before body parsers
 const allowedOrigins = [
-  env.CLIENT_URL, // Ex: https://thehumantechblog.com
+  env.CLIENT_URL, // e.g. https://thehumantechblog.com
   process.env.RAILWAY_FRONTEND_URL,
   process.env.RAILWAY_BACKEND_URL,
   'http://localhost:5173',
@@ -80,19 +80,29 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Inicializa i18n depois do body parser!
+// Initialize i18n after body parsing
 app.use(i18nextMiddleware.handle(i18next));
 
 // =========================
 // CSRF Protection
 // =========================
 
-// 1. Endpoint para obter o CSRF token (gera e envia cookie)
+// 1. Endpoint to generate CSRF token and set cookies:
+//    - HTTP-only "_csrfSecret" cookie (handled by csrf middleware)
+//    - Non-HTTP-only "XSRF-TOKEN" cookie for double-submit
 app.get('/api/auth/csrf', csrfWithLogging, (req, res) => {
-  res.status(200).json({ csrfToken: req.csrfToken() });
+  const token = req.csrfToken();
+  res.cookie('XSRF-TOKEN', token, {
+    httpOnly: false,
+    secure: env.NODE_ENV === 'production',
+    sameSite: env.NODE_ENV === 'production' ? 'none' : 'lax',
+    domain: env.NODE_ENV === 'production' ? '.thehumantechblog.com' : undefined,
+    path: '/',
+  });
+  res.status(200).json({ csrfToken: token });
 });
 
-// 2. Aplica CSRF a todas as rotas POST/PUT/DELETE, EXCETO /health e /api/auth/refresh
+// 2. Apply CSRF protection to all mutating requests except health, refresh, OPTIONS
 app.use((req, res, next) => {
   if (req.method === 'GET' && req.path === '/health') return next();
   if (req.method === 'POST' && req.path === '/api/auth/refresh') return next();
