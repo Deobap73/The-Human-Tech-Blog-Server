@@ -1,3 +1,5 @@
+// src/routes/tagRoutes.ts
+
 import express from 'express';
 import {
   getAllTags,
@@ -12,9 +14,9 @@ import { detectLanguage } from '../middleware/detectLanguage';
 
 const router = express.Router();
 
-// Adiciona endpoint direto para GET /api/tags (default 'en')
+// Default tags endpoint at /api/tags
 router.get(
-  '/tags',
+  '/',
   (req, _res, next) => {
     (req as any).lang = 'en'; // default language
     next();
@@ -22,13 +24,15 @@ router.get(
   getAllTags
 );
 
-// Mantém endpoints multilíngua existentes
-router.get('/:lang/tags', detectLanguage, getAllTags);
-router.get('/:lang/tags/:slug', detectLanguage, getTagBySlug);
+// Multilanguage endpoints: /api/tags/:lang
+router.get('/:lang', detectLanguage, getAllTags);
+router.get('/:lang/:slug', detectLanguage, getTagBySlug);
 
+// Posts by tag: /api/tags/:slug/posts
 router.get('/:slug/posts', getPostsByTagSlug);
 
-router.post('/tags', protect, authorizeRoles('admin', 'editor'), createTag);
-router.delete('/tags/:id', protect, authorizeRoles('admin', 'editor'), deleteTag);
+// Admin endpoints
+router.post('/', protect, authorizeRoles('admin', 'editor'), createTag);
+router.delete('/:id', protect, authorizeRoles('admin', 'editor'), deleteTag);
 
 export default router;
