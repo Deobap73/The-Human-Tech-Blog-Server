@@ -1,4 +1,4 @@
-// /src/controllers/postController.ts
+// File: src/controllers/postController.ts
 
 import { Request, Response } from 'express';
 import mongoose, { isValidObjectId } from 'mongoose';
@@ -25,7 +25,7 @@ export const getPosts = async (req: Request, res: Response) => {
       .populate('tags', 'slug translations')
       .populate('author', 'name avatar _id')
       .select(
-        'slug image status isQuickPost translations categories tags author createdAt updatedAt'
+        'slug image status isQuickPost isAiPrompt translations categories tags author createdAt updatedAt'
       )
       .sort({ createdAt: -1 });
 
@@ -46,8 +46,11 @@ export const getPostById = async (req: Request, res: Response) => {
 
     const post = await Post.findById(id)
       .populate('categories', 'translations slug logo')
-      .populate('tags', 'slug translations') // <---- ADICIONA tags aqui!
-      .populate('author', 'name avatar _id');
+      .populate('tags', 'slug translations')
+      .populate('author', 'name avatar _id')
+      .select(
+        'slug image status isQuickPost isAiPrompt translations categories tags author createdAt updatedAt'
+      );
 
     if (!post) return res.status(404).json({ message: 'Post not found' });
     return res.status(200).json(post);
@@ -63,8 +66,11 @@ export const getPostBySlug = async (req: Request, res: Response) => {
   try {
     const post = await Post.findOne({ slug })
       .populate('categories', 'translations slug logo')
-      .populate('tags', 'slug translations') // <---- ADICIONA tags aqui!
-      .populate('author', 'name avatar _id');
+      .populate('tags', 'slug translations')
+      .populate('author', 'name avatar _id')
+      .select(
+        'slug image status isQuickPost isAiPrompt translations categories tags author createdAt updatedAt'
+      );
 
     if (!post) {
       return res.status(404).json({ message: 'Post not found' });
@@ -111,7 +117,7 @@ export const publishDraft = async (req: Request, res: Response) => {
       `Draft ${draftId} published as post ${newPost._id}`
     );
 
-    // Populate author (consistência na resposta)
+    // Populate author (consistency in response)
     await newPost.populate('author', 'name avatar _id');
     await newPost.populate('categories', 'translations slug logo');
 
@@ -234,7 +240,10 @@ export const searchPosts = async (req: Request, res: Response) => {
       .skip((Number(page) - 1) * Number(limit))
       .limit(Number(limit))
       .populate('author', 'name avatar _id')
-      .populate('categories', 'translations slug logo');
+      .populate('categories', 'translations slug logo')
+      .select(
+        'slug image status isQuickPost isAiPrompt translations categories tags author createdAt updatedAt'
+      );
 
     return res.status(200).json(posts);
   } catch (error) {
