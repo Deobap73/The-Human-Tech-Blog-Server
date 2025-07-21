@@ -1,3 +1,5 @@
+// src/models/Post.ts
+
 import mongoose, { Schema, Document, Types } from 'mongoose';
 
 export interface PostTranslation {
@@ -10,7 +12,8 @@ export interface IPost extends Document {
   slug: string;
   image: string;
   status: 'draft' | 'published' | 'archived';
-  isQuickPost?: boolean; // 🔥 NEW FIELD
+  isQuickPost?: boolean;
+  isAiPrompt?: boolean; // 🔥 NEW FIELD
   translations: {
     en: PostTranslation;
     pt?: PostTranslation;
@@ -45,6 +48,10 @@ const PostSchema = new Schema<IPost>(
       default: 'draft',
     },
     isQuickPost: {
+      type: Boolean,
+      default: false,
+    },
+    isAiPrompt: {
       type: Boolean,
       default: false,
     },
