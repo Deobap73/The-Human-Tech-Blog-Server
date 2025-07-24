@@ -3,6 +3,7 @@
 import { Router } from 'express';
 import Post from '../models/Post';
 import Category from '../models/Category';
+import zlib from 'zlib';
 
 const router = Router();
 
@@ -85,7 +86,7 @@ router.get('/sitemap.xml.gz', async (_req, res) => {
 
     const allUrls: SitemapEntry[] = [...staticUrls, ...dynamicUrls];
 
-    const sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${allUrls
+    const xmlContent = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${allUrls
       .map(
         (u) => `  <url>
     <loc>${u.loc}</loc>
@@ -96,10 +97,15 @@ router.get('/sitemap.xml.gz', async (_req, res) => {
       )
       .join('\n')}\n</urlset>`;
 
-    res.header('Content-Type', 'application/xml');
-    res.status(200).send(sitemap);
+    const gzip = zlib.gzipSync(xmlContent);
+
+    res.setHeader('Content-Encoding', 'gzip');
+    res.setHeader('Content-Type', 'application/xml');
+    res.setHeader('Content-Disposition', 'inline; filename="sitemap.xml.gz"');
+
+    res.status(200).send(gzip);
   } catch (error) {
-    console.error('❌ Failed to generate sitemap:', error);
+    console.error('❌ Failed to generate gzipped sitemap:', error);
     res.status(500).send('Internal Server Error');
   }
 });
