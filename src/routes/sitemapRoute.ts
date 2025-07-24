@@ -2,6 +2,7 @@
 
 import { Router } from 'express';
 import Post from '../models/Post';
+import Category from '../models/Category';
 
 const router = Router();
 
@@ -12,29 +13,37 @@ type SitemapEntry = {
   lastmod?: string;
 };
 
-/**
- * Generate XML sitemap dynamically (multilingual, QuickPosts, Prompts)
- */
-router.get('/sitemap.xml', async (_req, res) => {
+router.get('/sitemap.xml.gz', async (_req, res) => {
   try {
     const baseUrl = 'https://thehumantechblog.com';
+    const languages = ['en', 'pt', 'es', 'de'];
 
-    const posts = await Post.find({
-      status: 'published',
-    }).sort({ updatedAt: -1 });
+    const posts = await Post.find({ status: 'published' }).sort({ updatedAt: -1 });
+    const categories = await Category.find().sort({ updatedAt: -1 });
 
     const staticUrls: SitemapEntry[] = [
       { loc: `${baseUrl}/`, changefreq: 'daily', priority: 1.0 },
-      { loc: `${baseUrl}/en`, changefreq: 'daily', priority: 1.0 },
-      { loc: `${baseUrl}/pt`, changefreq: 'daily', priority: 1.0 },
-      { loc: `${baseUrl}/es`, changefreq: 'daily', priority: 1.0 },
-      { loc: `${baseUrl}/de`, changefreq: 'daily', priority: 1.0 },
-      { loc: `${baseUrl}/en/about`, changefreq: 'monthly', priority: 0.8 },
-      { loc: `${baseUrl}/en/contact`, changefreq: 'monthly', priority: 0.8 },
-      { loc: `${baseUrl}/en/posts/`, changefreq: 'daily', priority: 0.9 },
+      ...languages.map((lang) => ({
+        loc: `${baseUrl}/${lang}`,
+        changefreq: 'daily',
+        priority: 1.0,
+      })),
+      ...languages.map((lang) => ({
+        loc: `${baseUrl}/${lang}/about`,
+        changefreq: 'monthly',
+        priority: 0.8,
+      })),
+      ...languages.map((lang) => ({
+        loc: `${baseUrl}/${lang}/contact`,
+        changefreq: 'monthly',
+        priority: 0.8,
+      })),
+      ...languages.map((lang) => ({
+        loc: `${baseUrl}/${lang}/posts/`,
+        changefreq: 'daily',
+        priority: 0.9,
+      })),
     ];
-
-    const languages = ['en', 'pt', 'es', 'de'];
 
     const dynamicUrls: SitemapEntry[] = [];
 
@@ -53,6 +62,22 @@ router.get('/sitemap.xml', async (_req, res) => {
             lastmod: updatedAt.toISOString(),
             changefreq: 'monthly',
             priority: isQuickPost || isAiPrompt ? 0.6 : 0.8,
+          });
+        }
+      }
+    }
+
+    for (const category of categories) {
+      const { slug, translations, updatedAt } = category;
+
+      for (const lang of languages) {
+        const translation = translations?.[lang];
+        if (translation?.name?.trim()) {
+          dynamicUrls.push({
+            loc: `${baseUrl}/${lang}/category/${slug}`,
+            lastmod: updatedAt.toISOString(),
+            changefreq: 'monthly',
+            priority: 0.6,
           });
         }
       }

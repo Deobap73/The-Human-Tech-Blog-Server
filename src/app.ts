@@ -37,6 +37,7 @@ import commentModerationRoutes from './routes/commentModerationRoutes';
 import analyticsRoutes from './routes/analyticsRoutes';
 import sponsorRoutes from './routes/sponsor.routes';
 import sitemapRoute from './routes/sitemapRoute';
+import compression from 'compression';
 
 const app = express();
 
@@ -144,6 +145,12 @@ app.use('/api/tags', tagRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/sponsors', sponsorRoutes);
 app.use('/', sitemapRoute);
+
+// =========================
+// Generate the already compressed sitemap for advanced SEO
+// =========================
+
+app.use(compression());
 
 // =========================
 // Health Check & Root
