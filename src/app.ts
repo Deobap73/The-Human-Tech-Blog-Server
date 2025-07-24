@@ -36,6 +36,7 @@ import tagRoutes from './routes/tagRoutes';
 import commentModerationRoutes from './routes/commentModerationRoutes';
 import analyticsRoutes from './routes/analyticsRoutes';
 import sponsorRoutes from './routes/sponsor.routes';
+import sitemapRoute from './routes/sitemapRoute';
 
 const app = express();
 
@@ -142,6 +143,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/tags', tagRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/sponsors', sponsorRoutes);
+app.use('/', sitemapRoute);
 
 // =========================
 // Health Check & Root
