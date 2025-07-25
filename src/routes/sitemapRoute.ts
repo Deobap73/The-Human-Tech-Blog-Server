@@ -10,6 +10,7 @@ import {
   generateCategoriesSitemap,
   generateSitemapIndex,
 } from '../utils/sitemapGenerator';
+
 import { generateSitemapIndexXml } from '../utils/sitemapIndexGenerator';
 
 const router = Router();
@@ -98,6 +99,7 @@ router.get('/sitemap.xml.gz', async (_req, res) => {
     sendXmlResponse(res, xml, true, 'sitemap-index.xml');
   } catch (err) {
     console.error('❌ Error generating gzip sitemap index:', err);
+
     res.status(500).send('Internal Server Error');
   }
 });
@@ -114,6 +116,7 @@ router.get('/sitemap-index.xml.gz', (_req, res) => {
     res.status(200).send(gzipped);
   } catch (err) {
     console.error('❌ Failed to generate sitemap index:', err);
+
     res.status(500).send('Internal Server Error');
   }
 });
