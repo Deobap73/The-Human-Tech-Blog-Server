@@ -3,72 +3,104 @@
 import Post from '../models/Post';
 import Category from '../models/Category';
 
-export const generateSitemapXml = async (): Promise<string> => {
-  const baseUrl = 'https://thehumantechblog.com';
-  const languages = ['en', 'pt', 'es', 'de'];
+const BASE_URL = 'https://thehumantechblog.com';
+const LANGS = ['en', 'pt', 'es', 'de'];
 
-  const posts = await Post.find({ status: 'published' }).sort({ updatedAt: -1 });
-  const categories = await Category.find().sort({ updatedAt: -1 });
-
-  const staticUrls = [
-    { loc: `${baseUrl}/`, changefreq: 'daily', priority: 1.0 },
-    ...languages.flatMap((lang) => [
-      { loc: `${baseUrl}/${lang}`, changefreq: 'daily', priority: 1.0 },
-      { loc: `${baseUrl}/${lang}/about`, changefreq: 'monthly', priority: 0.8 },
-      { loc: `${baseUrl}/${lang}/contact`, changefreq: 'monthly', priority: 0.8 },
-      { loc: `${baseUrl}/${lang}/posts/`, changefreq: 'daily', priority: 0.9 },
-    ]),
-  ];
-
-  const dynamicUrls: any[] = [];
-
-  for (const post of posts) {
-    const { slug, isQuickPost, isAiPrompt, updatedAt, translations } = post;
-
-    for (const lang of languages) {
-      const translation = translations?.[lang];
-      if (translation?.title?.trim()) {
-        let path = 'posts';
-        if (isQuickPost) path = 'quickposts';
-        if (isAiPrompt) path = 'aiprompts';
-
-        dynamicUrls.push({
-          loc: `${baseUrl}/${lang}/${path}/${slug}`,
-          lastmod: updatedAt.toISOString(),
-          changefreq: 'monthly',
-          priority: isQuickPost || isAiPrompt ? 0.6 : 0.8,
-        });
-      }
-    }
-  }
-
-  for (const category of categories) {
-    const { slug, translations, updatedAt } = category;
-    for (const lang of languages) {
-      const translation = translations?.[lang];
-      if (translation?.name?.trim()) {
-        dynamicUrls.push({
-          loc: `${baseUrl}/${lang}/category/${slug}`,
-          lastmod: updatedAt.toISOString(),
-          changefreq: 'monthly',
-          priority: 0.6,
-        });
-      }
-    }
-  }
-
-  const allUrls = [...staticUrls, ...dynamicUrls];
-
-  const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${allUrls
+function buildUrlsetXml(urls: { loc: string; lastmod?: string }[]): string {
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls
     .map(
       (u) => `  <url>
     <loc>${u.loc}</loc>
     ${u.lastmod ? `<lastmod>${u.lastmod}</lastmod>` : ''}
-    <changefreq>${u.changefreq}</changefreq>
-    <priority>${u.priority}</priority>
   </url>`
     )
     .join('\n')}\n</urlset>`;
+}
+
+export async function generatePostsSitemap(): Promise<string> {
+  const posts = await Post.find({
+    status: 'published',
+    isQuickPost: false,
+    isAiPrompt: false,
+  }).sort({ updatedAt: -1 });
+  const urls = posts.flatMap((post) =>
+    LANGS.map((lang) => {
+      const t = post.translations?.[lang];
+      if (!t?.title?.trim()) return null;
+      return {
+        loc: `${BASE_URL}/${lang}/posts/${post.slug}`,
+        lastmod: post.updatedAt.toISOString(),
+      };
+    }).filter(Boolean)
+  );
+  return buildUrlsetXml(urls as any[]);
+}
+
+export async function generateQuickPostsSitemap(): Promise<string> {
+  const quicks = await Post.find({ status: 'published', isQuickPost: true }).sort({
+    updatedAt: -1,
+  });
+  const urls = quicks.flatMap((post) =>
+    LANGS.map((lang) => {
+      const t = post.translations?.[lang];
+      if (!t?.title?.trim()) return null;
+      return {
+        loc: `${BASE_URL}/${lang}/quickposts/${post.slug}`,
+        lastmod: post.updatedAt.toISOString(),
+      };
+    }).filter(Boolean)
+  );
+  return buildUrlsetXml(urls as any[]);
+}
+
+export async function generatePromptsSitemap(): Promise<string> {
+  const prompts = await Post.find({ status: 'published', isAiPrompt: true }).sort({
+    updatedAt: -1,
+  });
+  const urls = prompts.flatMap((post) =>
+    LANGS.map((lang) => {
+      const t = post.translations?.[lang];
+      if (!t?.title?.trim()) return null;
+      return {
+        loc: `${BASE_URL}/${lang}/aiprompts/${post.slug}`,
+        lastmod: post.updatedAt.toISOString(),
+      };
+    }).filter(Boolean)
+  );
+  return buildUrlsetXml(urls as any[]);
+}
+
+export async function generateCategoriesSitemap(): Promise<string> {
+  const categories = await Category.find().sort({ updatedAt: -1 });
+  const urls = categories.flatMap((category) =>
+    LANGS.map((lang) => {
+      const t = category.translations?.[lang];
+      if (!t?.name?.trim()) return null;
+      return {
+        loc: `${BASE_URL}/${lang}/category/${category.slug}`,
+        lastmod: category.updatedAt.toISOString(),
+      };
+    }).filter(Boolean)
+  );
+  return buildUrlsetXml(urls as any[]);
+}
+
+export async function generateSitemapIndex(): Promise<string> {
+  const sitemaps = [
+    `${BASE_URL}/sitemaps/posts-sitemap.xml`,
+    `${BASE_URL}/sitemaps/quickposts-sitemap.xml`,
+    `${BASE_URL}/sitemaps/prompts-sitemap.xml`,
+    `${BASE_URL}/sitemaps/categories-sitemap.xml`,
+  ];
+
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${sitemaps
+    .map(
+      (loc) => `  <sitemap>
+    <loc>${loc}</loc>
+    <lastmod>${new Date().toISOString()}</lastmod>
+  </sitemap>`
+    )
+    .join('\n')}\n</sitemapindex>`;
 
   return xml;
-};
+}
