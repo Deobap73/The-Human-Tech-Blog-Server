@@ -1,71 +1,96 @@
 // src/routes/sitemapRoute.ts
 
-import { Router, Response } from 'express';
+import { Router, Request, Response } from 'express';
 import zlib from 'zlib';
 import {
-  generatePostsSitemapXml,
-  generateQuickPostsSitemapXml,
-  generatePromptsSitemapXml,
-  generateCategoriesSitemapXml,
-  generateStaticSitemapXml,
-  generateSitemapIndexXml,
-} from '../utils/sitemapGenerator';
+  generatePostsSitemap,
+  generateQuickPostsSitemap,
+  generatePromptsSitemap,
+  generateCategoriesSitemap,
+  generateStaticSitemap,
+  generateSitemapIndex,
+} from '../controllers/sitemapController';
 
 const router = Router();
 
-/**
- * Helper para enviar XML (com ou sem gzip)
- */
 const sendXmlResponse = (res: Response, xml: string, gzip = false, filename = 'sitemap.xml') => {
-  if (gzip) {
-    const gzipped = zlib.gzipSync(xml);
-    res.setHeader('Content-Type', 'application/xml');
-    res.setHeader('Content-Encoding', 'gzip');
-    res.setHeader('Content-Disposition', `inline; filename="${filename}.gz"`);
-    return res.status(200).send(gzipped);
-  }
-
+  const output = gzip ? zlib.gzipSync(xml) : xml;
   res.setHeader('Content-Type', 'application/xml');
-  res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
-  return res.status(200).send(xml);
+  if (gzip) {
+    res.setHeader('Content-Encoding', 'gzip');
+    res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
+  }
+  res.status(200).send(output);
 };
 
-/**
- * Rotas para os diferentes sitemaps
- */
-router.get('/sitemap-index.xml', (_req, res) => {
-  const xml = generateSitemapIndexXml();
-  return sendXmlResponse(res, xml, false, 'sitemap-index.xml');
+// Base config
+const baseUrl = 'https://thehumantechblog.com';
+const languages = ['en', 'pt', 'es', 'de'];
+
+/** SITEMAP: POSTS */
+router.get('/sitemap-posts.xml.gz', async (_req: Request, res: Response) => {
+  try {
+    const xml = await generatePostsSitemap(baseUrl, languages);
+    sendXmlResponse(res, xml, true, 'sitemap-posts.xml.gz');
+  } catch (error) {
+    console.error('❌ Failed to generate posts sitemap:', error);
+    res.status(500).send('Internal Server Error');
+  }
 });
 
-router.get('/sitemap-index.xml.gz', (_req, res) => {
-  const xml = generateSitemapIndexXml();
-  return sendXmlResponse(res, xml, true, 'sitemap-index.xml');
+/** SITEMAP: QUICKPOSTS */
+router.get('/sitemap-quickposts.xml.gz', async (_req: Request, res: Response) => {
+  try {
+    const xml = await generateQuickPostsSitemap(baseUrl, languages);
+    sendXmlResponse(res, xml, true, 'sitemap-quickposts.xml.gz');
+  } catch (error) {
+    console.error('❌ Failed to generate quickposts sitemap:', error);
+    res.status(500).send('Internal Server Error');
+  }
 });
 
-router.get('/sitemap-posts.xml.gz', async (_req, res) => {
-  const xml = await generatePostsSitemapXml();
-  return sendXmlResponse(res, xml, true, 'sitemap-posts.xml');
+/** SITEMAP: PROMPTS */
+router.get('/sitemap-prompts.xml.gz', async (_req: Request, res: Response) => {
+  try {
+    const xml = await generatePromptsSitemap(baseUrl, languages);
+    sendXmlResponse(res, xml, true, 'sitemap-prompts.xml.gz');
+  } catch (error) {
+    console.error('❌ Failed to generate prompts sitemap:', error);
+    res.status(500).send('Internal Server Error');
+  }
 });
 
-router.get('/sitemap-quickposts.xml.gz', async (_req, res) => {
-  const xml = await generateQuickPostsSitemapXml();
-  return sendXmlResponse(res, xml, true, 'sitemap-quickposts.xml');
+/** SITEMAP: CATEGORIES */
+router.get('/sitemap-categories.xml.gz', async (_req: Request, res: Response) => {
+  try {
+    const xml = await generateCategoriesSitemap(baseUrl, languages);
+    sendXmlResponse(res, xml, true, 'sitemap-categories.xml.gz');
+  } catch (error) {
+    console.error('❌ Failed to generate categories sitemap:', error);
+    res.status(500).send('Internal Server Error');
+  }
 });
 
-router.get('/sitemap-prompts.xml.gz', async (_req, res) => {
-  const xml = await generatePromptsSitemapXml();
-  return sendXmlResponse(res, xml, true, 'sitemap-prompts.xml');
+/** SITEMAP: STATIC ROUTES */
+router.get('/sitemap-static.xml.gz', async (_req: Request, res: Response) => {
+  try {
+    const xml = await generateStaticSitemap(baseUrl, languages);
+    sendXmlResponse(res, xml, true, 'sitemap-static.xml.gz');
+  } catch (error) {
+    console.error('❌ Failed to generate static sitemap:', error);
+    res.status(500).send('Internal Server Error');
+  }
 });
 
-router.get('/sitemap-categories.xml.gz', async (_req, res) => {
-  const xml = await generateCategoriesSitemapXml();
-  return sendXmlResponse(res, xml, true, 'sitemap-categories.xml');
-});
-
-router.get('/sitemap-static.xml.gz', async (_req, res) => {
-  const xml = await generateStaticSitemapXml();
-  return sendXmlResponse(res, xml, true, 'sitemap-static.xml');
+/** SITEMAP: INDEX */
+router.get('/sitemap-index.xml.gz', async (_req: Request, res: Response) => {
+  try {
+    const xml = await generateSitemapIndex(baseUrl);
+    sendXmlResponse(res, xml, true, 'sitemap-index.xml.gz');
+  } catch (error) {
+    console.error('❌ Failed to generate sitemap index:', error);
+    res.status(500).send('Internal Server Error');
+  }
 });
 
 export default router;
