@@ -1,6 +1,7 @@
 // File: src/app.ts
 
 import express from 'express';
+import path from 'path';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import passport from 'passport';
@@ -40,6 +41,9 @@ import sitemapRoute from './routes/sitemapRoute';
 import compression from 'compression';
 
 const app = express();
+
+// Serve static files (includes robots.txt)
+app.use(express.static(path.join(__dirname, '../public')));
 
 app.set('trust proxy', 1); // Trust first proxy for correct client IP
 

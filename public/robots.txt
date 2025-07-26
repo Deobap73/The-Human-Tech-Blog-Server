@@ -1,0 +1,4 @@
+User-agent: *
+Disallow:
+
+Sitemap: https://api.thehumantechblog.com/sitemap-index.xml.gz
