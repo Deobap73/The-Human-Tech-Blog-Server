@@ -58,7 +58,6 @@ blog-server/
 
 ---
 
-
 ## 🚀 Features
 
 ### ✅ Authentication (Advanced)
@@ -70,22 +69,65 @@ blog-server/
 - Token rotation and revocation
 - **Two-Factor Authentication (2FA)** via TOTP for admin users
 
+---
+
+## 🧭 SEO Capabilities
+
+The backend provides automatically generated and optimized XML sitemaps, ensuring search engines can crawl all types of content across all languages with precision and speed.
+
+🌍 Supported Sitemap Types
+| Type | Route | Description |
+| ------------ | ------------------------- | -------------------------------- |
+| Posts | `/sitemap-posts.xml` | Multilingual blog articles |
+| QuickPosts | `/sitemap-quickposts.xml` | Short-form tech insights |
+| AI Prompts | `/sitemap-prompts.xml` | Fun and shareable prompt content |
+| Categories | `/sitemap-categories.xml` | SEO-friendly taxonomy indexing |
+| Static Pages | `/sitemap-static.xml` | About, Contact, Legal, etc. |
+| Index | `/sitemap-index.xml` | Sitemap index for Google Bot |
+
+### ⚡ Gzipped Sitemaps
+
+All routes also support .gz versions to ensure fast delivery and bandwidth savings:
+
+```pgsql
+https://api.thehumantechblog.com/sitemap-index.xml.gz
+https://api.thehumantechblog.com/sitemap-posts.xml.gz
+```
+
+### 📌 SEO Features
+
+✅ Multilingual support (/en, /pt, /es, /de)
+
+✅ Sitemap auto-generation via content model
+
+✅ Gzip compression in-memory with Node.js streams
+
+✅ Dynamic lastmod from updatedAt
+
+✅ Content priority and change frequency per entry
+
+✅ Sitemap split per type, referenced in central index
+
+<br>
+
+---
+
 ### ✅ Posts & Comments
 
 - Post CRUD (protected)
 - Markdown content, image upload (Cloudinary)
 - Comment creation (authenticated)
 
+---
+
 ### ✅ Categories & Tags
 
 - Category CRUD (admin only)
 - Auto-association with posts
 
-
 <br> <br>
 <img src="https://github.com/Deobap73/The-Human-Tech-Blog-React/blob/main/public/images/CategoriesPage.webp">
 <br> <br>
-
 
 ### ✅ Security Layers
 
@@ -151,10 +193,10 @@ You will be prompted to enter the admin's name, email, and password (input is ma
 Repeat to add more admins if needed.
 
 ---
+
 <br> <br>
 <img src="https://github.com/Deobap73/The-Human-Tech-Blog-React/blob/main/public/images/AdminPage.webp">
 <br> <br>
-
 
 ---
 
@@ -321,7 +363,7 @@ Licensed under MIT. Use freely for educational or personal projects.
 
 Happy coding! ✨
 
-  <br> <br>
+<br> <br>
 
 [![Top Langs](https://github-readme-stats.vercel.app/api/top-langs/?username=Deobap73)](https://github.com/anuraghazra/github-readme-stats)
 
