@@ -1,4 +1,9 @@
 User-agent: *
 Disallow:
 
+Sitemap: https://api.thehumantechblog.com/sitemap-posts.xml.gz
+Sitemap: https://api.thehumantechblog.com/sitemap-quickposts.xml.gz
+Sitemap: https://api.thehumantechblog.com/sitemap-prompts.xml.gz
+Sitemap: https://api.thehumantechblog.com/sitemap-categories.xml.gz
+Sitemap: https://api.thehumantechblog.com/sitemap-static.xml.gz
 Sitemap: https://api.thehumantechblog.com/sitemap-index.xml.gz
