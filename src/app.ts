@@ -43,7 +43,7 @@ import compression from 'compression';
 const app = express();
 
 // Serve static files (includes robots.txt)
-app.use(express.static(path.join(__dirname, '../public')));
+app.use(express.static(path.join(process.cwd(), 'public')));
 
 app.set('trust proxy', 1); // Trust first proxy for correct client IP
 
