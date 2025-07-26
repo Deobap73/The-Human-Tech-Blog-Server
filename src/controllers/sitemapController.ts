@@ -1,16 +1,12 @@
 // src/controllers/sitemapController.ts
 
 import { Request, Response } from 'express';
-import { generateSitemapXmlFromEntries } from '../utils/sitemapGenerator';
-import { generatePostsSitemap } from '../utils/sitemapGenerators/postsSitemap';
-import { generateQuickpostsSitemap } from '../utils/sitemapGenerators/quickpostsSitemap';
-import { generatePromptsSitemap } from '../utils/sitemapGenerators/promptsSitemap';
-import { generateCategoriesSitemap } from '../utils/sitemapGenerators/categoriesSitemap';
-import { generateStaticSitemap } from '../utils/sitemapGenerators/staticSitemap';
-import { generateSitemapIndex } from '../utils/sitemapIndexGenerator';
-
-const baseUrl = 'https://thehumantechblog.com';
-const languages = ['en', 'pt', 'de', 'es'];
+import { generatePostsSitemapXml } from '../utils/sitemapGenerator';
+import { generateQuickPostsSitemapXml } from '../utils/sitemapGenerator';
+import { generatePromptsSitemapXml } from '../utils/sitemapGenerator';
+import { generateCategoriesSitemapXml } from '../utils/sitemapGenerator';
+import { generateStaticSitemapXml } from '../utils/sitemapGenerator';
+import { generateSitemapIndexXml } from '../utils/sitemapGenerator';
 
 const sendXml = (res: Response, xml: string) => {
   res.setHeader('Content-Type', 'application/xml');
@@ -18,36 +14,31 @@ const sendXml = (res: Response, xml: string) => {
 };
 
 export const serveSitemapIndex = async (_req: Request, res: Response) => {
-  const xml = await generateSitemapIndex(baseUrl);
+  const xml = generateSitemapIndexXml();
   sendXml(res, xml);
 };
 
 export const servePostsSitemap = async (_req: Request, res: Response) => {
-  const entries = await generatePostsSitemap(baseUrl, languages);
-  const xml = generateSitemapXmlFromEntries(entries);
+  const xml = await generatePostsSitemapXml();
   sendXml(res, xml);
 };
 
 export const serveQuickpostsSitemap = async (_req: Request, res: Response) => {
-  const entries = await generateQuickpostsSitemap(baseUrl, languages);
-  const xml = generateSitemapXmlFromEntries(entries);
+  const xml = await generateQuickPostsSitemapXml();
   sendXml(res, xml);
 };
 
 export const servePromptsSitemap = async (_req: Request, res: Response) => {
-  const entries = await generatePromptsSitemap(baseUrl, languages);
-  const xml = generateSitemapXmlFromEntries(entries);
+  const xml = await generatePromptsSitemapXml();
   sendXml(res, xml);
 };
 
 export const serveCategoriesSitemap = async (_req: Request, res: Response) => {
-  const entries = await generateCategoriesSitemap(baseUrl, languages);
-  const xml = generateSitemapXmlFromEntries(entries);
+  const xml = await generateCategoriesSitemapXml();
   sendXml(res, xml);
 };
 
 export const serveStaticSitemap = async (_req: Request, res: Response) => {
-  const entries = await generateStaticSitemap(baseUrl, languages);
-  const xml = generateSitemapXmlFromEntries(entries);
+  const xml = await generateStaticSitemapXml();
   sendXml(res, xml);
 };
