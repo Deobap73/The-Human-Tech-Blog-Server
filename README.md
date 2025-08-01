@@ -1,6 +1,6 @@
 # <h1 align="center">[_The Human Tech Blog_](https://thehumantechblog.com) — Backend (blog-server) — by Deolindo Baptista</h1>
 
-A robust, secure, and scalable backend built with Node.js, Express, and TypeScript to power the **The Human Tech Blog**. Handles post creation, authentication (JWT & OAuth), comment management, category tags, token lifecycle with Redis, and now includes **Two-Factor Authentication (2FA)** for admins.
+A robust, secure, and scalable backend built with Node.js, Express, and TypeScript to power the **The Human Tech Blog**. Handles post creation, authentication (JWT & OAuth), comment management, category tags, token lifecycle with Redis, and now includes **Two-Factor Authentication (2FA)** for admins
 
 <br> <br>
 <img src="https://github.com/Deobap73/The-Human-Tech-Blog-React/blob/main/public/images/HomePage.webp">
