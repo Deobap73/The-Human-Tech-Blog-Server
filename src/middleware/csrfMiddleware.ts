@@ -1,5 +1,3 @@
-// src/middleware/csrfMiddleware.ts
-
 import csrf from 'csurf';
 import { Request, Response, NextFunction } from 'express';
 
@@ -17,7 +15,7 @@ export const csrfProtection = csrf({
     secure: isProduction, // only sent over HTTPS in prod
     sameSite: isProduction ? 'none' : false,
     path: '/',
-    domain: isProduction ? '.thehumantechblog.com' : undefined,
+    // domain REMOVED! Cookie will be scoped to api.thehumantechblog.com only.
   },
   // Look for token in header, body or query
   value: (req) =>
