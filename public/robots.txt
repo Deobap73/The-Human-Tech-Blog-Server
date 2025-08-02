@@ -1,6 +1,16 @@
+# Allow all crawlers access to everything except admin and auth pages
 User-agent: *
-Disallow:
+Disallow: /admin/
+Disallow: /auth/
+Disallow: /user/
+Disallow: /settings/
 
+# Allow access to all pages and assets
+Allow: /posts/
+Allow: /categories/
+Allow: /assets/
+
+# Sitemap file locations
 Sitemap: https://api.thehumantechblog.com/sitemap-posts.xml.gz
 Sitemap: https://api.thehumantechblog.com/sitemap-quickposts.xml.gz
 Sitemap: https://api.thehumantechblog.com/sitemap-prompts.xml.gz
