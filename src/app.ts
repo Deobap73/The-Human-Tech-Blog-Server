@@ -99,6 +99,14 @@ app.use(i18nextMiddleware.handle(i18next));
 //    - Non-HTTP-only "XSRF-TOKEN" cookie for double-submit
 app.get('/api/auth/csrf', csrfWithLogging, (req, res) => {
   const token = req.csrfToken();
+
+  // LOG 1: Antes de setar cookies
+  console.log('[CSRF][DEBUG][INICIO] Gerando token CSRF:', token);
+  console.log('[CSRF][DEBUG] NODE_ENV:', env.NODE_ENV);
+  console.log('[CSRF][DEBUG] Request headers:', req.headers);
+  console.log('[CSRF][DEBUG] Cookies recebidas:', req.cookies);
+
+  // (Opcional) Mostra os cookies atuais antes de definir novos
   res.cookie('XSRF-TOKEN', token, {
     httpOnly: false,
     secure: env.NODE_ENV === 'production',
@@ -106,6 +114,32 @@ app.get('/api/auth/csrf', csrfWithLogging, (req, res) => {
     domain: env.NODE_ENV === 'production' ? '.thehumantechblog.com' : undefined,
     path: '/',
   });
+
+  // LOG 2: Depois de setar cookies
+  console.log('[CSRF][DEBUG][Set-Cookie] XSRF-TOKEN cookie definida:', {
+    httpOnly: false,
+    secure: env.NODE_ENV === 'production',
+    sameSite: env.NODE_ENV === 'production' ? 'none' : 'lax',
+    domain: env.NODE_ENV === 'production' ? '.thehumantechblog.com' : undefined,
+    path: '/',
+    valor: token,
+  });
+
+  // Tenta também forçar manualmente o cookie _csrfSecret só para debugging (opcional)
+  if (req.cookies._csrfSecret) {
+    res.cookie('_csrfSecret', req.cookies._csrfSecret, {
+      httpOnly: true,
+      secure: env.NODE_ENV === 'production',
+      sameSite: env.NODE_ENV === 'production' ? 'none' : 'lax',
+      domain: env.NODE_ENV === 'production' ? '.thehumantechblog.com' : undefined,
+      path: '/',
+    });
+    console.log('[CSRF][DEBUG][Set-Cookie] _csrfSecret cookie RE-SETADA (debug)');
+  }
+
+  // LOG 3: Just before response
+  console.log('[CSRF][DEBUG][RESPONSE] Vai devolver JSON:', { csrfToken: token });
+
   res.status(200).json({ csrfToken: token });
 });
 
