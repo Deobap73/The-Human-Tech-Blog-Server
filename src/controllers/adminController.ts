@@ -86,7 +86,9 @@ export const handleLogout = async (req: Request, res: Response) => {
     res.clearCookie('refreshToken', {
       httpOnly: true,
       secure: env.isProduction,
-      sameSite: 'strict',
+      sameSite: env.isProduction ? 'none' : 'lax',
+      domain: env.isProduction ? '.thehumantechblog.com' : undefined,
+      path: '/',
     });
     return res.status(200).json({ message: 'Logged out' });
   } catch (err) {
