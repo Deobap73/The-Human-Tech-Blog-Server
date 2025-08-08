@@ -7,19 +7,18 @@ import {
   deleteComment,
   getPendingCommentsCount,
 } from '../controllers/commentController';
-
 import {
   listPendingComments,
   approveComment,
   rejectComment,
 } from '../controllers/commentModerationController';
-
 import { protect } from '../middleware/authMiddleware';
 import { authorizeRoles } from '../middleware/roleMiddleware';
+import { verifyCaptcha } from '../middleware/verifyCaptcha';
 
 const router = express.Router();
 
-// Rota para contar comentários pendentes (KPI, badge)
+// KPI pendentes
 router.get(
   '/moderation/count',
   protect,
@@ -27,18 +26,20 @@ router.get(
   getPendingCommentsCount
 );
 
-// Rota para listar todos comentários pendentes
+// Lista pendentes
 router.get('/moderation', protect, authorizeRoles('admin', 'editor'), listPendingComments);
 
-// Rota para aprovar comentário
+// Aprovar e rejeitar
 router.patch('/moderation/:id/approve', protect, authorizeRoles('admin', 'editor'), approveComment);
-
-// Rota para rejeitar comentário
 router.patch('/moderation/:id/reject', protect, authorizeRoles('admin', 'editor'), rejectComment);
 
-// Rotas normais de comentários (estas vêm DEPOIS)
-router.post('/', protect, createComment);
-router.get('/:postId', getCommentsByPost); // esta rota SEMPRE no final, para não capturar '/moderation'
+// Criar comentário público
+router.post('/', verifyCaptcha, createComment);
+
+// Listar aprovados de um post
+router.get('/:postId', getCommentsByPost);
+
+// Apagar comentário
 router.delete('/:id', protect, deleteComment);
 
 export default router;
