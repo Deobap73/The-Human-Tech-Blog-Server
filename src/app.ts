@@ -1,5 +1,4 @@
-// File: src/app.ts
-
+// The-Human-Tech-Blog-Server/src/app.ts
 import express from 'express';
 import path from 'path';
 import cookieParser from 'cookie-parser';
@@ -9,11 +8,10 @@ import './config/passport';
 import { env } from './config/env';
 import i18next from './i18n';
 import i18nextMiddleware from 'i18next-http-middleware';
+import compression from 'compression';
 
 import { setupSecurityMiddleware } from './middleware/securityMiddleware';
 import { csrfWithLogging } from './middleware/csrfMiddleware';
-
-// Import route modules
 import csrfRouter from './routes/csrf';
 import setupRoutes from './routes/setupRoutes';
 import authRoutes from './routes/authRoutes';
@@ -38,7 +36,9 @@ import commentModerationRoutes from './routes/commentModerationRoutes';
 import analyticsRoutes from './routes/analyticsRoutes';
 import sponsorRoutes from './routes/sponsor.routes';
 import sitemapRoute from './routes/sitemapRoute';
-import compression from 'compression';
+
+// Dev-only middleware to log body size for posts (safe; not used in production)
+import { debugBodySize } from './middleware/debugBodySize';
 
 const app = express();
 
@@ -84,29 +84,40 @@ app.use(
   })
 );
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// =====================================
+// Body Parsers with Increased Size Limit
+// =====================================
+// Use env var if present (e.g., BODY_LIMIT=5mb). Fallback defaults to '5mb'.
+// We read directly from process.env to avoid coupling with env typing.
+const BODY_LIMIT = process.env.BODY_LIMIT ?? '5mb';
+
+// IMPORTANT: With very long posts (>10k words), default (~100KB) is insufficient.
+// Raising to 5MB comfortably covers rich HTML + metadata while remaining safe.
+app.use(express.json({ limit: BODY_LIMIT }));
+app.use(express.urlencoded({ extended: true, limit: BODY_LIMIT }));
 
 // Initialize i18n after body parsing
 app.use(i18nextMiddleware.handle(i18next));
+
+// Dev-only: log body size for /api/posts to observe real payload sizes during tests
+if (env.NODE_ENV !== 'production') {
+  app.use('/api/posts', debugBodySize);
+}
 
 // =========================
 // CSRF Protection
 // =========================
 
-// 1. Endpoint to generate CSRF token and set cookies:
-//    - HTTP-only "_csrfSecret" cookie (handled by csrf middleware)
-//    - Non-HTTP-only "XSRF-TOKEN" cookie for double-submit
+// 1. Endpoint to generate CSRF token and set cookies
 app.get('/api/auth/csrf', csrfWithLogging, (req, res) => {
   const token = req.csrfToken();
 
-  // LOG 1: Antes de setar cookies
-  console.log('[CSRF][DEBUG][INICIO] Gerando token CSRF:', token);
+  // LOG 1: Before setting cookies
+  console.log('[CSRF][DEBUG][START] Generating CSRF token:', token);
   console.log('[CSRF][DEBUG] NODE_ENV:', env.NODE_ENV);
   console.log('[CSRF][DEBUG] Request headers:', req.headers);
-  console.log('[CSRF][DEBUG] Cookies recebidas:', req.cookies);
+  console.log('[CSRF][DEBUG] Received cookies:', req.cookies);
 
-  // (Opcional) Mostra os cookies atuais antes de definir novos
   res.cookie('XSRF-TOKEN', token, {
     httpOnly: false,
     secure: env.NODE_ENV === 'production',
@@ -115,31 +126,22 @@ app.get('/api/auth/csrf', csrfWithLogging, (req, res) => {
     path: '/',
   });
 
-  // LOG 2: Depois de setar cookies
-  console.log('[CSRF][DEBUG][Set-Cookie] XSRF-TOKEN cookie definida:', {
-    httpOnly: false,
-    secure: env.NODE_ENV === 'production',
-    sameSite: env.NODE_ENV === 'production' ? 'none' : 'lax',
-    domain: env.NODE_ENV === 'production' ? '.thehumantechblog.com' : undefined,
-    path: '/',
-    valor: token,
-  });
+  // LOG 2: After setting cookies
+  console.log('[CSRF][DEBUG][Set-Cookie] XSRF-TOKEN set with token value.');
 
-  // Tenta também forçar manualmente o cookie _csrfSecret só para debugging (opcional)
-  if (req.cookies._csrfSecret) {
-    res.cookie('_csrfSecret', req.cookies._csrfSecret, {
+  if ((req as any).cookies?._csrfSecret) {
+    res.cookie('_csrfSecret', (req as any).cookies._csrfSecret, {
       httpOnly: true,
       secure: env.NODE_ENV === 'production',
       sameSite: env.NODE_ENV === 'production' ? 'none' : 'lax',
       domain: env.NODE_ENV === 'production' ? '.thehumantechblog.com' : undefined,
       path: '/',
     });
-    console.log('[CSRF][DEBUG][Set-Cookie] _csrfSecret cookie RE-SETADA (debug)');
+    console.log('[CSRF][DEBUG][Set-Cookie] _csrfSecret cookie re-set (debug).');
   }
 
   // LOG 3: Just before response
-  console.log('[CSRF][DEBUG][RESPONSE] Vai devolver JSON:', { csrfToken: token });
-
+  console.log('[CSRF][DEBUG][RESPONSE] Returning JSON with csrfToken.');
   res.status(200).json({ csrfToken: token });
 });
 
@@ -185,9 +187,8 @@ app.use('/api/sponsors', sponsorRoutes);
 app.use('/', sitemapRoute);
 
 // =========================
-// Generate the already compressed sitemap for advanced SEO
+// Enable HTTP compression
 // =========================
-
 app.use(compression());
 
 // =========================
@@ -212,23 +213,34 @@ interface HttpError extends Error {
   stack?: string;
 }
 
+// We avoid dumping huge bodies into logs. Instead, we log their computed size.
 app.use(
   (err: HttpError, req: express.Request, res: express.Response, _next: express.NextFunction) => {
+    let bodyInfo: string = '[no body]';
+    try {
+      const serialized = JSON.stringify(req.body);
+      if (serialized) {
+        const len = Buffer.byteLength(serialized);
+        // Only preview small bodies; otherwise print length only
+        bodyInfo = len <= 1000 ? serialized : `[[body length: ${len} bytes]]`;
+      }
+    } catch {
+      bodyInfo = '[unserializable body]';
+    }
+
     console.error('🚨 Global Error Handler:', {
       path: req.path,
       method: req.method,
-      body: req.body,
+      body: bodyInfo,
       error: err.stack || err.message,
       name: err.name,
-      full: err,
     });
+
     const status = err.status || 500;
     return res.status(status).json({
       success: false,
       message: err.message,
-      stack: err.stack,
       name: err.name,
-      error: err,
     });
   }
 );
