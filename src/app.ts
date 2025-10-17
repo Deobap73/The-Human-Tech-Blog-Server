@@ -1,4 +1,5 @@
 // The-Human-Tech-Blog-Server/src/app.ts
+
 import express from 'express';
 import path from 'path';
 import cookieParser from 'cookie-parser';
@@ -12,40 +13,16 @@ import compression from 'compression';
 
 import { setupSecurityMiddleware } from './middleware/securityMiddleware';
 import { csrfWithLogging } from './middleware/csrfMiddleware';
-import csrfRouter from './routes/csrf';
-import setupRoutes from './routes/setupRoutes';
-import authRoutes from './routes/authRoutes';
-import categoryRoutes from './routes/categoryRoutes';
-import contactRoutes from './routes/contact';
-import postRoutes from './routes/postRoutes';
-import aiPromptRoutes from './routes/aiPromptRoutes';
-import commentRoutes from './routes/commentRoutes';
-import reactionRoutes from './routes/reactionRoutes';
-import bookmarkRoutes from './routes/bookmarkRoutes';
-import twofaRoutes from './routes/twofaRoutes';
-import conversationRoutes from './routes/conversationRoutes';
-import messageRoutes from './routes/messageRoutes';
-import notificationRoutes from './routes/notificationRoutes';
-import adminSettingsRoutes from './routes/adminSettingsRoutes';
-import userAdminRoutes from './routes/userAdminRoutes';
-import draftRoutes from './routes/draftRoutes';
-import newsletterRoutes from './routes/newsletterRoutes';
-import userRoutes from './routes/userRoutes';
-import tagRoutes from './routes/tagRoutes';
-import commentModerationRoutes from './routes/commentModerationRoutes';
-import analyticsRoutes from './routes/analyticsRoutes';
-import sponsorRoutes from './routes/sponsor.routes';
-import sitemapRoute from './routes/sitemapRoute';
-
-// Dev-only middleware to log body size for posts (safe; not used in production)
 import { debugBodySize } from './middleware/debugBodySize';
+import { buildRootRouter } from './routes';
 
 const app = express();
 
-// Serve static files (includes robots.txt)
+// Serve static files
 app.use(express.static(path.join(process.cwd(), 'public')));
 
-app.set('trust proxy', 1); // Trust first proxy for correct client IP
+// Trust proxy (needed for correct IPs behind proxies)
+app.set('trust proxy', 1);
 
 // =========================
 // Security Middlewares
@@ -57,9 +34,9 @@ setupSecurityMiddleware(app);
 // =========================
 app.use(cookieParser());
 
-// CORS must come before body parsers
+// CORS configuration
 const allowedOrigins = [
-  env.CLIENT_URL, // e.g. https://thehumantechblog.com
+  env.CLIENT_URL,
   process.env.RAILWAY_FRONTEND_URL,
   process.env.RAILWAY_BACKEND_URL,
   'http://localhost:5173',
@@ -85,21 +62,16 @@ app.use(
 );
 
 // =====================================
-// Body Parsers with Increased Size Limit
+// Body Parsers
 // =====================================
-// Use env var if present (e.g., BODY_LIMIT=5mb). Fallback defaults to '5mb'.
-// We read directly from process.env to avoid coupling with env typing.
 const BODY_LIMIT = process.env.BODY_LIMIT ?? '5mb';
-
-// IMPORTANT: With very long posts (>10k words), default (~100KB) is insufficient.
-// Raising to 5MB comfortably covers rich HTML + metadata while remaining safe.
 app.use(express.json({ limit: BODY_LIMIT }));
 app.use(express.urlencoded({ extended: true, limit: BODY_LIMIT }));
 
-// Initialize i18n after body parsing
+// Initialize i18n
 app.use(i18nextMiddleware.handle(i18next));
 
-// Dev-only: log body size for /api/posts to observe real payload sizes during tests
+// Dev-only: log body size for posts
 if (env.NODE_ENV !== 'production') {
   app.use('/api/posts', debugBodySize);
 }
@@ -112,7 +84,6 @@ if (env.NODE_ENV !== 'production') {
 app.get('/api/auth/csrf', csrfWithLogging, (req, res) => {
   const token = req.csrfToken();
 
-  // LOG 1: Before setting cookies
   console.log('[CSRF][DEBUG][START] Generating CSRF token:', token);
   console.log('[CSRF][DEBUG] NODE_ENV:', env.NODE_ENV);
   console.log('[CSRF][DEBUG] Request headers:', req.headers);
@@ -126,7 +97,6 @@ app.get('/api/auth/csrf', csrfWithLogging, (req, res) => {
     path: '/',
   });
 
-  // LOG 2: After setting cookies
   console.log('[CSRF][DEBUG][Set-Cookie] XSRF-TOKEN set with token value.');
 
   if ((req as any).cookies?._csrfSecret) {
@@ -140,12 +110,11 @@ app.get('/api/auth/csrf', csrfWithLogging, (req, res) => {
     console.log('[CSRF][DEBUG][Set-Cookie] _csrfSecret cookie re-set (debug).');
   }
 
-  // LOG 3: Just before response
   console.log('[CSRF][DEBUG][RESPONSE] Returning JSON with csrfToken.');
   res.status(200).json({ csrfToken: token });
 });
 
-// 2. Apply CSRF protection to all mutating requests except health, refresh, OPTIONS
+// 2. Apply CSRF protection to all mutating requests except certain paths
 app.use((req, res, next) => {
   if (req.method === 'GET' && req.path === '/health') return next();
   if (req.method === 'POST' && req.path === '/api/auth/refresh') return next();
@@ -159,35 +128,12 @@ app.use((req, res, next) => {
 app.use(passport.initialize());
 
 // =========================
-// Route Mounting
+// Routes
 // =========================
-app.use('/api', csrfRouter);
-app.use('/api/setup', setupRoutes);
-app.use('/api/auth', authRoutes);
-app.use('/api/categories', categoryRoutes);
-app.use('/api/contact', contactRoutes);
-app.use('/api/posts', postRoutes);
-app.use('/api/ai-prompts', aiPromptRoutes);
-app.use('/api/comments', commentRoutes);
-app.use('/api/moderation/comments', commentModerationRoutes);
-app.use('/api/reactions', reactionRoutes);
-app.use('/api/bookmarks', bookmarkRoutes);
-app.use('/api/2fa', twofaRoutes);
-app.use('/api/conversations', conversationRoutes);
-app.use('/api/messages', messageRoutes);
-app.use('/api/notifications', notificationRoutes);
-app.use('/api/admin/settings', adminSettingsRoutes);
-app.use('/api/admin/users', userAdminRoutes);
-app.use('/api/drafts', draftRoutes);
-app.use('/api/newsletter', newsletterRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/tags', tagRoutes);
-app.use('/api/analytics', analyticsRoutes);
-app.use('/api/sponsors', sponsorRoutes);
-app.use('/', sitemapRoute);
+app.use(buildRootRouter());
 
 // =========================
-// Enable HTTP compression
+// Compression
 // =========================
 app.use(compression());
 
@@ -197,6 +143,7 @@ app.use(compression());
 app.get('/health', (_, res) => {
   res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
 });
+
 app.get('/', (_, res) => {
   res.send(`
     <h1>The Human Tech Blog API</h1>
@@ -213,7 +160,6 @@ interface HttpError extends Error {
   stack?: string;
 }
 
-// We avoid dumping huge bodies into logs. Instead, we log their computed size.
 app.use(
   (err: HttpError, req: express.Request, res: express.Response, _next: express.NextFunction) => {
     let bodyInfo: string = '[no body]';
@@ -221,7 +167,6 @@ app.use(
       const serialized = JSON.stringify(req.body);
       if (serialized) {
         const len = Buffer.byteLength(serialized);
-        // Only preview small bodies; otherwise print length only
         bodyInfo = len <= 1000 ? serialized : `[[body length: ${len} bytes]]`;
       }
     } catch {
