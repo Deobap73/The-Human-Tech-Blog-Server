@@ -155,10 +155,7 @@ app.get('/', (_, res) => {
 // =========================
 // Global Error Handler
 // =========================
-interface HttpError extends Error {
-  status?: number;
-  stack?: string;
-}
+type HttpError = Error & { status?: number };
 
 app.use(
   (err: HttpError, req: express.Request, res: express.Response, _next: express.NextFunction) => {
