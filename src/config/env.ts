@@ -1,4 +1,3 @@
-// /src/config/env.ts
 'use strict';
 
 import path from 'path';
@@ -61,8 +60,10 @@ export const env = cleanEnv(process.env, {
 
   // reCAPTCHA
   RECAPTCHA_SECRET: str(),
-  // Backend não precisa do VITE_* (frontend), mas mantemos uma chave opcional se quiseres ler no server:
+  // Backend normalmente não precisa do SITE_KEY, mas deixamos opcional para debug/tools
   RECAPTCHA_SITE_KEY: str({ default: '' }),
+  // 🔥 NEW: Score mínimo para v3 (0.0–1.0). 0.5 é um bom ponto de partida.
+  RECAPTCHA_MIN_SCORE: num({ default: 0.5 }),
 
   // Frontend URL
   CLIENT_URL: url(),
@@ -84,6 +85,21 @@ export const env = cleanEnv(process.env, {
 
   // 🔥 NEW: Admin key to protect sync routes
   ADMIN_SYNC_KEY: str(),
+
+  // === AI (OpenAI) ===
+  // 🔥 NEW: OpenAI API for ATS generation
+  OPENAI_API_KEY: str({ default: '' }),
+  OPENAI_MODEL: str({ default: 'gpt-4o-mini' }),
+
+  // === PayPal ===
+  // 🔥 NEW: PayPal client credentials and API base (sandbox by default)
+  PAYPAL_CLIENT_ID: str({ default: '' }),
+  PAYPAL_SECRET: str({ default: '' }),
+  PAYPAL_API_BASE: url({ default: 'https://api-m.sandbox.paypal.com' }),
+
+  // === ATS Product ===
+  // 🔥 NEW: Single-price product in EUR (server-enforced)
+  ATS_PRICE_EUR: num({ default: 0.5 }),
 });
 
 /**
