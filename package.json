@@ -6,7 +6,7 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
-    "build": "npx rimraf dist && tsc -p tsconfig.json",
+    "build": "npx rimraf dist && tsc -p tsconfig.json && tsc-alias -p tsconfig.json",
     "start": "node dist/server.js",
     "start:prod": "node dist/server.js",
     "deploy": "npm run build && railway up --detach",
@@ -61,6 +61,7 @@
     "i18next-http-middleware": "^3.7.4",
     "inquirer": "^12.6.3",
     "jsonwebtoken": "^9.0.2",
+    "module-alias": "^2.2.3",
     "mongoose": "^8.13.2",
     "multer": "^1.4.5-lts.2",
     "node-fetch": "^3.3.2",
@@ -114,6 +115,7 @@
     "ts-jest": "^29.3.2",
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
+    "tsc-alias": "^1.8.16",
     "typescript": "^5.8.3"
   },
   "engines": {
