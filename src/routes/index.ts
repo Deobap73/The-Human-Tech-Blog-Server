@@ -1,5 +1,4 @@
 // src/routes/index.ts
-
 import { Router } from 'express';
 
 import csrfRouter from './csrf';
@@ -26,15 +25,18 @@ import commentModerationRoutes from './commentModerationRoutes';
 import analyticsRoutes from './analyticsRoutes';
 import sponsorRoutes from './sponsor.routes';
 import sitemapRoute from './sitemapRoute';
+
+// Projects (public + sync)
 import projectRoutes from './projectRoutes';
 import projectSyncRoutes from './projectSyncRoutes';
 
 export function buildRootRouter() {
   const root = Router();
 
-  // All api routes
+  // --- API namespace ---
   const api = Router();
 
+  // Public/general routes
   api.use('/', csrfRouter);
   api.use('/setup', setupRoutes);
   api.use('/auth', authRoutes);
@@ -58,12 +60,14 @@ export function buildRootRouter() {
   api.use('/tags', tagRoutes);
   api.use('/analytics', analyticsRoutes);
   api.use('/sponsors', sponsorRoutes);
+
+  // Projects (list/get are public; sync will be protected with JWT+role later)
   api.use('/projects', projectRoutes);
   api.use('/projects', projectSyncRoutes);
 
   root.use('/api', api);
 
-  // Non api route
+  // --- Non-API (public) routes: sitemaps, etc. ---
   root.use('/', sitemapRoute);
 
   return root;

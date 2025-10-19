@@ -1,9 +1,13 @@
-// src/utils/sitemapGenerator.ts
+// /src/utils/sitemapGenerator.ts
+'use strict';
 
 import Post from '../models/Post';
 import Category from '../models/Category';
+import { Project } from '../models/Project';
+import { env } from '../config/env'; // Use BASE_URL from validated env
 
-const baseUrl = 'https://thehumantechblog.com';
+// Use BASE_URL from env (fallback already handled in env.ts)
+const baseUrl = env.BASE_URL;
 const languages = ['en', 'pt', 'es', 'de'];
 
 interface UrlEntry {
@@ -13,8 +17,11 @@ interface UrlEntry {
   priority: number;
 }
 
+/**
+ * Build a valid <urlset> XML string from URL entries.
+ */
 function buildUrlSetXml(urls: UrlEntry[]): string {
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls
+  const body = urls
     .map(
       (u) => `  <url>
     <loc>${u.loc}</loc>
@@ -23,7 +30,9 @@ function buildUrlSetXml(urls: UrlEntry[]): string {
     <priority>${u.priority}</priority>
   </url>`
     )
-    .join('\n')}\n</urlset>`;
+    .join('\n');
+
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${body}\n</urlset>`;
 }
 
 // 🟦 Static pages
@@ -43,7 +52,11 @@ export async function generateStaticSitemapXml(): Promise<string> {
 
 // 🟨 Blog posts
 export async function generatePostsSitemapXml(): Promise<string> {
-  const posts = await Post.find({ status: 'published', isQuickPost: false, isAiPrompt: false }).sort({ updatedAt: -1 });
+  const posts = await Post.find({
+    status: 'published',
+    isQuickPost: false,
+    isAiPrompt: false,
+  }).sort({ updatedAt: -1 });
 
   const urls: UrlEntry[] = [];
 
@@ -133,6 +146,24 @@ export async function generateCategoriesSitemapXml(): Promise<string> {
   return buildUrlSetXml(urls);
 }
 
+// 🆕 🧩 Projects (public projects — Figma/GitHub/Case studies)
+export async function generateProjectsSitemapXml(): Promise<string> {
+  // Only public projects should be indexed
+  const projects = await Project.find({ isPublic: true })
+    .select('slug updatedAt')
+    .sort({ updatedAt: -1 })
+    .lean();
+
+  const urls: UrlEntry[] = projects.map((p) => ({
+    loc: `${baseUrl}/projects/${p.slug}`,
+    lastmod: (p.updatedAt as Date)?.toISOString?.() ?? new Date().toISOString(),
+    changefreq: 'weekly',
+    priority: 0.7,
+  }));
+
+  return buildUrlSetXml(urls);
+}
+
 // 📁 Sitemap Index
 export function generateSitemapIndexXml(): string {
   const today = new Date().toISOString().split('T')[0];
@@ -143,6 +174,8 @@ export function generateSitemapIndexXml(): string {
     'sitemap-prompts.xml',
     'sitemap-categories.xml',
     'sitemap-static.xml',
+    // Include projects sitemap in the index:
+    'sitemap-projects.xml',
   ];
 
   const sitemaps = sitemapPaths
