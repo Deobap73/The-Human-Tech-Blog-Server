@@ -9,6 +9,8 @@ import {
   updateProjectHandler,
   deleteProjectHandler,
 } from '../controllers/projectController';
+import { protect } from '../middleware/authMiddleware';
+import { isAdmin } from '../middleware/roleMiddleware';
 
 const router = Router();
 
@@ -16,12 +18,9 @@ const router = Router();
 router.get('/', listProjectsHandler);
 router.get('/:slug', getProjectBySlugHandler);
 
-// Admin CRUD (ligar autenticação do teu projeto quando quiseres)
-// Ex.: import { authenticateJWT } from '../middleware/authMiddleware';
-// Ex.: import { roleMiddleware } from '../middleware/roleMiddleware';
-// router.post('/', authenticateJWT, roleMiddleware(['admin']), createProjectHandler);
-router.post('/', createProjectHandler);
-router.put('/:id', updateProjectHandler);
-router.delete('/:id', deleteProjectHandler);
+// Admin CRUD (JWT + admin)
+router.post('/', protect, isAdmin, createProjectHandler);
+router.put('/:id', protect, isAdmin, updateProjectHandler);
+router.delete('/:id', protect, isAdmin, deleteProjectHandler);
 
 export default router;

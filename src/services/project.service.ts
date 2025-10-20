@@ -4,8 +4,8 @@
 import type { FilterQuery, SortOrder } from 'mongoose';
 import { Project, ProjectDoc } from '../models/Project';
 import type { ProjectDTO } from '../types/Project';
-// NOTE: use the generic helper that works with any model (no breaking change to your existing Post helper)
-import { generateUniqueSlugForModel } from 'src/utils/generateUniqueSlugForModel';
+// ✅ use relative import (your current absolute path would fail in TS strict)
+import { generateUniqueSlugForModel } from '../utils/generateUniqueSlugForModel';
 
 export interface ListParams {
   type?: string;
@@ -42,9 +42,9 @@ export async function listProjects(params: ListParams) {
     const limit = Math.max(1, Math.min(100, Number(params.limit || 12)));
     const skip = (page - 1) * limit;
 
-    // Ensure type-safety for Mongoose .sort(...)
+    // Mongoose .sort expects a record of SortOrder
     const sortBy: Record<string, SortOrder> =
-      params.sort === 'createdAt' ? { createdAt: -1 as SortOrder } : { updatedAt: -1 as SortOrder };
+      params.sort === 'createdAt' ? { createdAt: -1 } : { updatedAt: -1 };
 
     const query = buildQuery(params);
     const [items, total] = await Promise.all([
