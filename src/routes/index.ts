@@ -1,4 +1,4 @@
-// src/routes/index.ts
+// /src/routes/index.ts
 import { Router } from 'express';
 
 import csrfRouter from './csrf';
@@ -29,6 +29,9 @@ import sitemapRoute from './sitemapRoute';
 // Projects (public + sync)
 import projectRoutes from './projectRoutes';
 import projectSyncRoutes from './projectSyncRoutes';
+
+// NEW: admin-only sync routes (manual trigger)
+import projectSyncAdminRoutes from './projectSyncAdminRoutes';
 
 export function buildRootRouter() {
   const root = Router();
@@ -61,9 +64,12 @@ export function buildRootRouter() {
   api.use('/analytics', analyticsRoutes);
   api.use('/sponsors', sponsorRoutes);
 
-  // Projects (list/get are public; sync will be protected with JWT+role later)
+  // Projects public + sync public
   api.use('/projects', projectRoutes);
   api.use('/projects', projectSyncRoutes);
+
+  // NEW: admin-only sync endpoints
+  api.use('/', projectSyncAdminRoutes);
 
   root.use('/api', api);
 

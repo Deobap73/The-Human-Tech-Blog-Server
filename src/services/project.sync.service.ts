@@ -4,6 +4,11 @@
 import { Project } from '../models/Project';
 import { buildFigmaEmbedUrl, getFigmaFileMeta } from './integrations/figma.api';
 import { getRepoMeta } from './integrations/github.api';
+import { metaCache } from './cache/meta.cache';
+
+// TTLs (tune as needed)
+const GITHUB_TTL_MS = 60 * 60 * 1000; // 1h
+const FIGMA_TTL_MS = 60 * 60 * 1000; // 1h
 
 export async function syncProjectFigma(
   projectId: string,
@@ -16,7 +21,6 @@ export async function syncProjectFigma(
     const token = opts.token || process.env.FIGMA_TOKEN || '';
     if (!token) return { ok: false, message: 'FIGMA_TOKEN missing.' };
 
-    // If public URL provided, we can set embed and try to derive fileKey if present
     if (opts.figmaPublicUrl) {
       doc.links.figma = opts.figmaPublicUrl;
       doc.links.figmaEmbedUrl = buildFigmaEmbedUrl(opts.figmaPublicUrl);
@@ -29,7 +33,16 @@ export async function syncProjectFigma(
     }
 
     if (fileKey) {
-      const meta = await getFigmaFileMeta(fileKey, token);
+      const cacheKey = `figma:${fileKey}`;
+      let meta: Awaited<ReturnType<typeof getFigmaFileMeta>> | undefined = metaCache.get(
+        cacheKey
+      ) as any;
+
+      if (!meta) {
+        meta = await getFigmaFileMeta(fileKey, token);
+        if (meta) metaCache.set(cacheKey, meta, FIGMA_TTL_MS);
+      }
+
       if (meta) {
         doc.meta = doc.meta || {};
         doc.meta.figma = {
@@ -64,7 +77,14 @@ export async function syncProjectGitHub(
     if (!repo) return { ok: false, message: 'repo missing (owner/name).' };
 
     const token = opts.token || process.env.GITHUB_TOKEN || '';
-    const meta = await getRepoMeta(repo, token);
+    const cacheKey = `gh:${repo}`;
+    let meta: Awaited<ReturnType<typeof getRepoMeta>> | undefined = metaCache.get(cacheKey) as any;
+
+    if (!meta) {
+      meta = await getRepoMeta(repo, token);
+      if (meta) metaCache.set(cacheKey, meta, GITHUB_TTL_MS);
+    }
+
     if (!meta) return { ok: false, message: 'GitHub meta not found.' };
 
     doc.meta = doc.meta || {};
@@ -78,7 +98,6 @@ export async function syncProjectGitHub(
       description: meta.description || doc.meta.github?.description,
     };
 
-    // Optionally enrich excerpt if empty
     if (!doc.excerpt && meta.description) doc.excerpt = meta.description;
 
     await doc.save();
