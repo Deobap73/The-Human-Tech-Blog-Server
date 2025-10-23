@@ -29,6 +29,7 @@ import sitemapRoute from './sitemapRoute';
 // Projects (public + sync)
 import projectRoutes from './projectRoutes';
 import projectSyncRoutes from './projectSyncRoutes';
+import adminMaintenanceRoutes from './adminMaintenanceRoutes'; // ⬅️ adiciona aqui
 
 // NEW: admin-only sync routes (manual trigger)
 import projectSyncAdminRoutes from './projectSyncAdminRoutes';
@@ -70,6 +71,7 @@ export function buildRootRouter() {
 
   // NEW: admin-only sync endpoints
   api.use('/', projectSyncAdminRoutes);
+  api.use('/', adminMaintenanceRoutes); // ⬅️ adiciona aqui
 
   root.use('/api', api);
 
