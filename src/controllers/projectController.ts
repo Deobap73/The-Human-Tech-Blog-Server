@@ -10,6 +10,13 @@ import {
   updateProject,
 } from '../services/project.service';
 
+// Narrow detection for Mongoose ValidationError without importing mongoose here
+function isMongooseValidationError(
+  err: unknown
+): err is { name: string; errors?: Record<string, any> } {
+  return !!err && typeof err === 'object' && (err as any).name === 'ValidationError';
+}
+
 export async function listProjectsHandler(req: Request, res: Response) {
   try {
     const { type, tag, q, lang, page, limit, sort } = req.query;
@@ -46,7 +53,7 @@ export async function getProjectBySlugHandler(req: Request, res: Response) {
   }
 }
 
-// --- Admin CRUD (sem dependência de auth do projeto; pode-se ligar depois) ---
+// --- Admin CRUD ---
 export async function createProjectHandler(req: Request, res: Response) {
   try {
     const created = await createProject(req.body);
@@ -54,6 +61,19 @@ export async function createProjectHandler(req: Request, res: Response) {
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error('createProjectHandler error:', err);
+
+    if (isMongooseValidationError(err) && err.errors) {
+      const errors: Record<string, string> = {};
+      for (const [field, detail] of Object.entries(err.errors)) {
+        const message = (detail as any)?.message || 'Invalid value';
+        errors[field] = message;
+      }
+      return res.status(422).json({
+        message: 'Validation failed',
+        errors,
+      });
+    }
+
     return res.status(400).json({ message: 'Failed to create project.' });
   }
 }
@@ -69,6 +89,19 @@ export async function updateProjectHandler(req: Request, res: Response) {
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error('updateProjectHandler error:', err);
+
+    if (isMongooseValidationError(err) && (err as any).errors) {
+      const errors: Record<string, string> = {};
+      for (const [field, detail] of Object.entries((err as any).errors)) {
+        const message = (detail as any)?.message || 'Invalid value';
+        errors[field] = message;
+      }
+      return res.status(422).json({
+        message: 'Validation failed',
+        errors,
+      });
+    }
+
     return res.status(400).json({ message: 'Failed to update project.' });
   }
 }
