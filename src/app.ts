@@ -1,5 +1,4 @@
-// The-Human-Tech-Blog-Server/src/app.ts
-
+// /src/app.ts
 import express from 'express';
 import path from 'path';
 import cookieParser from 'cookie-parser';
@@ -54,7 +53,15 @@ app.use(
       return callback(null, true);
     },
     credentials: true,
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token', 'XSRF-TOKEN'],
+    // ✅ Allow both common CSRF/XSRF header spellings (case-insensitive browsers send what we set)
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-CSRF-Token',
+      'XSRF-TOKEN',
+      'x-xsrf-token', // <- lowercase variant used by some clients / examples
+      'X-XSRF-Token', // <- mixed-case alias
+    ],
     exposedHeaders: ['Set-Cookie', 'XSRF-TOKEN'],
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     optionsSuccessStatus: 200,
@@ -80,38 +87,43 @@ if (env.NODE_ENV !== 'production') {
 // CSRF Protection
 // =========================
 
-// 1. Endpoint to generate CSRF token and set cookies
+// 1. Canonical endpoint to generate CSRF token and set cookies
 app.get('/api/auth/csrf', csrfWithLogging, (req, res) => {
-  const token = req.csrfToken();
+  try {
+    const token = req.csrfToken();
 
-  console.log('[CSRF][DEBUG][START] Generating CSRF token:', token);
-  console.log('[CSRF][DEBUG] NODE_ENV:', env.NODE_ENV);
-  console.log('[CSRF][DEBUG] Request headers:', req.headers);
-  console.log('[CSRF][DEBUG] Received cookies:', req.cookies);
+    console.log('[CSRF][DEBUG][START] Generating CSRF token:', token);
+    console.log('[CSRF][DEBUG] NODE_ENV:', env.NODE_ENV);
+    console.log('[CSRF][DEBUG] Request headers:', req.headers);
+    console.log('[CSRF][DEBUG] Received cookies:', req.cookies);
 
-  res.cookie('XSRF-TOKEN', token, {
-    httpOnly: false,
-    secure: env.NODE_ENV === 'production',
-    sameSite: env.NODE_ENV === 'production' ? 'none' : 'lax',
-    domain: env.NODE_ENV === 'production' ? '.thehumantechblog.com' : undefined,
-    path: '/',
-  });
-
-  console.log('[CSRF][DEBUG][Set-Cookie] XSRF-TOKEN set with token value.');
-
-  if ((req as any).cookies?._csrfSecret) {
-    res.cookie('_csrfSecret', (req as any).cookies._csrfSecret, {
-      httpOnly: true,
+    res.cookie('XSRF-TOKEN', token, {
+      httpOnly: false,
       secure: env.NODE_ENV === 'production',
       sameSite: env.NODE_ENV === 'production' ? 'none' : 'lax',
       domain: env.NODE_ENV === 'production' ? '.thehumantechblog.com' : undefined,
       path: '/',
     });
-    console.log('[CSRF][DEBUG][Set-Cookie] _csrfSecret cookie re-set (debug).');
-  }
 
-  console.log('[CSRF][DEBUG][RESPONSE] Returning JSON with csrfToken.');
-  res.status(200).json({ csrfToken: token });
+    console.log('[CSRF][DEBUG][Set-Cookie] XSRF-TOKEN set with token value.');
+
+    if ((req as any).cookies?._csrfSecret) {
+      res.cookie('_csrfSecret', (req as any).cookies._csrfSecret, {
+        httpOnly: true,
+        secure: env.NODE_ENV === 'production',
+        sameSite: env.NODE_ENV === 'production' ? 'none' : 'lax',
+        domain: env.NODE_ENV === 'production' ? '.thehumantechblog.com' : undefined,
+        path: '/',
+      });
+      console.log('[CSRF][DEBUG][Set-Cookie] _csrfSecret cookie re-set (debug).');
+    }
+
+    console.log('[CSRF][DEBUG][RESPONSE] Returning JSON with csrfToken.');
+    return res.status(200).json({ csrfToken: token });
+  } catch (err: any) {
+    console.error('[CSRF][ERROR] Failed to issue token:', err?.message);
+    return res.status(500).json({ success: false, message: 'Failed to issue CSRF token' });
+  }
 });
 
 // 2. Apply CSRF protection to all mutating requests except certain paths
