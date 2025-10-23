@@ -77,7 +77,15 @@ const ProjectSchema = new Schema<ProjectDoc>(
   { timestamps: true }
 );
 
-ProjectSchema.index({ title: 'text', excerpt: 'text', tags: 1 });
+/**
+ * Text search index:
+ * - Single text index including title, excerpt, and tags (array<string> is allowed in text index).
+ * - Named for easier migrations.
+ */
+ProjectSchema.index(
+  { title: 'text', excerpt: 'text', tags: 'text' },
+  { name: 'Project_text_search' }
+);
 
 export const Project: Model<ProjectDoc> =
   mongoose.models.Project || mongoose.model<ProjectDoc>('Project', ProjectSchema);

@@ -17,6 +17,13 @@ function isMongooseValidationError(
   return !!err && typeof err === 'object' && (err as any).name === 'ValidationError';
 }
 
+// Narrow detection for MongoServerError (index issues, duplicates, etc.)
+function isMongoServerError(
+  err: unknown
+): err is { name: string; code?: number; errmsg?: string; message?: string } {
+  return !!err && typeof err === 'object' && (err as any).name === 'MongoServerError';
+}
+
 export async function listProjectsHandler(req: Request, res: Response) {
   try {
     const { type, tag, q, lang, page, limit, sort } = req.query;
@@ -32,7 +39,6 @@ export async function listProjectsHandler(req: Request, res: Response) {
     });
     return res.status(200).json(data);
   } catch (err) {
-    // eslint-disable-next-line no-console
     console.error('listProjectsHandler error:', err);
     return res.status(500).json({ message: 'Failed to list projects.' });
   }
@@ -47,7 +53,6 @@ export async function getProjectBySlugHandler(req: Request, res: Response) {
     }
     return res.status(200).json(doc);
   } catch (err) {
-    // eslint-disable-next-line no-console
     console.error('getProjectBySlugHandler error:', err);
     return res.status(500).json({ message: 'Failed to get project.' });
   }
@@ -59,7 +64,6 @@ export async function createProjectHandler(req: Request, res: Response) {
     const created = await createProject(req.body);
     return res.status(201).json(created);
   } catch (err) {
-    // eslint-disable-next-line no-console
     console.error('createProjectHandler error:', err);
 
     if (isMongooseValidationError(err) && err.errors) {
@@ -71,6 +75,22 @@ export async function createProjectHandler(req: Request, res: Response) {
       return res.status(422).json({
         message: 'Validation failed',
         errors,
+      });
+    }
+
+    if (isMongoServerError(err)) {
+      // code 201 appears when a compound text index includes an array field that's not text
+      if (err.code === 201) {
+        return res.status(400).json({
+          message:
+            "Search index misconfiguration: please rebuild the Project text index to include { title: 'text', excerpt: 'text', tags: 'text' }.",
+          details: err.errmsg ?? err.message,
+        });
+      }
+      // fallback for other Mongo server errors (duplicates, etc.)
+      return res.status(400).json({
+        message: 'Database error while creating project.',
+        details: err.errmsg ?? err.message,
       });
     }
 
@@ -87,7 +107,6 @@ export async function updateProjectHandler(req: Request, res: Response) {
     }
     return res.status(200).json(updated);
   } catch (err) {
-    // eslint-disable-next-line no-console
     console.error('updateProjectHandler error:', err);
 
     if (isMongooseValidationError(err) && (err as any).errors) {
@@ -115,7 +134,6 @@ export async function deleteProjectHandler(req: Request, res: Response) {
     }
     return res.status(204).send();
   } catch (err) {
-    // eslint-disable-next-line no-console
     console.error('deleteProjectHandler error:', err);
     return res.status(400).json({ message: 'Failed to delete project.' });
   }

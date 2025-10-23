@@ -17,7 +17,8 @@
     "test:coverage": "jest --coverage",
     "prepare": "npm run build",
     "format": "prettier --write \"src/**/*.ts\"",
-    "seed": "ts-node src/scripts/seed.ts"
+    "seed": "ts-node src/scripts/seed.ts",
+    "reindex:projects": "ts-node src/scripts/fix-projects-index.ts"
   },
   "repository": {
     "type": "git",
