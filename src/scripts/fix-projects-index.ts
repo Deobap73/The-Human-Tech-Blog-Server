@@ -11,7 +11,7 @@ import mongoose from 'mongoose';
 import { connectDB } from '../config/db';
 import { Project } from '../models/Project';
 
-async function main() {
+async function main(): Promise<void> {
   if (process.env.CONFIRM_REINDEX !== '1') {
     // eslint-disable-next-line no-console
     console.error('Refusing to run without CONFIRM_REINDEX=1');
@@ -24,41 +24,53 @@ async function main() {
 
   // List existing indexes for visibility
   const indexes = await collection.indexes();
+  // eslint-disable-next-line no-console
   console.log('Current indexes:', indexes);
 
-  // Drop any index that starts with or includes text on title/excerpt or tags in the old shape
+  // Drop any index that matches the legacy shapes
   for (const idx of indexes) {
-    const name: string = idx.name;
-    if (
+    // `name` can be undefined in typings, normalize to string safely
+    const name = String(idx.name ?? '');
+
+    if (!name) continue;
+
+    const looksLegacy =
       name.includes('title_text') ||
       name.includes('excerpt_text') ||
       name.includes('tags_1') ||
-      name.includes('Project_text_search')
-    ) {
-      if (name !== 'Project_text_search') {
-        try {
-          console.log(`Dropping index: ${name}`);
-          await collection.dropIndex(name);
-        } catch (e) {
-          console.warn(`Unable to drop index ${name}:`, (e as any)?.message);
-        }
+      name.includes('title_1_excerpt_1') || // defensive
+      name.includes('title_text_excerpt_text_tags_1'); // legacy example
+
+    // Do NOT drop the desired target index if it already exists
+    if (looksLegacy && name !== 'Project_text_search') {
+      try {
+        // eslint-disable-next-line no-console
+        console.log(`Dropping index: ${name}`);
+        await collection.dropIndex(name);
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.warn(`Unable to drop index ${name}:`, (e as any)?.message);
       }
     }
   }
 
   // Ensure our new text index exists (as defined on the schema)
   await Project.syncIndexes();
+  // eslint-disable-next-line no-console
   console.log('Re-built Project indexes via syncIndexes().');
 
   // Print final indexes
   const finalIndexes = await collection.indexes();
+  // eslint-disable-next-line no-console
   console.log('Final indexes:', finalIndexes);
 
   await mongoose.connection.close();
+  // eslint-disable-next-line no-console
   console.log('Done.');
 }
 
 main().catch((err) => {
+  // eslint-disable-next-line no-console
   console.error('Index rebuild failed:', err);
   process.exit(1);
 });
