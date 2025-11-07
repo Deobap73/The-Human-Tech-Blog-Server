@@ -1,13 +1,15 @@
-// src/types/env.d.ts
+// /src/types/env.d.ts
+/* eslint-disable @typescript-eslint/naming-convention */
+
 declare namespace NodeJS {
   interface ProcessEnv {
-    // Configurações básicas
+    // Basic
     PORT: string;
     MONGO_URI: string;
     SETUP_KEY: string;
     NODE_ENV: 'development' | 'production' | 'test';
 
-    // JWT e Autenticação
+    // JWT & Auth
     JWT_SECRET: string;
     JWT_EXPIRATION: string;
     REFRESH_TOKEN_SECRET: string;
@@ -36,12 +38,26 @@ declare namespace NodeJS {
     // Google reCAPTCHA
     RECAPTCHA_SECRET: string;
 
-    // SMTP Email
+    // SMTP Email (existing)
     SMTP_HOST: string;
-    SMTP_PORT: string;
-    SMTP_SECURE: string;
+    SMTP_PORT: string; // keep as string to match env loader
+    SMTP_SECURE: string; // "true" | "false"
     SMTP_USER: string;
     SMTP_PASS: string;
     SMTP_TO: string;
+
+    // Mail provider switch + Resend (new)
+    EMAIL_PROVIDER?: 'resend' | 'smtp' | string;
+    RESEND_API_KEY?: string;
+    MAIL_FROM?: string;
+    MAIL_DEFAULT_TO?: string;
+
+    // SEO / Misc (já existiam no .env.example)
+    BASE_URL?: string;
+    FIGMA_TOKEN?: string;
+    GITHUB_TOKEN?: string;
+    ADMIN_SYNC_KEY?: string;
   }
 }
+
+export {};

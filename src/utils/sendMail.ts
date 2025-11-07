@@ -1,37 +1,248 @@
-// The-Human-Tech-Blog-Server\src\utils\sendMail.ts
+// /src/utils/sendMail.ts
+'use strict';
 
 import nodemailer from 'nodemailer';
 import { env } from '../config/env';
+import { buildResendClient } from './mail/providers/resendProvider';
+import type { CreateEmailOptions } from 'resend';
 
-/**
- * Strongly typed mail options for clarity and type safety.
- */
-interface SendMailOptions {
-  from: string;
+export interface MailAddress {
+  name?: string;
+  email: string;
+}
+
+export interface SendMailOptions {
+  to?: string | string[] | MailAddress | MailAddress[];
+  from?: string | MailAddress;
   subject: string;
-  text: string;
+  html?: string;
+  text?: string;
+  cc?: string | string[] | MailAddress | MailAddress[];
+  bcc?: string | string[] | MailAddress | MailAddress[];
+  replyTo?: string | string[] | MailAddress | MailAddress[];
+  attachments?: Array<{
+    filename: string;
+    content?: string | Buffer;
+    path?: string;
+    type?: string;
+  }>;
+}
+
+export interface SendMailResult {
+  ok: boolean;
+  id?: string;
+  provider?: 'resend' | 'smtp' | 'unknown' | string;
+  error?: string;
 }
 
 /**
- * Sends an email using Nodemailer and environment SMTP config.
- * @param {SendMailOptions} options - Mail sending options (from, subject, text).
- * @returns {Promise<void>} - Resolves if sent successfully, throws error otherwise.
+ * Public API recomendada: retorna sempre { ok, id?, provider, error? }.
  */
-export const sendMail = async ({ from, subject, text }: SendMailOptions): Promise<void> => {
-  const transporter = nodemailer.createTransport({
-    host: env.SMTP_HOST,
-    port: env.SMTP_PORT,
-    secure: env.SMTP_SECURE,
-    auth: {
-      user: env.SMTP_USER,
-      pass: env.SMTP_PASS,
-    },
-  });
+export const sendMail = async (options: SendMailOptions): Promise<SendMailResult> => {
+  try {
+    const provider = (process.env.EMAIL_PROVIDER || '').toLowerCase();
 
-  await transporter.sendMail({
-    from,
-    to: env.SMTP_TO,
-    subject,
-    text,
-  });
+    if (provider === 'resend') {
+      return await sendWithResend(options);
+    }
+    if (provider === 'smtp' || provider === '') {
+      return await sendWithSmtp(options);
+    }
+
+    return {
+      ok: false,
+      provider,
+      error: `EMAIL_PROVIDER='${provider}' not supported. Use 'resend' or 'smtp'.`,
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      provider: 'unknown',
+      error: err instanceof Error ? err.message : 'Unknown error while sending email',
+    };
+  }
+};
+
+/**
+ * Compat legacy: mantém Promise<void> e lança erro se falhar.
+ */
+export const sendMailLegacy = async (options: SendMailOptions): Promise<void> => {
+  const result = await sendMail(options);
+  if (!result.ok) {
+    throw new Error(result.error || 'Failed to send email');
+  }
+  return;
+};
+
+/* -------------------------- Provider: Resend --------------------------- */
+
+const sendWithResend = async (options: SendMailOptions): Promise<SendMailResult> => {
+  try {
+    const { ok, client, error } = buildResendClient();
+    if (!ok || !client) {
+      return { ok: false, provider: 'resend', error: error || 'Failed to init Resend client' };
+    }
+
+    const from =
+      (typeof options.from === 'string' ? options.from : options.from?.email) ||
+      process.env.MAIL_FROM ||
+      '';
+
+    if (!from) {
+      return {
+        ok: false,
+        provider: 'resend',
+        error:
+          'Missing sender. Provide options.from or set MAIL_FROM (e.g. "The Human Tech Blog <noreply@thehumantechblog.com>").',
+      };
+    }
+
+    let to = options.to;
+    if (!to || (Array.isArray(to) && (to as any[]).length === 0)) {
+      to = process.env.MAIL_DEFAULT_TO || env.SMTP_TO || '';
+    }
+    if (!to || (Array.isArray(to) && (to as any[]).length === 0)) {
+      return { ok: false, provider: 'resend', error: 'Missing recipient (to).' };
+    }
+
+    if (!options.subject?.trim()) {
+      return { ok: false, provider: 'resend', error: 'Missing subject.' };
+    }
+    if (!options.html && !options.text) {
+      return { ok: false, provider: 'resend', error: 'Provide at least one of { html, text }.' };
+    }
+
+    // 🔑 Ramificação typesafe para evitar o overload "template".
+    let payload: CreateEmailOptions;
+    if (options.html) {
+      payload = {
+        from,
+        to: to as any,
+        subject: options.subject,
+        html: options.html, // <- garante o overload correto
+      };
+    } else {
+      // Aqui sabemos que text existe pelo guard acima
+      payload = {
+        from,
+        to: to as any,
+        subject: options.subject,
+        text: options.text as string, // <- garante o overload correto
+      };
+    }
+
+    // Campos opcionais adicionados após a ramificação
+    if (options.cc) (payload as any).cc = options.cc as any;
+    if (options.bcc) (payload as any).bcc = options.bcc as any;
+    if (options.replyTo) (payload as any).replyTo = options.replyTo as any;
+
+    if (options.attachments && options.attachments.length > 0) {
+      (payload as any).attachments = options.attachments.map((a) => ({
+        filename: a.filename,
+        content: a.content,
+        path: a.path,
+        contentType: a.type, // map local "type" -> Resend "contentType"
+      }));
+    }
+
+    const { data, error: sendError } = await client.emails.send(payload);
+
+    if (sendError) {
+      return {
+        ok: false,
+        provider: 'resend',
+        error: sendError?.message || 'Unknown Resend error',
+      };
+    }
+
+    if (data?.id) {
+      return { ok: true, id: data.id, provider: 'resend' };
+    }
+
+    return {
+      ok: false,
+      provider: 'resend',
+      error: 'Resend did not return a message id. Check your Resend dashboard/logs.',
+    };
+  } catch (err) {
+    const message =
+      err instanceof Error ? err.message : typeof err === 'string' ? err : 'Unknown Resend error';
+    return { ok: false, provider: 'resend', error: message };
+  }
+};
+
+/* --------------------------- Provider: SMTP ---------------------------- */
+
+const sendWithSmtp = async (options: SendMailOptions): Promise<SendMailResult> => {
+  try {
+    const host = env.SMTP_HOST;
+    const portRaw = env.SMTP_PORT;
+    const secureRaw = env.SMTP_SECURE;
+    const user = env.SMTP_USER;
+    const pass = env.SMTP_PASS;
+
+    if (!host || !portRaw || !secureRaw || !user || !pass) {
+      return {
+        ok: false,
+        provider: 'smtp',
+        error:
+          'SMTP is not fully configured. Please set SMTP_HOST, SMTP_PORT, SMTP_SECURE, SMTP_USER, SMTP_PASS.',
+      };
+    }
+
+    const port = Number(portRaw);
+    const secure = String(secureRaw).toLowerCase() === 'true';
+
+    const transporter = nodemailer.createTransport({
+      host,
+      port,
+      secure,
+      auth: { user, pass },
+    });
+
+    const from =
+      (typeof options.from === 'string' ? options.from : options.from?.email) ||
+      process.env.MAIL_FROM ||
+      user;
+
+    let to = options.to;
+    if (!to || (Array.isArray(to) && (to as any[]).length === 0)) {
+      to = env.SMTP_TO || process.env.MAIL_DEFAULT_TO || '';
+    }
+    if (!to || (Array.isArray(to) && (to as any[]).length === 0)) {
+      return { ok: false, provider: 'smtp', error: 'Missing recipient (to).' };
+    }
+
+    if (!options.subject?.trim()) {
+      return { ok: false, provider: 'smtp', error: 'Missing subject.' };
+    }
+    if (!options.html && !options.text) {
+      return { ok: false, provider: 'smtp', error: 'Provide at least one of { html, text }.' };
+    }
+
+    const info = await transporter.sendMail({
+      from,
+      to: to as any,
+      subject: options.subject,
+      html: options.html,
+      text: options.text,
+      cc: options.cc as any,
+      bcc: options.bcc as any,
+      replyTo: options.replyTo as any,
+      attachments: options.attachments as any,
+    });
+
+    if (info?.messageId) {
+      return { ok: true, id: info.messageId, provider: 'smtp' };
+    }
+    return {
+      ok: false,
+      provider: 'smtp',
+      error: 'SMTP did not return a messageId. Check SMTP logs.',
+    };
+  } catch (err) {
+    const message =
+      err instanceof Error ? err.message : typeof err === 'string' ? err : 'Unknown SMTP error';
+    return { ok: false, provider: 'smtp', error: message };
+  }
 };
