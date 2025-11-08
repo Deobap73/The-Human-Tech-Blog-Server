@@ -36,7 +36,7 @@ export interface SendMailResult {
 }
 
 /**
- * Public API recomendada: retorna sempre { ok, id?, provider, error? }.
+ * Public API: always returns a value.
  */
 export const sendMail = async (options: SendMailOptions): Promise<SendMailResult> => {
   try {
@@ -64,7 +64,7 @@ export const sendMail = async (options: SendMailOptions): Promise<SendMailResult
 };
 
 /**
- * Compat legacy: mantém Promise<void> e lança erro se falhar.
+ * Legacy wrapper: throws on failure, returns void on success.
  */
 export const sendMailLegacy = async (options: SendMailOptions): Promise<void> => {
   const result = await sendMail(options);
@@ -112,26 +112,25 @@ const sendWithResend = async (options: SendMailOptions): Promise<SendMailResult>
       return { ok: false, provider: 'resend', error: 'Provide at least one of { html, text }.' };
     }
 
-    // 🔑 Ramificação typesafe para evitar o overload "template".
+    // Build payload in html/text branches to avoid template overload
     let payload: CreateEmailOptions;
     if (options.html) {
       payload = {
         from,
         to: to as any,
         subject: options.subject,
-        html: options.html, // <- garante o overload correto
+        html: options.html,
       };
     } else {
-      // Aqui sabemos que text existe pelo guard acima
       payload = {
         from,
         to: to as any,
         subject: options.subject,
-        text: options.text as string, // <- garante o overload correto
+        text: options.text as string,
       };
     }
 
-    // Campos opcionais adicionados após a ramificação
+    // Optional fields
     if (options.cc) (payload as any).cc = options.cc as any;
     if (options.bcc) (payload as any).bcc = options.bcc as any;
     if (options.replyTo) (payload as any).replyTo = options.replyTo as any;
@@ -148,6 +147,12 @@ const sendWithResend = async (options: SendMailOptions): Promise<SendMailResult>
     const { data, error: sendError } = await client.emails.send(payload);
 
     if (sendError) {
+      // Server log for diagnosis
+      console.error('[sendMail][resend] error', {
+        name: (sendError as any)?.name,
+        message: sendError?.message,
+        statusCode: (sendError as any)?.statusCode,
+      });
       return {
         ok: false,
         provider: 'resend',

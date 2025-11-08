@@ -6,11 +6,6 @@ import { sendMail } from '../utils/sendMail';
 
 const router = Router();
 
-/**
- * Public contact endpoint
- * - Validates required fields
- * - Sends email using provider-agnostic util (Resend via HTTPS if EMAIL_PROVIDER=resend)
- */
 router.post('/', async (req, res) => {
   try {
     const { name, email, subject, message } = req.body as {
@@ -24,7 +19,6 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ ok: false, error: 'Missing required fields.' });
     }
 
-    // Choose recipient (fallbacks for dev)
     const to = process.env.MAIL_DEFAULT_TO || process.env.SMTP_TO || 'owner@thehumantechblog.com';
 
     const html = `
@@ -42,28 +36,36 @@ router.post('/', async (req, res) => {
       html,
       text: `From: ${name}\nEmail: ${email}\n\n${message}`,
       replyTo: email,
-      from: process.env.MAIL_FROM, // usa MAIL_FROM se definido (domínio verificado no Resend)
+      from: process.env.MAIL_FROM,
     });
 
     if (!result.ok) {
-      // erro do provider (ex.: má config Resend)
+      // Log para servidor
+      console.error('[contact] provider error', {
+        provider: result.provider,
+        error: result.error,
+        emailProviderEnv: process.env.EMAIL_PROVIDER,
+        mailFromEnv: process.env.MAIL_FROM,
+      });
+
+      // Resposta com detalhe para debug
       return res.status(502).json({
         ok: false,
-        error: 'Failed to send email via provider.',
+        error: 'Provider failed',
         provider: result.provider,
         details: result.error,
       });
     }
 
     return res.status(200).json({ ok: true, id: result.id });
-  } catch (_err) {
+  } catch (err) {
+    console.error('[contact] internal error', err);
     return res.status(500).json({ ok: false, error: 'Internal Server Error' });
   }
 });
 
 export default router;
 
-/** Minimal HTML escape (ES2017+ compatible) */
 function escapeHtml(input: string): string {
   return input.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
