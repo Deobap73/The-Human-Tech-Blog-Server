@@ -6,7 +6,7 @@ import { Request, Response, NextFunction } from 'express';
 /**
  * Minimal validation for contact payload
  * Accepts the same shape you use on the portfolio:
- *  - firstName (required)
+ *  - name (required)
  *  - lastName (optional)
  *  - contact (optional)
  *  - email (required, basic format check)
@@ -19,14 +19,14 @@ export const validateContact = (
   next: NextFunction
 ): Response | void => {
   try {
-    const { firstName, email, message } = req.body as {
-      firstName?: string;
+    const { name, email, message } = req.body as {
+      name?: string;
       email?: string;
       message?: string;
     };
 
-    if (!firstName || typeof firstName !== 'string' || !firstName.trim()) {
-      return res.status(400).json({ success: false, message: 'firstName is required' });
+    if (!name || typeof name !== 'string' || !name.trim()) {
+      return res.status(400).json({ success: false, message: 'name is required' });
     }
     if (!email || typeof email !== 'string' || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
       return res.status(400).json({ success: false, message: 'A valid email is required' });

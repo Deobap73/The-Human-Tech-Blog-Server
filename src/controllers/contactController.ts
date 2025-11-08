@@ -11,8 +11,8 @@ import { sendMail } from '../utils/sendMail';
  */
 export const sendContactEmail = async (req: Request, res: Response): Promise<Response> => {
   try {
-    const { firstName, lastName, contact, email, message, subject } = req.body as {
-      firstName: string;
+    const { name, contact, email, message, subject } = req.body as {
+      name: string;
       lastName?: string;
       contact?: string;
       email: string;
@@ -20,7 +20,7 @@ export const sendContactEmail = async (req: Request, res: Response): Promise<Res
       subject?: string;
     };
 
-    const fullName = [firstName, lastName].filter(Boolean).join(' ').trim();
+    const fullName = [name].filter(Boolean).join(' ').trim();
     const mailSubject = subject?.trim() || `Messege from blog: ${fullName || 'Contact'}`;
 
     // Plain-text body similar to your portfolio
