@@ -6,41 +6,41 @@ import { sendMail } from '../utils/sendMail';
 
 /**
  * Controller responsible for sending contact emails
- * - Assumes body was validated by validateContact middleware
- * - Uses provider-agnostic sendMail() (Resend over HTTPS if EMAIL_PROVIDER=resend)
+ * - Ignores client subject for consistency
+ * - Always prefixes "Message from blog: <name>"
  */
 export const sendContactEmail = async (req: Request, res: Response): Promise<Response> => {
   try {
     const { name, contact, email, message, subject } = req.body as {
       name: string;
-      lastName?: string;
       contact?: string;
       email: string;
       message: string;
-      subject?: string;
+      subject?: string; // kept only to include in body if present
     };
 
-    const fullName = [name].filter(Boolean).join(' ').trim();
-    const mailSubject = subject?.trim() || `Messege from blog: ${fullName || 'Contact'}`;
+    const fullName = String(name || '').trim() || 'Contact';
 
-    // Plain-text body similar to your portfolio
-    const text = [
-      `From : ${fullName || 'Unknown'}`,
+    // Force a stable subject
+    const mailSubject = `Message from blog: ${fullName}`;
+
+    // Plain-text body. If user typed a subject, we include it inside the body.
+    const textLines: Array<string | null> = [
+      `From : ${fullName}`,
       `Email: ${email}`,
       contact ? `Phone/Contact: ${contact}` : null,
+      subject?.trim() ? `Subject: ${subject.trim()}` : null,
       '',
       'Message:',
       message,
-    ]
-      .filter(Boolean)
-      .join('\n');
+    ];
+
+    const text = textLines.filter(Boolean).join('\n');
 
     const result = await sendMail({
       subject: mailSubject,
       text,
-      // Recipient fallback
       to: process.env.MAIL_DEFAULT_TO || process.env.SMTP_TO || 'owner@thehumantechblog.com',
-      // Stable verified sender if set
       from: process.env.MAIL_FROM,
       replyTo: email,
     });
@@ -57,7 +57,7 @@ export const sendContactEmail = async (req: Request, res: Response): Promise<Res
     return res
       .status(200)
       .json({ success: true, message: 'Email sent successfully', id: result.id });
-  } catch (err) {
+  } catch (_err) {
     return res
       .status(500)
       .json({ success: false, message: 'Internal error while sending contact email' });
