@@ -2,70 +2,39 @@
 'use strict';
 
 import { Router } from 'express';
-import { sendMail } from '../utils/sendMail';
+import { sendContactEmail } from '../controllers/contactController';
+import { validateContact } from '../middleware/validateContact';
+import { smtpVerifyPair } from '../utils/mail/providers/smtpProvider';
 
 const router = Router();
 
-router.post('/', async (req, res) => {
-  try {
-    const { name, email, subject, message } = req.body as {
-      name?: string;
-      email?: string;
-      subject?: string;
-      message?: string;
-    };
+/**
+ * POST /api/contact
+ * - Same flow as your portfolio server: validate -> controller
+ */
+router.post('/', validateContact, sendContactEmail);
 
-    if (!name?.trim() || !email?.trim() || !message?.trim()) {
-      return res.status(400).json({ ok: false, error: 'Missing required fields.' });
-    }
+/**
+ * GET /api/contact/debug/verify
+ * - SMTP verify (optional, helps you diagnose if the platform blocks SMTP)
+ */
+router.get('/debug/verify', async (_req, res) => {
+  const r = await smtpVerifyPair();
+  if (r.ok) return res.json(r);
+  return res.status(500).json(r);
+});
 
-    const to = process.env.MAIL_DEFAULT_TO || process.env.SMTP_TO || 'owner@thehumantechblog.com';
-
-    const html = `
-      <div style="font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;line-height:1.5">
-        <h2 style="margin:0 0 12px">New contact message</h2>
-        <p><strong>From:</strong> ${escapeHtml(name)} &lt;${escapeHtml(email)}&gt;</p>
-        <p><strong>Message:</strong></p>
-        <pre style="white-space:pre-wrap">${escapeHtml(message)}</pre>
-      </div>
-    `;
-
-    const result = await sendMail({
-      to,
-      subject: subject?.trim() || 'New Contact Form Message',
-      html,
-      text: `From: ${name}\nEmail: ${email}\n\n${message}`,
-      replyTo: email,
-      from: process.env.MAIL_FROM,
-    });
-
-    if (!result.ok) {
-      // Log para servidor
-      console.error('[contact] provider error', {
-        provider: result.provider,
-        error: result.error,
-        emailProviderEnv: process.env.EMAIL_PROVIDER,
-        mailFromEnv: process.env.MAIL_FROM,
-      });
-
-      // Resposta com detalhe para debug
-      return res.status(502).json({
-        ok: false,
-        error: 'Provider failed',
-        provider: result.provider,
-        details: result.error,
-      });
-    }
-
-    return res.status(200).json({ ok: true, id: result.id });
-  } catch (err) {
-    console.error('[contact] internal error', err);
-    return res.status(500).json({ ok: false, error: 'Internal Server Error' });
-  }
+/**
+ * GET /api/contact/debug/provider
+ * - Quick view of provider envs to confirm Resend/From settings at runtime
+ */
+router.get('/debug/provider', (_req, res) => {
+  res.json({
+    EMAIL_PROVIDER: process.env.EMAIL_PROVIDER || null,
+    hasRESEND_KEY: Boolean(process.env.RESEND_API_KEY),
+    MAIL_FROM: process.env.MAIL_FROM,
+    MAIL_TO: process.env.MAIL_DEFAULT_TO || process.env.SMTP_TO || null,
+  });
 });
 
 export default router;
-
-function escapeHtml(input: string): string {
-  return input.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
