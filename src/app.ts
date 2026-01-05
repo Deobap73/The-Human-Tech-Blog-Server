@@ -1,4 +1,4 @@
-// /src/app.ts
+// ./src/app.ts
 import express from 'express';
 import path from 'path';
 import cookieParser from 'cookie-parser';
@@ -6,6 +6,7 @@ import cors from 'cors';
 import passport from 'passport';
 import './config/passport';
 import { env } from './config/env';
+
 import i18next from './i18n';
 import i18nextMiddleware from 'i18next-http-middleware';
 import compression from 'compression';
@@ -14,6 +15,7 @@ import { setupSecurityMiddleware } from './middleware/securityMiddleware';
 import { csrfWithLogging } from './middleware/csrfMiddleware';
 import { debugBodySize } from './middleware/debugBodySize';
 import { buildRootRouter } from './routes';
+import { buildCorsOptions } from './config/cors';
 
 const app = express();
 
@@ -33,40 +35,19 @@ setupSecurityMiddleware(app);
 // =========================
 app.use(cookieParser());
 
-// CORS configuration
-const allowedOrigins = [
-  env.CLIENT_URL,
-  process.env.RAILWAY_FRONTEND_URL,
-  process.env.RAILWAY_BACKEND_URL,
-  'http://localhost:5173',
-  'http://127.0.0.1:5173',
-].filter(Boolean);
+// CORS
+const corsOptions = buildCorsOptions({
+  clientUrl: env.CLIENT_URL,
+  railwayFrontendUrl: process.env.RAILWAY_FRONTEND_URL,
+  railwayBackendUrl: process.env.RAILWAY_BACKEND_URL,
+  nodeEnv: env.NODE_ENV,
+});
 
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      if (!origin) return callback(null, true);
-      if (!allowedOrigins.includes(origin)) {
-        console.warn(`Blocked by CORS: ${origin}`);
-        return callback(new Error('Not allowed by CORS'), false);
-      }
-      return callback(null, true);
-    },
-    credentials: true,
-    // ✅ Allow both common CSRF/XSRF header spellings (case-insensitive browsers send what we set)
-    allowedHeaders: [
-      'Content-Type',
-      'Authorization',
-      'X-CSRF-Token',
-      'XSRF-TOKEN',
-      'x-xsrf-token', // <- lowercase variant used by some clients / examples
-      'X-XSRF-Token', // <- mixed-case alias
-    ],
-    exposedHeaders: ['Set-Cookie', 'XSRF-TOKEN'],
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    optionsSuccessStatus: 200,
-  })
-);
+// Preflight for all routes
+app.options('*', cors(corsOptions));
+
+// Actual CORS middleware
+app.use(cors(corsOptions));
 
 // =====================================
 // Body Parsers
@@ -78,7 +59,7 @@ app.use(express.urlencoded({ extended: true, limit: BODY_LIMIT }));
 // Initialize i18n
 app.use(i18nextMiddleware.handle(i18next));
 
-// Dev-only: log body size for posts
+// Dev only: log body size for posts
 if (env.NODE_ENV !== 'production') {
   app.use('/api/posts', debugBodySize);
 }
@@ -107,21 +88,26 @@ app.get('/api/auth/csrf', csrfWithLogging, (req, res) => {
 
     console.log('[CSRF][DEBUG][Set-Cookie] XSRF-TOKEN set with token value.');
 
-    if ((req as any).cookies?._csrfSecret) {
-      res.cookie('_csrfSecret', (req as any).cookies._csrfSecret, {
-        httpOnly: true,
-        secure: env.NODE_ENV === 'production',
-        sameSite: env.NODE_ENV === 'production' ? 'none' : 'lax',
-        domain: env.NODE_ENV === 'production' ? '.thehumantechblog.com' : undefined,
-        path: '/',
-      });
-      console.log('[CSRF][DEBUG][Set-Cookie] _csrfSecret cookie re-set (debug).');
+    if ((req as unknown as { cookies?: { _csrfSecret?: string } })?.cookies?._csrfSecret) {
+      res.cookie(
+        '_csrfSecret',
+        (req as unknown as { cookies?: { _csrfSecret?: string } })?.cookies?._csrfSecret as string,
+        {
+          httpOnly: true,
+          secure: env.NODE_ENV === 'production',
+          sameSite: env.NODE_ENV === 'production' ? 'none' : 'lax',
+          domain: env.NODE_ENV === 'production' ? '.thehumantechblog.com' : undefined,
+          path: '/',
+        }
+      );
+      console.log('[CSRF][DEBUG][Set-Cookie] _csrfSecret cookie re set (debug).');
     }
 
     console.log('[CSRF][DEBUG][RESPONSE] Returning JSON with csrfToken.');
     return res.status(200).json({ csrfToken: token });
-  } catch (err: any) {
-    console.error('[CSRF][ERROR] Failed to issue token:', err?.message);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    console.error('[CSRF][ERROR] Failed to issue token:', message);
     return res.status(500).json({ success: false, message: 'Failed to issue CSRF token' });
   }
 });
@@ -140,14 +126,14 @@ app.use((req, res, next) => {
 app.use(passport.initialize());
 
 // =========================
-// Routes
-// =========================
-app.use(buildRootRouter());
-
-// =========================
 // Compression
 // =========================
 app.use(compression());
+
+// =========================
+// Routes
+// =========================
+app.use(buildRootRouter());
 
 // =========================
 // Health Check & Root
@@ -172,6 +158,7 @@ type HttpError = Error & { status?: number };
 app.use(
   (err: HttpError, req: express.Request, res: express.Response, _next: express.NextFunction) => {
     let bodyInfo: string = '[no body]';
+
     try {
       const serialized = JSON.stringify(req.body);
       if (serialized) {
