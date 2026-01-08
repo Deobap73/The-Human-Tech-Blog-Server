@@ -2,6 +2,7 @@
 import { Router } from 'express';
 
 import automationTokenRoutes from './automationTokenRoutes';
+import postAutomationRoutes from './postAutomationRoutes';
 import csrfRouter from './csrf';
 import setupRoutes from './setupRoutes';
 import authRoutes from './authRoutes';
@@ -43,6 +44,7 @@ export function buildRootRouter() {
 
   // Public/general routes
   api.use('/', automationTokenRoutes);
+  api.use('/', postAutomationRoutes);
   api.use('/', csrfRouter);
   api.use('/setup', setupRoutes);
   api.use('/auth', authRoutes);
