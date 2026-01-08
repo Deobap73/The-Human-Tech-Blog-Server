@@ -1,6 +1,7 @@
 // /src/routes/index.ts
 import { Router } from 'express';
 
+import automationTokenRoutes from './automationTokenRoutes';
 import csrfRouter from './csrf';
 import setupRoutes from './setupRoutes';
 import authRoutes from './authRoutes';
@@ -41,6 +42,7 @@ export function buildRootRouter() {
   const api = Router();
 
   // Public/general routes
+  api.use('/', automationTokenRoutes);
   api.use('/', csrfRouter);
   api.use('/setup', setupRoutes);
   api.use('/auth', authRoutes);

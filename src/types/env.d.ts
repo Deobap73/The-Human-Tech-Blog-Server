@@ -17,6 +17,9 @@ declare namespace NodeJS {
     REFRESH_TOKEN_EXPIRATION_MS: string;
     isProduction: boolean;
 
+    // Automation tokens
+    AUTOMATION_TOKEN_PEPPER: string;
+
     // Cloudinary
     CLOUDINARY_CLOUD_NAME: string;
     CLOUDINARY_API_KEY: string;

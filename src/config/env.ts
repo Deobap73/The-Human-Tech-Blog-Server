@@ -43,6 +43,9 @@ export const env = cleanEnv(process.env, {
   REFRESH_TOKEN_EXPIRATION: str({ default: '7d' }),
   REFRESH_TOKEN_EXPIRATION_MS: num({ default: 604800000 }),
 
+  // Automation tokens
+  AUTOMATION_TOKEN_PEPPER: str(),
+
   // Cloudinary
   CLOUDINARY_CLOUD_NAME: str(),
   CLOUDINARY_API_KEY: str(),
