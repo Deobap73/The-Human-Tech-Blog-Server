@@ -1,4 +1,4 @@
-// File: src/controllers/postController.ts
+// ./src/controllers/postController.ts
 
 import { Request, Response } from 'express';
 import mongoose, { isValidObjectId } from 'mongoose';
@@ -8,6 +8,59 @@ import { IUser } from '../types/User';
 import { logAdminAction } from '../utils/logAdminAction';
 import { Types } from 'mongoose';
 import { generateUniqueSlug } from '../utils/generateUniqueSlug';
+import { sendMakePublishedWebhook } from '../services/makeWebhook.service';
+import type { MakePublishedWebhookPayload } from '../types/Make';
+
+function normalizeStatus(value: unknown): 'draft' | 'published' | 'archived' | '' {
+  if (typeof value !== 'string') return '';
+  const v = value.trim().toLowerCase();
+  if (v === 'draft' || v === 'published' || v === 'archived') return v;
+  return '';
+}
+
+function buildMakePayload(post: {
+  _id: unknown;
+  slug: string;
+  status: 'draft' | 'published' | 'archived';
+  isQuickPost?: boolean;
+  isAiPrompt?: boolean;
+  updatedAt: Date;
+}): MakePublishedWebhookPayload {
+  return {
+    postId: String(post._id),
+    slug: post.slug,
+    status: post.status,
+    isQuickPost: Boolean(post.isQuickPost),
+    isAiPrompt: Boolean(post.isAiPrompt),
+    updatedAt: post.updatedAt.toISOString(),
+  };
+}
+
+async function triggerMakeWebhookIfPublishedTransition(args: {
+  prevStatus: unknown;
+  nextStatus: unknown;
+  post: {
+    _id: unknown;
+    slug: string;
+    status: 'draft' | 'published' | 'archived';
+    isQuickPost?: boolean;
+    isAiPrompt?: boolean;
+    updatedAt: Date;
+  };
+}): Promise<void> {
+  const prev = normalizeStatus(args.prevStatus);
+  const next = normalizeStatus(args.nextStatus);
+
+  if (prev === 'published' || next !== 'published') return;
+
+  const payload = buildMakePayload(args.post);
+
+  // Best effort, never block the main flow
+  void sendMakePublishedWebhook(payload).catch((err: unknown) => {
+    const msg = err instanceof Error ? err.message : 'Unknown error';
+    console.error('[postController] Make webhook failed:', msg);
+  });
+}
 
 // Get all posts, optionally filtered by author
 export const getPosts = async (req: Request, res: Response) => {
@@ -97,6 +150,7 @@ export const publishDraft = async (req: Request, res: Response) => {
 
     const newPost = new Post({
       slug,
+      status: 'published',
       translations: {
         en: {
           title: draft.title,
@@ -120,6 +174,19 @@ export const publishDraft = async (req: Request, res: Response) => {
     // Populate author (consistency in response)
     await newPost.populate('author', 'name avatar _id');
     await newPost.populate('categories', 'translations slug logo');
+
+    await triggerMakeWebhookIfPublishedTransition({
+      prevStatus: 'draft',
+      nextStatus: newPost.status,
+      post: {
+        _id: newPost._id,
+        slug: newPost.slug,
+        status: newPost.status,
+        isQuickPost: Boolean(newPost.isQuickPost),
+        isAiPrompt: Boolean(newPost.isAiPrompt),
+        updatedAt: newPost.updatedAt,
+      },
+    });
 
     return res.status(201).json({ message: 'Draft published successfully', post: newPost });
   } catch (error) {
@@ -166,6 +233,9 @@ export const createPost = async (req: Request, res: Response) => {
     categories = categories.filter((id: any) => isValidObjectId(id));
 
     const slug = await generateUniqueSlug(req.body.translations?.en?.title || 'post');
+
+    const prevStatus: 'draft' = 'draft';
+
     const newPost = new Post({
       ...req.body,
       author: user._id,
@@ -173,6 +243,7 @@ export const createPost = async (req: Request, res: Response) => {
       tags,
       categories,
     });
+
     await newPost.save();
 
     await logAdminAction(user._id as Types.ObjectId, 'CREATE_POST', `Created post ${newPost._id}`);
@@ -180,6 +251,19 @@ export const createPost = async (req: Request, res: Response) => {
     // Populate author and categories for the response
     await newPost.populate('author', 'name avatar _id');
     await newPost.populate('categories', 'translations slug logo');
+
+    await triggerMakeWebhookIfPublishedTransition({
+      prevStatus,
+      nextStatus: newPost.status,
+      post: {
+        _id: newPost._id,
+        slug: newPost.slug,
+        status: newPost.status,
+        isQuickPost: Boolean(newPost.isQuickPost),
+        isAiPrompt: Boolean(newPost.isAiPrompt),
+        updatedAt: newPost.updatedAt,
+      },
+    });
 
     return res.status(201).json({ message: 'Post created', post: newPost });
   } catch (error) {
@@ -204,6 +288,8 @@ export const updatePost = async (req: Request, res: Response) => {
       return res.status(403).json({ message: 'Forbidden: not the author or admin' });
     }
 
+    const prevStatus = post.status;
+
     // Robust validation for ObjectId arrays (update scenario)
     let tags = Array.isArray(req.body.tags) ? req.body.tags : [];
     let categories = Array.isArray(req.body.categories) ? req.body.categories : [];
@@ -215,9 +301,22 @@ export const updatePost = async (req: Request, res: Response) => {
 
     await logAdminAction(user._id as Types.ObjectId, 'UPDATE_POST', `Updated post ${postId}`);
 
-    // Repopulate author and categories for up-to-date response
+    // Repopulate author and categories for up to date response
     await post.populate('author', 'name avatar _id');
     await post.populate('categories', 'translations slug logo');
+
+    await triggerMakeWebhookIfPublishedTransition({
+      prevStatus,
+      nextStatus: post.status,
+      post: {
+        _id: post._id,
+        slug: post.slug,
+        status: post.status,
+        isQuickPost: Boolean(post.isQuickPost),
+        isAiPrompt: Boolean(post.isAiPrompt),
+        updatedAt: post.updatedAt,
+      },
+    });
 
     return res.status(200).json({ message: 'Post updated', post });
   } catch (error) {

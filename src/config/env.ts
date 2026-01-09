@@ -1,3 +1,5 @@
+// src\config\env.ts
+
 'use strict';
 
 import path from 'path';
@@ -43,8 +45,12 @@ export const env = cleanEnv(process.env, {
   REFRESH_TOKEN_EXPIRATION: str({ default: '7d' }),
   REFRESH_TOKEN_EXPIRATION_MS: num({ default: 604800000 }),
 
-  // Automation tokens
+  // Make Automation tokens
   AUTOMATION_TOKEN_PEPPER: str(),
+
+  // === Make Webhook (publish) ===
+  MAKE_PUBLISHED_WEBHOOK_URL: str({ default: '' }),
+  MAKE_PUBLISHED_WEBHOOK_SECRET: str({ default: '' }),
 
   // Cloudinary
   CLOUDINARY_CLOUD_NAME: str(),
