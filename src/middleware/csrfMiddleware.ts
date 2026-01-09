@@ -1,33 +1,42 @@
-// The-Human-Tech-Blog-Server\src\middleware\csrfMiddleware.ts
+// src/middleware/csrfMiddleware.ts
 
 import csrf from 'csurf';
 import { Request, Response, NextFunction } from 'express';
 
 const isProduction = process.env.NODE_ENV === 'production';
 
-/**
- * CSRF protection middleware.
- * - Stores the secret in a HTTP-only cookie named "_csrfSecret"
- * - Expects the token in the "X-CSRF-Token" header (double-submit)
- */
+// rotas que nao devem usar CSRF porque sao chamadas por automacoes server to server
+const CSRF_BYPASS_PATHS = [
+  '/api/posts/automation',
+  // se tiveres mais endpoints de automacao, mete aqui
+];
+
+function shouldBypassCsrf(req: Request): boolean {
+  const path = req.originalUrl || req.path || '';
+  return CSRF_BYPASS_PATHS.some((p) => path.startsWith(p));
+}
+
 export const csrfProtection = csrf({
   cookie: {
-    key: '_csrfSecret', // secret is stored here (not exposed)
-    httpOnly: true, // not accessible by JS
-    secure: isProduction, // only sent over HTTPS in prod
+    key: '_csrfSecret',
+    httpOnly: true,
+    secure: isProduction,
     sameSite: isProduction ? 'none' : false,
     path: '/',
-    // domain REMOVED! Cookie will be scoped to api.thehumantechblog.com only.
   },
-  // Look for token in header, body or query
   value: (req) =>
     (req.headers['x-csrf-token'] as string) || req.body?._csrf || req.query?._csrf || '',
 });
 
-/**
- * Wrapper around csurf that logs both success and failure.
- */
 export const csrfWithLogging = (req: Request, res: Response, next: NextFunction) => {
+  if (shouldBypassCsrf(req)) {
+    console.log('[csrfWithLogging] CSRF bypass for automation route', {
+      method: req.method,
+      path: req.originalUrl,
+    });
+    return next();
+  }
+
   console.log('[csrfWithLogging] CSRF middleware triggered', {
     method: req.method,
     path: req.path,
@@ -36,7 +45,6 @@ export const csrfWithLogging = (req: Request, res: Response, next: NextFunction)
     cookies: req.cookies,
   });
 
-  // Delegate to the core csurf middleware
   return csrfProtection(req, res, (err) => {
     if (err) {
       console.error('[csrfWithLogging] CSRF validation failed', {
@@ -47,12 +55,8 @@ export const csrfWithLogging = (req: Request, res: Response, next: NextFunction)
         headers: req.headers,
       });
       return res.status(403).json({ message: 'CSRF token validation failed' });
-    } else {
-      console.log('[csrfWithLogging] CSRF validation successful', {
-        method: req.method,
-        path: req.path,
-      });
-      return next();
     }
+
+    return next();
   });
 };
