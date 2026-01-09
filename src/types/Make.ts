@@ -10,3 +10,12 @@ export type MakePublishedWebhookPayload = {
   isAiPrompt: boolean;
   updatedAt: string;
 };
+
+/**
+ * Final body sent to Make.
+ * We include a shared secret in the body to allow filtering in Make
+ * without relying on request headers.
+ */
+export type MakePublishedWebhookBody = MakePublishedWebhookPayload & {
+  makeSecret: string;
+};

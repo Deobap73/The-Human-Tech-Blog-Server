@@ -3,7 +3,7 @@
 'use strict';
 
 import { env } from '../config/env';
-import type { MakePublishedWebhookPayload } from '../types/Make';
+import type { MakePublishedWebhookBody, MakePublishedWebhookPayload } from '../types/Make';
 
 /**
  * Sends a webhook to Make when a post becomes published.
@@ -15,7 +15,9 @@ function getTimeoutMs(): number {
 }
 
 function isConfigured(): boolean {
-  return Boolean((env.MAKE_PUBLISHED_WEBHOOK_URL || '').trim());
+  const url = (env.MAKE_PUBLISHED_WEBHOOK_URL || '').trim();
+  const secret = (env.MAKE_PUBLISHED_WEBHOOK_SECRET || '').trim();
+  return Boolean(url) && Boolean(secret);
 }
 
 export async function sendMakePublishedWebhook(
@@ -25,9 +27,14 @@ export async function sendMakePublishedWebhook(
   const secret = (env.MAKE_PUBLISHED_WEBHOOK_SECRET || '').trim();
 
   if (!isConfigured()) {
-    console.warn('[makeWebhook] MAKE_PUBLISHED_WEBHOOK_URL not configured. Skipping.');
+    console.warn('[makeWebhook] Make webhook not configured. Skipping.');
     return false;
   }
+
+  const body: MakePublishedWebhookBody = {
+    ...payload,
+    makeSecret: secret,
+  };
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), getTimeoutMs());
@@ -35,11 +42,7 @@ export async function sendMakePublishedWebhook(
   try {
     const res = await fetch(url, {
       method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'x-make-secret': secret,
-      },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(body),
       signal: controller.signal,
     });
 
