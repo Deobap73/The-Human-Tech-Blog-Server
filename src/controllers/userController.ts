@@ -1,4 +1,6 @@
-// /src/controllers/userController.ts
+// The-Human-Tech-Blog-Server/src/controllers/userController.ts
+'use strict';
+
 import { Request, Response } from 'express';
 import Post from '../models/Post';
 import Draft from '../models/Draft';
@@ -7,68 +9,68 @@ import Comment from '../models/Comment';
 import User from '../models/User';
 import { uploadImageBuffer } from '../services/cloudinaryService';
 
-// GET /api/users/me
-export const getMe = async (req: Request, res: Response) => {
+export const getMe = async (req: Request, res: Response): Promise<Response> => {
   if (!req.user) {
     return res.status(401).json({ message: 'Unauthorized' });
   }
   return res.json(req.user);
 };
 
-// GET /api/users/me/posts
-export const getMyPosts = async (req: Request, res: Response) => {
+export const getMyPosts = async (req: Request, res: Response): Promise<Response> => {
   try {
     const posts = await Post.find({ author: req.user._id }).sort({ createdAt: -1 });
-    res.json(posts);
-  } catch (err) {
-    res.status(500).json({ message: 'Failed to fetch posts' });
+    return res.json(posts);
+  } catch {
+    return res.status(500).json({ message: 'Failed to fetch posts' });
   }
 };
 
-// GET /api/users/me/drafts
-export const getMyDrafts = async (req: Request, res: Response) => {
+export const getMyDrafts = async (req: Request, res: Response): Promise<Response> => {
   try {
     const drafts = await Draft.find({ author: req.user._id }).sort({ updatedAt: -1 });
-    res.json(drafts);
-  } catch (err) {
-    res.status(500).json({ message: 'Failed to fetch drafts' });
+    return res.json(drafts);
+  } catch {
+    return res.status(500).json({ message: 'Failed to fetch drafts' });
   }
 };
 
-// GET /api/users/me/bookmarks
-export const getMyBookmarks = async (req: Request, res: Response) => {
+export const getMyBookmarks = async (req: Request, res: Response): Promise<Response> => {
   try {
     const bookmarks = await Bookmark.find({ userId: req.user._id }).populate('postId');
-    res.json(bookmarks);
-  } catch (err) {
-    res.status(500).json({ message: 'Failed to fetch bookmarks' });
+    return res.json(bookmarks);
+  } catch {
+    return res.status(500).json({ message: 'Failed to fetch bookmarks' });
   }
 };
 
-// GET /api/users/me/comments
-export const getMyComments = async (req: Request, res: Response) => {
+export const getMyComments = async (req: Request, res: Response): Promise<Response> => {
   try {
     const comments = await Comment.find({ userId: req.user._id }).sort({ createdAt: -1 });
-    res.json(comments);
-  } catch (err) {
-    res.status(500).json({ message: 'Failed to fetch comments' });
+    return res.json(comments);
+  } catch {
+    return res.status(500).json({ message: 'Failed to fetch comments' });
   }
 };
 
-export const updateMe = async (req: Request, res: Response) => {
-  const { name, email } = req.body;
+export const updateMe = async (req: Request, res: Response): Promise<Response> => {
+  const { name, email } = req.body as { name?: string; email?: string };
   const userId = req.user?._id;
-  try {
-    let avatarUrl: string | undefined = req.body.avatar; // fallback: url da body, legacy
 
-    // Se veio um ficheiro avatar (form-data)
+  try {
+    let avatarUrl: string | undefined =
+      typeof req.body?.avatar === 'string' ? req.body.avatar : undefined;
+
     if (req.file) {
-      const uploadResult = await uploadImageBuffer(req.file.buffer, `user_${userId}_avatar`);
+      const uploadResult = await uploadImageBuffer(
+        req.file.buffer,
+        `user_${String(userId)}_avatar`
+      );
       avatarUrl = uploadResult.url;
     }
 
-    // Atualiza só campos definidos
-    const updateFields: any = { name, email };
+    const updateFields: Record<string, unknown> = {};
+    if (typeof name === 'string') updateFields.name = name;
+    if (typeof email === 'string') updateFields.email = email;
     if (avatarUrl) updateFields.avatar = avatarUrl;
 
     const user = await User.findByIdAndUpdate(userId, updateFields, {
@@ -76,19 +78,20 @@ export const updateMe = async (req: Request, res: Response) => {
       runValidators: true,
       context: 'query',
     }).select('-password');
+
     if (!user) return res.status(404).json({ message: 'User not found' });
+
     return res.json({ user });
-  } catch (err: any) {
+  } catch {
     return res.status(500).json({ message: 'Failed to update profile' });
   }
 };
 
-// GET /api/users - List all users (for chat, show only basic info)
-export const getUsers = async (_req: Request, res: Response) => {
+export const getUsers = async (_req: Request, res: Response): Promise<Response> => {
   try {
-    const users = await User.find({}, 'name _id avatar role').lean();
-    res.status(200).json(users);
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch users' });
+    const users = await User.find({}).select('name _id avatar role').lean();
+    return res.status(200).json(users);
+  } catch {
+    return res.status(500).json({ error: 'Failed to fetch users' });
   }
 };
