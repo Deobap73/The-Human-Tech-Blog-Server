@@ -1,4 +1,4 @@
-// /src/routes/index.ts
+// ./src/routes/index.ts
 import { Router } from 'express';
 
 import automationTokenRoutes from './automationTokenRoutes';
@@ -28,21 +28,20 @@ import analyticsRoutes from './analyticsRoutes';
 import sponsorRoutes from './sponsor.routes';
 import sitemapRoute from './sitemapRoute';
 
-// Projects (public + sync)
 import projectRoutes from './projectRoutes';
 import projectSyncRoutes from './projectSyncRoutes';
-import adminMaintenanceRoutes from './adminMaintenanceRoutes'; // ⬅️ adiciona aqui
+import adminMaintenanceRoutes from './adminMaintenanceRoutes';
 
-// NEW: admin-only sync routes (manual trigger)
 import projectSyncAdminRoutes from './projectSyncAdminRoutes';
+
+// NEW
+import uploadRoutes from './uploadRoutes';
 
 export function buildRootRouter() {
   const root = Router();
 
-  // --- API namespace ---
   const api = Router();
 
-  // Public/general routes
   api.use('/', automationTokenRoutes);
   api.use('/', postAutomationRoutes);
   api.use('/', csrfRouter);
@@ -69,17 +68,17 @@ export function buildRootRouter() {
   api.use('/analytics', analyticsRoutes);
   api.use('/sponsors', sponsorRoutes);
 
-  // Projects public + sync public
   api.use('/projects', projectRoutes);
   api.use('/projects', projectSyncRoutes);
 
-  // NEW: admin-only sync endpoints
   api.use('/', projectSyncAdminRoutes);
-  api.use('/', adminMaintenanceRoutes); // ⬅️ adiciona aqui
+  api.use('/', adminMaintenanceRoutes);
+
+  // NEW: upload routes
+  api.use('/', uploadRoutes);
 
   root.use('/api', api);
 
-  // --- Non-API (public) routes: sitemaps, etc. ---
   root.use('/', sitemapRoute);
 
   return root;
