@@ -1,4 +1,4 @@
-// src/services/cloudinaryService.ts
+// The-Human-Tech-Blog-Server/src/services/cloudinaryService.ts
 'use strict';
 
 import cloudinary from '../config/cloudinary';
@@ -9,18 +9,24 @@ export type UploadImageBufferArgs = {
   folder?: string;
 };
 
+export type UploadImageBufferResult = {
+  url: string;
+  public_id: string;
+  displayName: string;
+};
+
 export async function uploadImageBuffer(
   buffer: Buffer,
   filename: string
-): Promise<{ url: string; public_id: string }>;
+): Promise<UploadImageBufferResult>;
 export async function uploadImageBuffer(
   args: UploadImageBufferArgs
-): Promise<{ url: string; public_id: string }>;
+): Promise<UploadImageBufferResult>;
 
 export async function uploadImageBuffer(
   arg1: Buffer | UploadImageBufferArgs,
   arg2?: string
-): Promise<{ url: string; public_id: string }> {
+): Promise<UploadImageBufferResult> {
   const isBuf = Buffer.isBuffer(arg1);
 
   const buffer: Buffer = isBuf ? arg1 : arg1.buffer;
@@ -53,7 +59,17 @@ export async function uploadImageBuffer(
         if (error || !result) {
           return reject(error ?? new Error('Cloudinary upload returned no result'));
         }
-        return resolve({ url: result.secure_url, public_id: result.public_id });
+
+        const displayNameFromCloudinary =
+          (result as unknown as { display_name?: string }).display_name ?? '';
+
+        const displayName = (displayNameFromCloudinary || filename).trim();
+
+        return resolve({
+          url: result.secure_url,
+          public_id: result.public_id,
+          displayName,
+        });
       }
     );
 
