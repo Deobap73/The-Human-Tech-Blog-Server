@@ -1,4 +1,4 @@
-// src\config\env.ts
+// ./src/config/env.ts
 
 'use strict';
 
@@ -7,10 +7,10 @@ import dotenv from 'dotenv';
 import { cleanEnv, str, num, url, bool } from 'envalid';
 
 /**
- * Load .env files depending on NODE_ENV:
- * - production: assume variables come from the host (no file load)
- * - test: load .env.test
- * - development (default): load .env
+ * Load env files depending on NODE_ENV:
+ * production uses host variables
+ * test loads .env.test
+ * development loads .env
  */
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
@@ -24,10 +24,6 @@ if (NODE_ENV !== 'production') {
 
 /**
  * Validate environment variables (strict and typed).
- * Notes:
- * - FIGMA_TOKEN/GITHUB_TOKEN can be empty in dev; sync endpoints will handle missing tokens gracefully.
- * - ADMIN_SYNC_KEY is required (protects sync routes). Provide a non-empty value even in dev/test.
- * - BASE_URL is used in sitemap generation and must be a valid absolute URL.
  */
 export const env = cleanEnv(process.env, {
   NODE_ENV: str({ choices: ['development', 'production', 'test'], default: 'development' }),
@@ -45,12 +41,8 @@ export const env = cleanEnv(process.env, {
   REFRESH_TOKEN_EXPIRATION: str({ default: '7d' }),
   REFRESH_TOKEN_EXPIRATION_MS: num({ default: 604800000 }),
 
-  // Make Automation tokens
+  // Automation tokens
   AUTOMATION_TOKEN_PEPPER: str(),
-
-  // === Make Webhook (publish) ===
-  MAKE_PUBLISHED_WEBHOOK_URL: str({ default: '' }),
-  MAKE_PUBLISHED_WEBHOOK_SECRET: str({ default: '' }),
 
   // Cloudinary
   CLOUDINARY_CLOUD_NAME: str(),
@@ -69,9 +61,7 @@ export const env = cleanEnv(process.env, {
 
   // reCAPTCHA
   RECAPTCHA_SECRET: str(),
-  // Backend normalmente não precisa do SITE_KEY, mas deixamos opcional para debug/tools
   RECAPTCHA_SITE_KEY: str({ default: '' }),
-  // 🔥 NEW: Score mínimo para v3 (0.0–1.0). 0.5 é um bom ponto de partida.
   RECAPTCHA_MIN_SCORE: num({ default: 0.5 }),
 
   // Frontend URL
@@ -85,39 +75,41 @@ export const env = cleanEnv(process.env, {
   SMTP_PASS: str(),
   SMTP_TO: str(),
 
-  // 🔥 NEW: Base URL for sitemaps and canonical links
+  // Base URL
   BASE_URL: url({ default: 'https://thehumantechblog.com' }),
 
-  // 🔥 NEW: Tokens for semi-automatic sync (optional in dev)
+  // Tokens for semi automatic sync
   FIGMA_TOKEN: str({ default: '' }),
   GITHUB_TOKEN: str({ default: '' }),
 
-  // 🔥 NEW: Admin key to protect sync routes
+  // Admin key to protect sync routes
   ADMIN_SYNC_KEY: str(),
 
-  // === AI (OpenAI) ===
-  // 🔥 NEW: OpenAI API for ATS generation
+  // AI OpenAI
   OPENAI_API_KEY: str({ default: '' }),
   OPENAI_MODEL: str({ default: 'gpt-4o-mini' }),
 
-  // === PayPal ===
-  // 🔥 NEW: PayPal client credentials and API base (sandbox by default)
+  // PayPal
   PAYPAL_CLIENT_ID: str({ default: '' }),
   PAYPAL_SECRET: str({ default: '' }),
   PAYPAL_API_BASE: url({ default: 'https://api-m.sandbox.paypal.com' }),
 
-  // === ATS Product ===
-  // 🔥 NEW: Single-price product in EUR (server-enforced)
+  // ATS Product
   ATS_PRICE_EUR: num({ default: 0.5 }),
+
+  // Make published webhook
+  MAKE_PUBLISHED_WEBHOOK_URL: str({ default: '' }),
+  MAKE_PUBLISHED_WEBHOOK_SECRET: str({ default: '' }),
 });
 
 /**
- * Production safety: disallow localhost callback/clients in production.
+ * Production safety: disallow localhost callback clients in production.
  */
 if (env.isProduction) {
   const invalidUrls = [env.CLIENT_URL, env.GOOGLE_CALLBACK_URL, env.GITHUB_CALLBACK_URL].filter(
     (u) => u.includes('localhost')
   );
+
   if (invalidUrls.length) {
     throw new Error(
       `❌ ERROR: The following URLs must not point to localhost in production:\n${invalidUrls.join('\n')}`
