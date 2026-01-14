@@ -42,6 +42,9 @@ export async function sendMakePublishedWebhook(
   try {
     const res = await fetch(url, {
       method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+      },
       body: JSON.stringify(body),
       signal: controller.signal,
     });
