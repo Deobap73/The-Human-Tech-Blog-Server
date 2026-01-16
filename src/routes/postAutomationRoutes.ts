@@ -1,9 +1,12 @@
-// /src/routes/postAutomationRoutes.ts
+// ./src/routes/postAutomationRoutes.ts
 
 'use strict';
 
 import express from 'express';
+
 import { createPost, updatePost } from '../controllers/postController';
+import { createAutomationDraft } from '../controllers/automationPostsController';
+
 import { authorizeRoles } from '../middleware/roleMiddleware';
 import { protectAutomationToken } from '../middleware/automationTokenAuthMiddleware';
 
@@ -14,6 +17,14 @@ const router = express.Router();
  * No CSRF here by design.
  * Auth is via Authorization: Bearer at_<token>
  */
+
+router.post(
+  '/posts/automation/drafts',
+  protectAutomationToken,
+  authorizeRoles('admin', 'editor'),
+  createAutomationDraft
+);
+
 router.post(
   '/posts/automation',
   protectAutomationToken,

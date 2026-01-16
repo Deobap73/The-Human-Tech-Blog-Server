@@ -1,4 +1,6 @@
-// src/models/Post.ts
+// ./src/models/Post.ts
+
+'use strict';
 
 import mongoose, { Schema, Document, Types } from 'mongoose';
 
@@ -8,12 +10,20 @@ export interface PostTranslation {
   description?: string;
 }
 
+export type AutomationMeta = {
+  sheetId: string;
+  sourceKey: string;
+  contentKind: 'Post' | 'TechShort';
+  size: 'short' | 'medium' | 'large';
+  cta?: string;
+};
+
 export interface IPost extends Document {
   slug: string;
   image: string;
   status: 'draft' | 'published' | 'archived';
   isQuickPost?: boolean;
-  isAiPrompt?: boolean; // 🔥 NEW FIELD
+  isAiPrompt?: boolean;
   translations: {
     en: PostTranslation;
     pt?: PostTranslation;
@@ -24,6 +34,9 @@ export interface IPost extends Document {
   categories: Types.ObjectId[];
   tags: Types.ObjectId[];
   author: Types.ObjectId;
+
+  automation?: AutomationMeta;
+
   createdAt: Date;
   updatedAt: Date;
 }
@@ -33,6 +46,17 @@ const TranslationSchema = new Schema<PostTranslation>(
     title: { type: String },
     content: { type: String },
     description: { type: String },
+  },
+  { _id: false }
+);
+
+const AutomationSchema = new Schema<AutomationMeta>(
+  {
+    sheetId: { type: String, required: true },
+    sourceKey: { type: String, required: true, index: true },
+    contentKind: { type: String, enum: ['Post', 'TechShort'], required: true },
+    size: { type: String, enum: ['short', 'medium', 'large'], required: true },
+    cta: { type: String, required: false },
   },
   { _id: false }
 );
@@ -73,6 +97,8 @@ const PostSchema = new Schema<IPost>(
     categories: [{ type: Schema.Types.ObjectId, ref: 'Category' }],
     tags: [{ type: Schema.Types.ObjectId, ref: 'Tag' }],
     author: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+
+    automation: { type: AutomationSchema, required: false },
   },
   { timestamps: true }
 );

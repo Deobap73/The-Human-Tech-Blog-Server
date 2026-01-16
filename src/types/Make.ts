@@ -19,3 +19,43 @@ export type MakePublishedWebhookPayload = {
 export type MakePublishedWebhookBody = MakePublishedWebhookPayload & {
   makeSecret: string;
 };
+
+export type AutomationTranslationInput = {
+  title: string;
+  description: string;
+  content: string;
+};
+
+export type AutomationCreateDraftBody = {
+  sheetId: string;
+  sourceKey: string;
+
+  contentKind: 'Post' | 'TechShort';
+  size: 'short' | 'medium' | 'large';
+
+  imageUrl: string;
+  cta?: string;
+
+  categorySlugs: string[];
+  tagSlugs: string[];
+
+  isAiPrompt?: boolean;
+
+  translations: {
+    en: AutomationTranslationInput;
+    pt: AutomationTranslationInput;
+    de: AutomationTranslationInput;
+    es: AutomationTranslationInput;
+  };
+};
+
+export type AutomationCreateDraftResponse =
+  | {
+      ok: true;
+      postId: string;
+      slug: string;
+    }
+  | {
+      ok: false;
+      error: string;
+    };
