@@ -118,6 +118,10 @@ app.use((req, res, next) => {
   if (req.method === 'GET' && req.path === '/health') return next();
   if (req.method === 'POST' && req.path === '/api/auth/refresh') return next();
   if (req.method === 'OPTIONS') return next();
+
+  // Allow Make automation endpoints without CSRF
+  if (req.path.startsWith('/api/posts/automation')) return next();
+
   return csrfWithLogging(req, res, next);
 });
 
