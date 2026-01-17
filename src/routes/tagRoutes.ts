@@ -7,12 +7,22 @@ import {
   createTag,
   deleteTag,
   getPostsByTagSlug,
+  resolveTagIdsBySlugs,
 } from '../controllers/tagController';
 import { protect } from '../middleware/authMiddleware';
 import { authorizeRoles } from '../middleware/roleMiddleware';
 import { detectLanguage } from '../middleware/detectLanguage';
 
+import { protectAutomationToken } from '../middleware/automationTokenAuthMiddleware';
+
 const router = express.Router();
+
+router.post(
+  '/resolve',
+  protectAutomationToken,
+  authorizeRoles('admin', 'editor'),
+  resolveTagIdsBySlugs
+);
 
 // Default tags endpoint at /api/tags
 router.get(

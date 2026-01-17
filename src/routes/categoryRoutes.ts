@@ -5,11 +5,13 @@ import {
   createCategory,
   updateCategory,
   deleteCategory,
-  getPostsByCategory, // NEW - suporta slug e id
-  getCategoryBySlug, // LEGACY, pode remover depois se não usares
-} from /*  getPostsByCategorySlug, */ '../controllers/categoryController';
+  getPostsByCategory,
+  getCategoryBySlug,
+  resolveCategoryIdBySlug,
+} from '../controllers/categoryController';
 import { protect } from '../middleware/authMiddleware';
 import { authorizeRoles } from '../middleware/roleMiddleware';
+import { protectAutomationToken } from '../middleware/automationTokenAuthMiddleware';
 
 const router = express.Router();
 
@@ -25,5 +27,12 @@ router.get('/:slugOrId/posts', getPostsByCategory);
 // router.get('/:slug/posts', getPostsByCategorySlug);
 
 router.get('/:slug', getCategoryBySlug);
+
+router.get(
+  '/resolve',
+  protectAutomationToken,
+  authorizeRoles('admin', 'editor'),
+  resolveCategoryIdBySlug
+);
 
 export default router;

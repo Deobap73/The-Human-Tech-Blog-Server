@@ -69,3 +69,38 @@ export const getPostsByTagSlug = async (req: Request, res: Response) => {
     return res.status(500).json({ message: 'Failed to fetch posts for tag' });
   }
 };
+
+export const resolveTagIdsBySlugs = async (req: Request, res: Response) => {
+  try {
+    const input = req.body?.slugs;
+    const slugsRaw = Array.isArray(input) ? input : [];
+
+    const slugs = slugsRaw
+      .filter((v) => typeof v === 'string')
+      .map((v) => v.trim().toLowerCase())
+      .filter((v) => v.length > 0);
+
+    if (slugs.length === 0) {
+      return res.status(400).json({ ok: false, error: 'slugs array is required' });
+    }
+
+    const tags = await Tag.find({ slug: { $in: slugs } })
+      .select('_id slug')
+      .lean();
+
+    const foundSlugs = new Set(tags.map((t) => t.slug));
+    const missingSlugs = slugs.filter((s) => !foundSlugs.has(s));
+
+    const ids = tags.map((t) => String(t._id));
+
+    return res.status(200).json({
+      ok: true,
+      ids,
+      count: ids.length,
+      missingSlugs,
+    });
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : 'Unknown error';
+    return res.status(500).json({ ok: false, error: msg });
+  }
+};

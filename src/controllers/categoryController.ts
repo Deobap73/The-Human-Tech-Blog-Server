@@ -151,3 +151,26 @@ export const getPostsByCategory = async (req: Request, res: Response) => {
     return res.status(500).json({ message: 'Failed to fetch posts for category' });
   }
 };
+
+// Resolve category id by slug
+export const resolveCategoryIdBySlug = async (req: Request, res: Response) => {
+  try {
+    const raw = typeof req.query.slug === 'string' ? req.query.slug : '';
+    const slug = raw.trim().toLowerCase();
+
+    if (!slug) {
+      return res.status(400).json({ ok: false, error: 'slug query param is required' });
+    }
+
+    const category = await Category.findOne({ slug }).select('_id slug').lean();
+
+    if (!category) {
+      return res.status(404).json({ ok: false, error: 'Category not found', slug });
+    }
+
+    return res.status(200).json({ ok: true, id: String(category._id), slug: category.slug });
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : 'Unknown error';
+    return res.status(500).json({ ok: false, error: msg });
+  }
+};
