@@ -11,11 +11,6 @@ export type MakePublishedWebhookPayload = {
   updatedAt: string;
 };
 
-/**
- * Final body sent to Make.
- * We include a shared secret in the body to allow filtering in Make
- * without relying on request headers.
- */
 export type MakePublishedWebhookBody = MakePublishedWebhookPayload & {
   makeSecret: string;
 };
@@ -25,6 +20,8 @@ export type AutomationTranslationInput = {
   description: string;
   content: string;
 };
+
+type SlugsInput = string[] | string;
 
 export type AutomationCreateDraftBody = {
   sheetId: string;
@@ -36,8 +33,8 @@ export type AutomationCreateDraftBody = {
   imageUrl: string;
   cta?: string;
 
-  categorySlugs: string[];
-  tagSlugs: string[];
+  categorySlugs: SlugsInput;
+  tagSlugs: SlugsInput;
 
   isAiPrompt?: boolean;
 
