@@ -23,12 +23,17 @@ function normalizeString(input: unknown): string {
 }
 
 /**
- * Sanitizes a slug into a stable format:
- * lowercased
- * spaces to underscore
- * removes diacritics
- * removes invalid characters
- * collapses consecutive underscores
+ * Sanitizes a slug into a stable format that matches the project convention.
+ * Convention: lowercase and hyphen separated.
+ *
+ * Rules:
+ * - keeps letters and numbers
+ * - keeps hyphens
+ * - converts spaces and underscores into hyphens
+ * - removes diacritics
+ * - removes other characters
+ * - collapses repeated hyphens
+ * - trims hyphens from start and end
  */
 function sanitizeSlug(input: string): string {
   const safe = typeof input === 'string' ? input : '';
@@ -40,11 +45,15 @@ function sanitizeSlug(input: string): string {
     .replace(/[\u0300-\u036f]/g, '');
 
   const cleaned = normalized
-    .replace(/[^a-z0-9\s_]/g, ' ')
-    .replace(/\s+/g, '_')
-    .replace(/_+/g, '_')
-    .replace(/^_+/, '')
-    .replace(/_+$/, '');
+    // keep letters, numbers, spaces, underscores, and hyphens
+    .replace(/[^a-z0-9\s_-]/g, ' ')
+    // convert whitespace and underscores into hyphens
+    .replace(/[\s_]+/g, '-')
+    // collapse repeated hyphens
+    .replace(/-+/g, '-')
+    // trim hyphens
+    .replace(/^-+/, '')
+    .replace(/-+$/, '');
 
   return cleaned;
 }
