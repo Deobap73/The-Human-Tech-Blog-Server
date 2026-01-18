@@ -29,7 +29,7 @@ function normalizeString(input: unknown): string {
 
 function pickLangTranslation(
   translations: Record<string, AutomationTranslationInput> | undefined,
-  lang: 'en' | 'pt' | 'de' | 'es'
+  lang: 'en' | 'pt' | 'de' | 'es',
 ): AutomationTranslationInput | null {
   if (!translations) return null;
   const t = translations[lang];
@@ -64,24 +64,64 @@ async function resolveCategoryIdsBySlugs(categorySlugs: string[]): Promise<Types
   return categorySlugs.map((s) => map.get(s) as Types.ObjectId);
 }
 
+// Search for tags by slug, create any missing ones, and always return an array of IDs in the same order as the input.
+
 async function resolveTagIdsBySlugs(tagSlugs: string[]): Promise<Types.ObjectId[]> {
   if (!tagSlugs.length) return [];
 
-  const tags = await Tag.find({ slug: { $in: tagSlugs } })
+  const normalized = tagSlugs
+    .map((s) => (typeof s === 'string' ? s.trim().toLowerCase() : ''))
+    .filter((s) => Boolean(s));
+
+  if (!normalized.length) return [];
+
+  const unique = Array.from(new Set(normalized));
+
+  const existing = await Tag.find({ slug: { $in: unique } })
     .select('_id slug')
     .lean();
 
   const map = new Map<string, Types.ObjectId>();
-  for (const t of tags) {
+  for (const t of existing) {
     map.set(String((t as any).slug), (t as any)._id as Types.ObjectId);
   }
 
-  const missing = tagSlugs.filter((s) => !map.has(s));
+  const missing = unique.filter((s) => !map.has(s));
+
   if (missing.length) {
-    throw new Error(`Missing tags: ${missing.join(', ')}`);
+    const docsToCreate = missing.map((slug) => ({
+      slug,
+      color: '#cccccc',
+      translations: {
+        en: { name: slug },
+        pt: { name: slug },
+        de: { name: slug },
+        es: { name: slug },
+      },
+    }));
+
+    try {
+      const created = await Tag.insertMany(docsToCreate, { ordered: false });
+      for (const c of created) {
+        map.set(String((c as any).slug), (c as any)._id as Types.ObjectId);
+      }
+    } catch (err: any) {
+      const createdNow = await Tag.find({ slug: { $in: missing } })
+        .select('_id slug')
+        .lean();
+
+      for (const t of createdNow) {
+        map.set(String((t as any).slug), (t as any)._id as Types.ObjectId);
+      }
+    }
   }
 
-  return tagSlugs.map((s) => map.get(s) as Types.ObjectId);
+  const stillMissing = unique.filter((s) => !map.has(s));
+  if (stillMissing.length) {
+    throw new Error(`Missing tags after create attempt: ${stillMissing.join(', ')}`);
+  }
+
+  return normalized.map((s) => map.get(s) as Types.ObjectId);
 }
 
 /**
