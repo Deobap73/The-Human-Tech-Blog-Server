@@ -1,4 +1,4 @@
-// ./src/controllers/automationPostsController.ts
+// /src/controllers/automationPostsController.ts
 
 'use strict';
 
@@ -18,23 +18,51 @@ import type {
   AutomationTranslationInput,
 } from '../types/Make';
 
-function normalizeSlugArray(input: unknown): string[] {
-  if (Array.isArray(input)) {
-    return input.map((v) => (typeof v === 'string' ? v.trim() : '')).filter((v) => Boolean(v));
-  }
-
-  if (typeof input === 'string') {
-    return input
-      .split(',')
-      .map((v) => v.trim())
-      .filter((v) => Boolean(v));
-  }
-
-  return [];
-}
-
 function normalizeString(input: unknown): string {
   return typeof input === 'string' ? input.trim() : '';
+}
+
+/**
+ * Sanitizes a slug into a stable format:
+ * lowercased
+ * spaces to underscore
+ * removes diacritics
+ * removes invalid characters
+ * collapses consecutive underscores
+ */
+function sanitizeSlug(input: string): string {
+  const safe = typeof input === 'string' ? input : '';
+
+  const normalized = safe
+    .trim()
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '');
+
+  const cleaned = normalized
+    .replace(/[^a-z0-9\s_]/g, ' ')
+    .replace(/\s+/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_+/, '')
+    .replace(/_+$/, '');
+
+  return cleaned;
+}
+
+function normalizeSlugArray(input: unknown): string[] {
+  const rawValues: string[] = [];
+
+  if (Array.isArray(input)) {
+    for (const v of input) {
+      if (typeof v === 'string') rawValues.push(v);
+    }
+  } else if (typeof input === 'string') {
+    rawValues.push(...input.split(','));
+  }
+
+  const cleaned = rawValues.map((v) => sanitizeSlug(v)).filter((v) => Boolean(v));
+
+  return cleaned;
 }
 
 function pickLangTranslation(
@@ -74,14 +102,14 @@ async function resolveCategoryIdsBySlugs(categorySlugs: string[]): Promise<Types
   return categorySlugs.map((s) => map.get(s) as Types.ObjectId);
 }
 
-// Search for tags by slug, create any missing ones, and always return an array of IDs in the same order as the input.
-
+/**
+ * Search for tags by slug, create any missing ones, and always return an array of IDs
+ * in the same order as the input.
+ */
 async function resolveTagIdsBySlugs(tagSlugs: string[]): Promise<Types.ObjectId[]> {
   if (!tagSlugs.length) return [];
 
-  const normalized = tagSlugs
-    .map((s) => (typeof s === 'string' ? s.trim().toLowerCase() : ''))
-    .filter((s) => Boolean(s));
+  const normalized = tagSlugs.map((s) => sanitizeSlug(s)).filter((s) => Boolean(s));
 
   if (!normalized.length) return [];
 
@@ -115,7 +143,7 @@ async function resolveTagIdsBySlugs(tagSlugs: string[]): Promise<Types.ObjectId[
       for (const c of created) {
         map.set(String((c as any).slug), (c as any)._id as Types.ObjectId);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       const createdNow = await Tag.find({ slug: { $in: missing } })
         .select('_id slug')
         .lean();
@@ -137,7 +165,6 @@ async function resolveTagIdsBySlugs(tagSlugs: string[]): Promise<Types.ObjectId[
 /**
  * POST /posts/automation/drafts
  * Auth: Automation token
- * Role: admin or editor
  *
  * Creates a draft post from Make using:
  * category slugs
