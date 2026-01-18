@@ -19,8 +19,18 @@ import type {
 } from '../types/Make';
 
 function normalizeSlugArray(input: unknown): string[] {
-  if (!Array.isArray(input)) return [];
-  return input.map((v) => (typeof v === 'string' ? v.trim() : '')).filter((v) => Boolean(v));
+  if (Array.isArray(input)) {
+    return input.map((v) => (typeof v === 'string' ? v.trim() : '')).filter((v) => Boolean(v));
+  }
+
+  if (typeof input === 'string') {
+    return input
+      .split(',')
+      .map((v) => v.trim())
+      .filter((v) => Boolean(v));
+  }
+
+  return [];
 }
 
 function normalizeString(input: unknown): string {
