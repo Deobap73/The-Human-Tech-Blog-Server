@@ -1,4 +1,4 @@
-// ./src/services/markdownToTiptap.service.ts
+// /src/services/markdownToTiptap.service.ts
 
 'use strict';
 
@@ -51,12 +51,31 @@ function makeOrderedList(items: string[]): TiptapNode {
 }
 
 /**
+ * Creates a TipTap codeBlock node.
+ * TipTap stores code as a single text node with line breaks preserved.
+ */
+function makeCodeBlock(language: string, code: string): TiptapNode {
+  const lang = typeof language === 'string' ? language.trim() : '';
+  const safeLang = lang ? lang : null;
+
+  const attrs: Record<string, unknown> = {};
+  if (safeLang) attrs.language = safeLang;
+
+  return {
+    type: 'codeBlock',
+    attrs,
+    content: [makeTextNode(code)],
+  };
+}
+
+/**
  * Converts light markdown to TipTap JSON.
  * Rules:
  * Empty line splits blocks
  * Leading # or ## or ### creates headings
  * Leading * or • creates bullet lists
  * Leading 1. 2. 3. creates ordered list
+ * Fenced code blocks ```lang ... ``` become codeBlock nodes
  * Everything else becomes paragraph
  */
 export function markdownToTiptap(markdown: string): TiptapDoc {
@@ -73,6 +92,15 @@ export function markdownToTiptap(markdown: string): TiptapDoc {
     blocks.push(makeParagraph(text));
   };
 
+  const isFenceStart = (line: string): boolean => {
+    return line.startsWith('```');
+  };
+
+  const readFenceLanguage = (line: string): string => {
+    const raw = line.slice(3).trim();
+    return raw;
+  };
+
   let i = 0;
 
   while (i < lines.length) {
@@ -82,6 +110,37 @@ export function markdownToTiptap(markdown: string): TiptapDoc {
     if (!line) {
       flushParagraph();
       i += 1;
+      continue;
+    }
+
+    // Fenced code block
+    if (isFenceStart(line)) {
+      flushParagraph();
+
+      const language = readFenceLanguage(line);
+      const codeLines: string[] = [];
+
+      i += 1;
+
+      while (i < lines.length) {
+        const currentRaw = lines[i] ?? '';
+        const currentTrimmed = currentRaw.trim();
+
+        if (currentTrimmed.startsWith('```')) {
+          break;
+        }
+
+        codeLines.push(currentRaw);
+        i += 1;
+      }
+
+      // Skip closing fence if present
+      if (i < lines.length && (lines[i] ?? '').trim().startsWith('```')) {
+        i += 1;
+      }
+
+      const code = codeLines.join('\n').replace(/\s+$/, '');
+      blocks.push(makeCodeBlock(language, code));
       continue;
     }
 

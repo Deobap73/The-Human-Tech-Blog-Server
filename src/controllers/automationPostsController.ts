@@ -58,15 +58,32 @@ function sanitizeSlug(input: string): string {
   return cleaned;
 }
 
+/**
+ * Normalizes an input that may arrive as:
+ * - "a,b,c"
+ * - ["a", "b", "c"]
+ * - ["a,b,c"]
+ *
+ * Always returns an array of sanitized slugs.
+ */
 function normalizeSlugArray(input: unknown): string[] {
   const rawValues: string[] = [];
 
+  const pushPartsFromString = (value: string): void => {
+    const parts = value
+      .split(',')
+      .map((p) => p.trim())
+      .filter((p) => Boolean(p));
+    rawValues.push(...parts);
+  };
+
   if (Array.isArray(input)) {
     for (const v of input) {
-      if (typeof v === 'string') rawValues.push(v);
+      if (typeof v !== 'string') continue;
+      pushPartsFromString(v);
     }
   } else if (typeof input === 'string') {
-    rawValues.push(...input.split(','));
+    pushPartsFromString(input);
   }
 
   const cleaned = rawValues.map((v) => sanitizeSlug(v)).filter((v) => Boolean(v));
