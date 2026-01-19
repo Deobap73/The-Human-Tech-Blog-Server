@@ -50,10 +50,6 @@ function makeOrderedList(items: string[]): TiptapNode {
   };
 }
 
-/**
- * Creates a TipTap codeBlock node.
- * TipTap stores code as a single text node with line breaks preserved.
- */
 function makeCodeBlock(language: string, code: string): TiptapNode {
   const lang = typeof language === 'string' ? language.trim() : '';
   const safeLang = lang ? lang : null;
@@ -68,15 +64,39 @@ function makeCodeBlock(language: string, code: string): TiptapNode {
   };
 }
 
+function isFenceStart(line: string): boolean {
+  return line.startsWith('```');
+}
+
+function readFenceLanguage(line: string): string {
+  return line.slice(3).trim();
+}
+
+/**
+ * Supports markdown headings:
+ * - #### Heading (maps to level 4)
+ * - ### Heading (level 3)
+ * - ## Heading (level 2)
+ * - # Heading (level 1)
+ */
+function readHeading(line: string): { level: number; text: string } | null {
+  const m = line.match(/^(#{1,6})\s+(.*)$/);
+  if (!m) return null;
+
+  const level = m[1]?.length ?? 0;
+  const text = (m[2] ?? '').trim();
+  if (!level || !text) return null;
+
+  return { level, text };
+}
+
 /**
  * Converts light markdown to TipTap JSON.
- * Rules:
- * Empty line splits blocks
- * Leading # or ## or ### creates headings
- * Leading * or • creates bullet lists
- * Leading 1. 2. 3. creates ordered list
- * Fenced code blocks ```lang ... ``` become codeBlock nodes
- * Everything else becomes paragraph
+ * - Empty line splits blocks
+ * - Headings #..###### supported (including ####)
+ * - Bullet lists: "* " or "• "
+ * - Ordered lists: "1. " etc
+ * - Fenced code blocks ```lang ... ``` become codeBlock nodes
  */
 export function markdownToTiptap(markdown: string): TiptapDoc {
   const safe = typeof markdown === 'string' ? markdown : '';
@@ -92,49 +112,35 @@ export function markdownToTiptap(markdown: string): TiptapDoc {
     blocks.push(makeParagraph(text));
   };
 
-  const isFenceStart = (line: string): boolean => {
-    return line.startsWith('```');
-  };
-
-  const readFenceLanguage = (line: string): string => {
-    const raw = line.slice(3).trim();
-    return raw;
-  };
-
   let i = 0;
 
   while (i < lines.length) {
     const raw = lines[i] ?? '';
-    const line = raw.trim();
+    const trimmed = raw.trim();
 
-    if (!line) {
+    if (!trimmed) {
       flushParagraph();
       i += 1;
       continue;
     }
 
-    // Fenced code block
-    if (isFenceStart(line)) {
+    if (isFenceStart(trimmed)) {
       flushParagraph();
 
-      const language = readFenceLanguage(line);
+      const language = readFenceLanguage(trimmed);
       const codeLines: string[] = [];
-
       i += 1;
 
       while (i < lines.length) {
         const currentRaw = lines[i] ?? '';
         const currentTrimmed = currentRaw.trim();
 
-        if (currentTrimmed.startsWith('```')) {
-          break;
-        }
+        if (currentTrimmed.startsWith('```')) break;
 
         codeLines.push(currentRaw);
         i += 1;
       }
 
-      // Skip closing fence if present
       if (i < lines.length && (lines[i] ?? '').trim().startsWith('```')) {
         i += 1;
       }
@@ -144,28 +150,15 @@ export function markdownToTiptap(markdown: string): TiptapDoc {
       continue;
     }
 
-    if (line.startsWith('### ')) {
+    const heading = readHeading(trimmed);
+    if (heading) {
       flushParagraph();
-      blocks.push(makeHeading(3, line.slice(4).trim()));
+      blocks.push(makeHeading(heading.level, heading.text));
       i += 1;
       continue;
     }
 
-    if (line.startsWith('## ')) {
-      flushParagraph();
-      blocks.push(makeHeading(2, line.slice(3).trim()));
-      i += 1;
-      continue;
-    }
-
-    if (line.startsWith('# ')) {
-      flushParagraph();
-      blocks.push(makeHeading(1, line.slice(2).trim()));
-      i += 1;
-      continue;
-    }
-
-    const isBullet = line.startsWith('* ') || line.startsWith('• ');
+    const isBullet = trimmed.startsWith('* ') || trimmed.startsWith('• ');
     if (isBullet) {
       flushParagraph();
 
@@ -182,7 +175,7 @@ export function markdownToTiptap(markdown: string): TiptapDoc {
       continue;
     }
 
-    const orderedMatch = line.match(/^\d+\.\s+/);
+    const orderedMatch = trimmed.match(/^\d+\.\s+/);
     if (orderedMatch) {
       flushParagraph();
 
@@ -199,7 +192,7 @@ export function markdownToTiptap(markdown: string): TiptapDoc {
       continue;
     }
 
-    buffer.push(line);
+    buffer.push(trimmed);
     i += 1;
   }
 
@@ -208,9 +201,6 @@ export function markdownToTiptap(markdown: string): TiptapDoc {
   return { type: 'doc', content: blocks };
 }
 
-/**
- * Helper to store TipTap content in Mongo when the schema expects string.
- */
 export function markdownToTiptapString(markdown: string): string {
   const doc = markdownToTiptap(markdown);
   return JSON.stringify(doc);
