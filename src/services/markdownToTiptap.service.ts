@@ -1,4 +1,4 @@
-// /src/services/markdownToTiptap.service.ts
+// Blog Project\The-Human-Tech-Blog-Server\src\services\markdownToTiptap.service.ts
 
 'use strict';
 
@@ -9,8 +9,12 @@ export type TiptapDoc = {
   content: TiptapNode[];
 };
 
-function makeTextNode(text: string): TiptapNode {
-  return { type: 'text', text };
+function makeTextNode(text: string, marks: Array<{ type: string }> = []): TiptapNode {
+  const node: TiptapNode = { type: 'text', text };
+  if (marks.length > 0) {
+    node.marks = marks;
+  }
+  return node;
 }
 
 function makeParagraph(text: string): TiptapNode {
@@ -20,12 +24,22 @@ function makeParagraph(text: string): TiptapNode {
   };
 }
 
-function makeHeading(level: number, text: string): TiptapNode {
-  const safeLevel = level >= 1 && level <= 6 ? level : 2;
+function makeStyledHeading(level: number, text: string): TiptapNode {
+  const safeLevel = level >= 1 && level <= 6 ? level : 4;
+
+  // Remove formatação markdown se existir (***text***)
+  let cleanText = text.trim();
+  const hasBoldItalicMarkers = cleanText.startsWith('***') && cleanText.endsWith('***');
+
+  if (hasBoldItalicMarkers) {
+    cleanText = cleanText.slice(3, -3).trim();
+  }
+
+  // Cria o nó de heading com formatação bold e italic
   return {
     type: 'heading',
     attrs: { level: safeLevel },
-    content: [makeTextNode(text)],
+    content: [makeTextNode(cleanText, [{ type: 'bold' }, { type: 'italic' }])],
   };
 }
 
@@ -78,8 +92,10 @@ function readFenceLanguage(line: string): string {
  * - ### Heading (level 3)
  * - ## Heading (level 2)
  * - # Heading (level 1)
+ * Also supports formatted headings: #### ***Heading***
  */
 function readHeading(line: string): { level: number; text: string } | null {
+  // Match headings with optional bold/italic markers
   const m = line.match(/^(#{1,6})\s+(.*)$/);
   if (!m) return null;
 
@@ -97,6 +113,7 @@ function readHeading(line: string): { level: number; text: string } | null {
  * - Bullet lists: "* " or "• "
  * - Ordered lists: "1. " etc
  * - Fenced code blocks ```lang ... ``` become codeBlock nodes
+ * - Headings are automatically styled as bold and italic
  */
 export function markdownToTiptap(markdown: string): TiptapDoc {
   const safe = typeof markdown === 'string' ? markdown : '';
@@ -153,7 +170,8 @@ export function markdownToTiptap(markdown: string): TiptapDoc {
     const heading = readHeading(trimmed);
     if (heading) {
       flushParagraph();
-      blocks.push(makeHeading(heading.level, heading.text));
+      // Usa makeStyledHeading para aplicar bold e italic automaticamente
+      blocks.push(makeStyledHeading(heading.level, heading.text));
       i += 1;
       continue;
     }
