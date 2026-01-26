@@ -1,5 +1,4 @@
-// ./src/controllers/uploadController.ts
-
+// The-Human-Tech-Blog-Server/src/controllers/uploadController.ts
 'use strict';
 
 import type { Request, Response } from 'express';
@@ -12,6 +11,7 @@ type UploadPostCoverBody = {
   isQuickPost?: string;
   isAiPrompt?: string;
   categoryId?: string;
+  categorySlug?: string;
 };
 
 function parseBoolean(value: unknown): boolean {
@@ -38,31 +38,56 @@ function mapCategorySlugToFolder(slug: string): string {
   return map[s] ?? 'Tech-Tools';
 }
 
-async function resolveFolder(params: {
-  isQuickPost: boolean;
-  isAiPrompt: boolean;
+async function resolveCategorySlug(params: {
   categoryId?: string;
-}): Promise<{ folderName: string; reason: string }> {
-  if (params.isAiPrompt) {
-    return { folderName: 'Prompt', reason: 'isAiPrompt' };
-  }
-
-  if (params.isQuickPost) {
-    return { folderName: 'Tech-Shorts', reason: 'isQuickPost' };
+  categorySlug?: string;
+}): Promise<{ slug: string | null; reason: string }> {
+  if (typeof params.categorySlug === 'string' && params.categorySlug.trim()) {
+    return { slug: params.categorySlug.trim(), reason: 'categorySlug:body' };
   }
 
   const categoryId = params.categoryId;
   if (!categoryId || !isValidObjectId(categoryId)) {
-    return { folderName: 'Tech-Tools', reason: 'fallback:no-category' };
+    return { slug: null, reason: 'missing-or-invalid-categoryId' };
   }
 
   const cat = await Category.findById(categoryId).select('slug').lean<{ slug?: string } | null>();
   const slug = cat?.slug ?? '';
   if (!slug) {
-    return { folderName: 'Tech-Tools', reason: 'fallback:category-no-slug' };
+    return { slug: null, reason: 'categoryId:db-no-slug' };
   }
 
-  return { folderName: mapCategorySlugToFolder(slug), reason: `category:${slug}` };
+  return { slug, reason: 'categoryId:db' };
+}
+
+async function resolveFolder(params: {
+  isQuickPost: boolean;
+  isAiPrompt: boolean;
+  categoryId?: string;
+  categorySlug?: string;
+}): Promise<{ folderName: string; reason: string; slugUsed: string | null }> {
+  if (params.isAiPrompt) {
+    return { folderName: 'Prompt', reason: 'isAiPrompt', slugUsed: null };
+  }
+
+  if (params.isQuickPost) {
+    return { folderName: 'Tech-Shorts', reason: 'isQuickPost', slugUsed: null };
+  }
+
+  const { slug, reason } = await resolveCategorySlug({
+    categoryId: params.categoryId,
+    categorySlug: params.categorySlug,
+  });
+
+  if (!slug) {
+    return { folderName: '', reason: `missing-category:${reason}`, slugUsed: null };
+  }
+
+  return {
+    folderName: mapCategorySlugToFolder(slug),
+    reason: `category:${slug}:${reason}`,
+    slugUsed: slug,
+  };
 }
 
 export async function uploadPostCover(req: Request, res: Response): Promise<Response> {
@@ -76,16 +101,34 @@ export async function uploadPostCover(req: Request, res: Response): Promise<Resp
 
     const isQuickPost = parseBoolean(body.isQuickPost);
     const isAiPrompt = parseBoolean(body.isAiPrompt);
-    const categoryId = typeof body.categoryId === 'string' ? body.categoryId : undefined;
 
-    const { folderName, reason } = await resolveFolder({ isQuickPost, isAiPrompt, categoryId });
+    const categoryId = typeof body.categoryId === 'string' ? body.categoryId : undefined;
+    const categorySlug = typeof body.categorySlug === 'string' ? body.categorySlug : undefined;
+
+    const { folderName, reason, slugUsed } = await resolveFolder({
+      isQuickPost,
+      isAiPrompt,
+      categoryId,
+      categorySlug,
+    });
+
+    // Critical safety: do not silently fallback to Tech Tools
+    if (!folderName) {
+      return res.status(400).json({
+        success: false,
+        message: 'Category is required for post cover uploads',
+        reason,
+      });
+    }
 
     const ticket = await createUploadTicket({
       type: 'POST_COVER',
       meta: {
         reason,
         folderName,
+        slugUsed,
         categoryId: categoryId ?? null,
+        categorySlug: categorySlug ?? null,
         isQuickPost,
         isAiPrompt,
         originalName: file.originalname,
@@ -107,6 +150,7 @@ export async function uploadPostCover(req: Request, res: Response): Promise<Resp
       folder,
       publicId,
       displayName,
+      preset: 'post_cover',
     });
 
     return res.status(200).json({

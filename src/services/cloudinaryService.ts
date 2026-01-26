@@ -3,14 +3,19 @@
 
 import cloudinary from '../config/cloudinary';
 
+export type CloudinaryUploadPreset = 'avatar' | 'post_cover';
+
 export type UploadImageBufferArgs = {
   buffer: Buffer;
   filename?: string;
   folder?: string;
 
-  // New: explicit naming control
+  // Explicit naming control
   publicId?: string;
   displayName?: string;
+
+  // New, controls transformations
+  preset?: CloudinaryUploadPreset;
 };
 
 export type UploadImageBufferResult = {
@@ -23,17 +28,44 @@ export type UploadImageBufferResult = {
   displayName: string;
 };
 
+function buildTransformation(preset: CloudinaryUploadPreset): Array<Record<string, unknown>> {
+  if (preset === 'post_cover') {
+    // Keep aspect ratio, do not force square.
+    // Use a sensible max width so images are not huge, and keep quality automatic.
+    return [
+      {
+        width: 1600,
+        crop: 'limit',
+        quality: 'auto',
+        fetch_format: 'auto',
+      },
+    ];
+  }
+
+  // Default preset: avatar
+  return [
+    {
+      width: 320,
+      height: 320,
+      crop: 'thumb',
+      gravity: 'face',
+      quality: 80,
+      fetch_format: 'auto',
+    },
+  ];
+}
+
 export async function uploadImageBuffer(
   buffer: Buffer,
-  filename: string
+  filename: string,
 ): Promise<UploadImageBufferResult>;
 export async function uploadImageBuffer(
-  args: UploadImageBufferArgs
+  args: UploadImageBufferArgs,
 ): Promise<UploadImageBufferResult>;
 
 export async function uploadImageBuffer(
   arg1: Buffer | UploadImageBufferArgs,
-  arg2?: string
+  arg2?: string,
 ): Promise<UploadImageBufferResult> {
   const isBuf = Buffer.isBuffer(arg1);
 
@@ -46,6 +78,8 @@ export async function uploadImageBuffer(
   const publicId: string = isBuf ? filename : (arg1.publicId ?? filename);
   const displayNameInput: string = isBuf ? filename : (arg1.displayName ?? publicId);
 
+  const preset: CloudinaryUploadPreset = isBuf ? 'avatar' : (arg1.preset ?? 'avatar');
+
   if (!publicId.trim()) {
     throw new Error('uploadImageBuffer requires publicId or filename');
   }
@@ -56,16 +90,7 @@ export async function uploadImageBuffer(
       public_id: publicId,
       resource_type: 'image',
       overwrite: true,
-      transformation: [
-        {
-          width: 320,
-          height: 320,
-          crop: 'thumb',
-          gravity: 'face',
-          quality: 80,
-          fetch_format: 'auto',
-        },
-      ],
+      transformation: buildTransformation(preset),
     };
 
     // Cloudinary supports display_name, but types can lag behind
