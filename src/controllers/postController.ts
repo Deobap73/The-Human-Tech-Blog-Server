@@ -1,5 +1,4 @@
 // ./src/controllers/postController.ts
-
 import { Request, Response } from 'express';
 import mongoose, { isValidObjectId } from 'mongoose';
 import Post from '../models/Post';
@@ -55,12 +54,14 @@ async function triggerMakeWebhookIfPublishedTransition(args: {
 
   const payload = buildMakePayload(args.post);
 
-  // Best effort, never block the main flow
   void sendMakePublishedWebhook(payload).catch((err: unknown) => {
     const msg = err instanceof Error ? err.message : 'Unknown error';
     console.error('[postController] Make webhook failed:', msg);
   });
 }
+
+const postSelect =
+  'slug image instagramImage status isQuickPost isAiPrompt translations categories tags author createdAt updatedAt';
 
 // Get all posts, optionally filtered by author
 export const getPosts = async (req: Request, res: Response) => {
@@ -77,9 +78,7 @@ export const getPosts = async (req: Request, res: Response) => {
       .populate('categories', 'translations slug logo')
       .populate('tags', 'slug translations')
       .populate('author', 'name avatar _id')
-      .select(
-        'slug image status isQuickPost isAiPrompt translations categories tags author createdAt updatedAt'
-      )
+      .select(postSelect)
       .sort({ createdAt: -1 });
 
     return res.status(200).json(posts);
@@ -101,9 +100,7 @@ export const getPostById = async (req: Request, res: Response) => {
       .populate('categories', 'translations slug logo')
       .populate('tags', 'slug translations')
       .populate('author', 'name avatar _id')
-      .select(
-        'slug image status isQuickPost isAiPrompt translations categories tags author createdAt updatedAt'
-      );
+      .select(postSelect);
 
     if (!post) return res.status(404).json({ message: 'Post not found' });
     return res.status(200).json(post);
@@ -121,9 +118,7 @@ export const getPostBySlug = async (req: Request, res: Response) => {
       .populate('categories', 'translations slug logo')
       .populate('tags', 'slug translations')
       .populate('author', 'name avatar _id')
-      .select(
-        'slug image status isQuickPost isAiPrompt translations categories tags author createdAt updatedAt'
-      );
+      .select(postSelect);
 
     if (!post) {
       return res.status(404).json({ message: 'Post not found' });
@@ -168,10 +163,9 @@ export const publishDraft = async (req: Request, res: Response) => {
     await logAdminAction(
       user._id as Types.ObjectId,
       'PUBLISH_DRAFT',
-      `Draft ${draftId} published as post ${newPost._id}`
+      `Draft ${draftId} published as post ${newPost._id}`,
     );
 
-    // Populate author (consistency in response)
     await newPost.populate('author', 'name avatar _id');
     await newPost.populate('categories', 'translations slug logo');
 
@@ -225,7 +219,6 @@ export const createPost = async (req: Request, res: Response) => {
   const user = req.user as IUser;
 
   try {
-    // Robust validation for ObjectId arrays
     let tags = Array.isArray(req.body.tags) ? req.body.tags : [];
     let categories = Array.isArray(req.body.categories) ? req.body.categories : [];
 
@@ -248,7 +241,6 @@ export const createPost = async (req: Request, res: Response) => {
 
     await logAdminAction(user._id as Types.ObjectId, 'CREATE_POST', `Created post ${newPost._id}`);
 
-    // Populate author and categories for the response
     await newPost.populate('author', 'name avatar _id');
     await newPost.populate('categories', 'translations slug logo');
 
@@ -290,7 +282,6 @@ export const updatePost = async (req: Request, res: Response) => {
 
     const prevStatus = post.status;
 
-    // Robust validation for ObjectId arrays (update scenario)
     let tags = Array.isArray(req.body.tags) ? req.body.tags : [];
     let categories = Array.isArray(req.body.categories) ? req.body.categories : [];
     tags = tags.filter((id: any) => isValidObjectId(id));
@@ -301,7 +292,6 @@ export const updatePost = async (req: Request, res: Response) => {
 
     await logAdminAction(user._id as Types.ObjectId, 'UPDATE_POST', `Updated post ${postId}`);
 
-    // Repopulate author and categories for up to date response
     await post.populate('author', 'name avatar _id');
     await post.populate('categories', 'translations slug logo');
 
@@ -340,9 +330,7 @@ export const searchPosts = async (req: Request, res: Response) => {
       .limit(Number(limit))
       .populate('author', 'name avatar _id')
       .populate('categories', 'translations slug logo')
-      .select(
-        'slug image status isQuickPost isAiPrompt translations categories tags author createdAt updatedAt'
-      );
+      .select(postSelect);
 
     return res.status(200).json(posts);
   } catch (error) {

@@ -1,4 +1,4 @@
-// The-Human-Tech-Blog-Server/src/controllers/uploadController.ts
+// ./src/controllers/uploadController.ts
 'use strict';
 
 import type { Request, Response } from 'express';
@@ -12,6 +12,11 @@ type UploadPostCoverBody = {
   isAiPrompt?: string;
   categoryId?: string;
   categorySlug?: string;
+};
+
+type UploadPostInstagramBody = {
+  postId?: string;
+  slug?: string;
 };
 
 function parseBoolean(value: unknown): boolean {
@@ -112,7 +117,6 @@ export async function uploadPostCover(req: Request, res: Response): Promise<Resp
       categorySlug,
     });
 
-    // Critical safety: do not silently fallback to Tech Tools
     if (!folderName) {
       return res.status(400).json({
         success: false,
@@ -162,6 +166,60 @@ export async function uploadPostCover(req: Request, res: Response): Promise<Resp
       folder,
       folderName: safeFolderName,
       reason,
+    });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    return res.status(500).json({ success: false, message });
+  }
+}
+
+export async function uploadPostInstagramImage(req: Request, res: Response): Promise<Response> {
+  try {
+    const file = (req as Request & { file?: Express.Multer.File }).file;
+    if (!file?.buffer) {
+      return res.status(400).json({ success: false, message: 'Missing file "image"' });
+    }
+
+    const body = req.body as UploadPostInstagramBody;
+
+    const postId = typeof body.postId === 'string' ? body.postId.trim() : '';
+    const slug = typeof body.slug === 'string' ? body.slug.trim() : '';
+
+    const ticket = await createUploadTicket({
+      type: 'POST_INSTAGRAM_IMAGE',
+      meta: {
+        postId: postId || null,
+        slug: slug || null,
+        originalName: file.originalname,
+        mimeType: file.mimetype,
+        size: file.size,
+      },
+    });
+
+    const rootFolder = 'The-Human-Tech-Blog';
+    const folderName = 'Instagram';
+    const folder = `${rootFolder}/${folderName}`;
+
+    const safeSlug = slug ? slug.replace(/\s+/g, ' ').trim() : 'post';
+    const publicId = `${safeSlug}_${ticket.seq}`;
+    const displayName = `${safeSlug}_${ticket.seq}`;
+
+    const uploaded = await uploadImageBuffer({
+      buffer: file.buffer,
+      folder,
+      publicId,
+      displayName,
+      preset: 'instagram_post',
+    });
+
+    return res.status(200).json({
+      success: true,
+      imageUrl: uploaded.url,
+      publicId: uploaded.publicId,
+      displayName: uploaded.displayName,
+      ticketSeq: ticket.seq,
+      folder,
+      folderName,
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';

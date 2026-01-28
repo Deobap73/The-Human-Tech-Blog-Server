@@ -1,37 +1,30 @@
-// The-Human-Tech-Blog-Server/src/services/cloudinaryService.ts
+// ./src/services/cloudinaryService.ts
 'use strict';
 
 import cloudinary from '../config/cloudinary';
 
-export type CloudinaryUploadPreset = 'avatar' | 'post_cover';
+export type CloudinaryUploadPreset = 'avatar' | 'post_cover' | 'instagram_post';
 
 export type UploadImageBufferArgs = {
   buffer: Buffer;
   filename?: string;
   folder?: string;
 
-  // Explicit naming control
   publicId?: string;
   displayName?: string;
 
-  // New, controls transformations
   preset?: CloudinaryUploadPreset;
 };
 
 export type UploadImageBufferResult = {
   url: string;
-
-  // Keep both shapes to avoid breaking older code
   public_id: string;
   publicId: string;
-
   displayName: string;
 };
 
 function buildTransformation(preset: CloudinaryUploadPreset): Array<Record<string, unknown>> {
   if (preset === 'post_cover') {
-    // Keep aspect ratio, do not force square.
-    // Use a sensible max width so images are not huge, and keep quality automatic.
     return [
       {
         width: 1600,
@@ -42,7 +35,17 @@ function buildTransformation(preset: CloudinaryUploadPreset): Array<Record<strin
     ];
   }
 
-  // Default preset: avatar
+  if (preset === 'instagram_post') {
+    return [
+      {
+        width: 1080,
+        crop: 'limit',
+        quality: 'auto',
+        fetch_format: 'auto',
+      },
+    ];
+  }
+
   return [
     {
       width: 320,
@@ -70,9 +73,7 @@ export async function uploadImageBuffer(
   const isBuf = Buffer.isBuffer(arg1);
 
   const buffer: Buffer = isBuf ? arg1 : arg1.buffer;
-
   const folder: string = isBuf ? 'avatars' : (arg1.folder ?? 'avatars');
-
   const filename: string = isBuf ? (arg2 ?? '') : (arg1.filename ?? '');
 
   const publicId: string = isBuf ? filename : (arg1.publicId ?? filename);
@@ -93,7 +94,6 @@ export async function uploadImageBuffer(
       transformation: buildTransformation(preset),
     };
 
-    // Cloudinary supports display_name, but types can lag behind
     if (displayNameInput.trim()) {
       options.display_name = displayNameInput.trim();
     }

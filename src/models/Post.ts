@@ -1,5 +1,4 @@
 // ./src/models/Post.ts
-
 'use strict';
 
 import mongoose, { Schema, Document, Types } from 'mongoose';
@@ -18,9 +17,18 @@ export type AutomationMeta = {
   cta?: string;
 };
 
+export type InstagramImageMeta = {
+  url: string;
+  publicId: string;
+  displayName: string;
+  folder: string;
+  updatedAt: Date;
+};
+
 export interface IPost extends Document {
   slug: string;
   image: string;
+  instagramImage?: InstagramImageMeta;
   status: 'draft' | 'published' | 'archived';
   isQuickPost?: boolean;
   isAiPrompt?: boolean;
@@ -47,7 +55,7 @@ const TranslationSchema = new Schema<PostTranslation>(
     content: { type: String },
     description: { type: String },
   },
-  { _id: false }
+  { _id: false },
 );
 
 const AutomationSchema = new Schema<AutomationMeta>(
@@ -58,13 +66,25 @@ const AutomationSchema = new Schema<AutomationMeta>(
     size: { type: String, enum: ['short', 'medium', 'large'], required: true },
     cta: { type: String, required: false },
   },
-  { _id: false }
+  { _id: false },
+);
+
+const InstagramImageSchema = new Schema<InstagramImageMeta>(
+  {
+    url: { type: String, required: true },
+    publicId: { type: String, required: true },
+    displayName: { type: String, required: true },
+    folder: { type: String, required: true },
+    updatedAt: { type: Date, required: true },
+  },
+  { _id: false },
 );
 
 const PostSchema = new Schema<IPost>(
   {
     slug: { type: String, required: true, unique: true },
     image: { type: String, required: false },
+    instagramImage: { type: InstagramImageSchema, required: false },
     status: {
       type: String,
       enum: ['draft', 'published', 'archived'],
@@ -100,7 +120,7 @@ const PostSchema = new Schema<IPost>(
 
     automation: { type: AutomationSchema, required: false },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 export default mongoose.model<IPost>('Post', PostSchema);

@@ -1,4 +1,4 @@
-// src/shared/types/Post.ts
+// src\types\Post.ts
 export interface Post {
   _id: string;
   translations: any;

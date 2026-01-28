@@ -1,18 +1,21 @@
 // ./src/models/UploadTicket.ts
-
 'use strict';
 
 import mongoose, { Schema, type InferSchemaType } from 'mongoose';
 
-type UploadTicketType = 'POST_COVER';
+type UploadTicketType = 'POST_COVER' | 'POST_INSTAGRAM_IMAGE';
 
 const UploadTicketSchema = new Schema(
   {
     seq: { type: Number, required: true, unique: true, index: true },
-    type: { type: String, required: true, enum: ['POST_COVER'] satisfies UploadTicketType[] },
+    type: {
+      type: String,
+      required: true,
+      enum: ['POST_COVER', 'POST_INSTAGRAM_IMAGE'] satisfies UploadTicketType[],
+    },
     meta: { type: Schema.Types.Mixed, default: {} },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 export type UploadTicketDoc = InferSchemaType<typeof UploadTicketSchema> & {
@@ -33,7 +36,7 @@ const CounterSchema = new Schema<CounterDoc>(
     _id: { type: String, required: true },
     seq: { type: Number, required: true, default: 0 },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 const Counter =
@@ -49,7 +52,7 @@ export async function createUploadTicket(params: {
   const counter = await Counter.findOneAndUpdate(
     { _id: `UploadTicket:${type}` },
     { $inc: { seq: 1 } },
-    { new: true, upsert: true }
+    { new: true, upsert: true },
   ).lean<CounterDoc>();
 
   const ticket = await UploadTicket.create({

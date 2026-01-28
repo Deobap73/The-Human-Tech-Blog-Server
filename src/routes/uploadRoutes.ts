@@ -4,7 +4,7 @@
 import { Router } from 'express';
 
 import upload from '../middleware/uploadMiddleware';
-import { uploadPostCover } from '../controllers/uploadController';
+import { uploadPostCover, uploadPostInstagramImage } from '../controllers/uploadController';
 
 import { isAuthenticated } from '../middleware/authMiddleware';
 import { authorizeRoles } from '../middleware/roleMiddleware';
@@ -24,7 +24,22 @@ router.post(
   isAuthenticated,
   authorizeRoles('admin', 'editor'),
   upload.single('image'),
-  uploadPostCover
+  uploadPostCover,
+);
+
+/**
+ * POST /api/uploads/post-instagram
+ * multipart/form-data:
+ *  image: File
+ *  postId: string (optional)
+ *  slug: string (optional)
+ */
+router.post(
+  '/uploads/post-instagram',
+  isAuthenticated,
+  authorizeRoles('admin', 'editor'),
+  upload.single('image'),
+  uploadPostInstagramImage,
 );
 
 export default router;
