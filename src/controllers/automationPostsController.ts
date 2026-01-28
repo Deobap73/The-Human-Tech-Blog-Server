@@ -1,5 +1,4 @@
 // /src/controllers/automationPostsController.ts
-
 'use strict';
 
 import type { Request, Response } from 'express';
@@ -20,6 +19,30 @@ import type {
 
 function normalizeString(input: unknown): string {
   return typeof input === 'string' ? input.trim() : '';
+}
+
+/**
+ * Normaliza o campo instagramImage para ser apenas string
+ * - Se for objeto, extrai a propriedade 'url'
+ * - Se for outro tipo, converte para string
+ */
+function normalizeInstagramImageString(input: unknown): string {
+  if (input === null || input === undefined || input === '') {
+    return '';
+  }
+
+  if (typeof input === 'string') {
+    return input.trim();
+  }
+
+  if (typeof input === 'object' && input !== null) {
+    // Se for objeto, extrair apenas a URL
+    const url = (input as any).url || (input as any).imageUrl || '';
+    return url.trim();
+  }
+
+  // Qualquer outro tipo (number, boolean, etc.) converter para string
+  return String(input).trim();
 }
 
 /**
@@ -214,6 +237,8 @@ export async function createAutomationDraft(req: Request, res: Response): Promis
         : 'short';
 
     const imageUrl = normalizeString(body.imageUrl) || '';
+    const instagramImage = normalizeInstagramImageString(body.instagramImage) || ''; // NOVO CAMPO
+
     const cta = normalizeString(body.cta) || '';
 
     const categorySlugs = normalizeSlugArray(body.categorySlugs);
@@ -278,13 +303,13 @@ export async function createAutomationDraft(req: Request, res: Response): Promis
 
     const slug = await generateUniqueSlug(en.title);
 
-    const created = await Post.create({
+    // Preparar dados do post
+    const postData: any = {
       slug,
       image: imageUrl,
       status: 'draft',
       isQuickPost: contentKind === 'TechShort',
       isAiPrompt,
-
       translations: {
         en: {
           title: en.title,
@@ -307,11 +332,9 @@ export async function createAutomationDraft(req: Request, res: Response): Promis
           content: markdownToTiptapString(es.content),
         },
       },
-
       categories,
       tags,
       author: user._id,
-
       automation: {
         sheetId,
         sourceKey,
@@ -319,7 +342,14 @@ export async function createAutomationDraft(req: Request, res: Response): Promis
         size,
         cta: cta || undefined,
       },
-    });
+    };
+
+    // Adicionar instagramImage apenas se não for vazio
+    if (instagramImage) {
+      postData.instagramImage = instagramImage;
+    }
+
+    const created = await Post.create(postData);
 
     const response: AutomationCreateDraftResponse = {
       ok: true,

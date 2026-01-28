@@ -212,8 +212,6 @@ export async function uploadPostInstagramImage(req: Request, res: Response): Pro
       return res.status(404).json({ success: false, message: 'Post not found' });
     }
 
-    // UploadTicket no teu projeto atualmente só tem POST_COVER.
-    // Para nao partir o enum, registamos o tipo real em meta.kind.
     const ticket = await createUploadTicket({
       type: 'POST_COVER',
       meta: {
@@ -242,24 +240,14 @@ export async function uploadPostInstagramImage(req: Request, res: Response): Pro
       preset: 'instagram_post',
     });
 
-    post.instagramImage = {
-      url: uploaded.url,
-      publicId: uploaded.publicId,
-      displayName: uploaded.displayName,
-      folder,
-      updatedAt: new Date(),
-    };
-
+    // APENAS STRING - Simplificado!
+    post.instagramImage = uploaded.url;
     await post.save();
 
+    // Retornar APENAS a URL como string (consistente com frontend)
     return res.status(200).json({
       success: true,
-      imageUrl: uploaded.url,
-      publicId: uploaded.publicId,
-      displayName: uploaded.displayName,
-      ticketSeq: ticket.seq,
-      folder,
-      folderName,
+      imageUrl: uploaded.url, // APENAS STRING
       postId: String(post._id),
       slug: post.slug,
     });

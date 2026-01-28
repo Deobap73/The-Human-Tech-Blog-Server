@@ -1,5 +1,4 @@
 // ./src/types/Make.ts
-
 'use strict';
 
 export type MakePublishedWebhookPayload = {
@@ -31,6 +30,7 @@ export type AutomationCreateDraftBody = {
   size: 'short' | 'medium' | 'large';
 
   imageUrl: string;
+  instagramImage?: string;
   cta?: string;
 
   categorySlugs: SlugsInput;

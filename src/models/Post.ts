@@ -17,18 +17,10 @@ export type AutomationMeta = {
   cta?: string;
 };
 
-export type InstagramImageMeta = {
-  url: string;
-  publicId: string;
-  displayName: string;
-  folder: string;
-  updatedAt: Date;
-};
-
 export interface IPost extends Document {
   slug: string;
   image: string;
-  instagramImage?: InstagramImageMeta;
+  instagramImage?: string; // APENAS STRING
   status: 'draft' | 'published' | 'archived';
   isQuickPost?: boolean;
   isAiPrompt?: boolean;
@@ -69,22 +61,11 @@ const AutomationSchema = new Schema<AutomationMeta>(
   { _id: false },
 );
 
-const InstagramImageSchema = new Schema<InstagramImageMeta>(
-  {
-    url: { type: String, required: true },
-    publicId: { type: String, required: true },
-    displayName: { type: String, required: true },
-    folder: { type: String, required: true },
-    updatedAt: { type: Date, required: true },
-  },
-  { _id: false },
-);
-
 const PostSchema = new Schema<IPost>(
   {
     slug: { type: String, required: true, unique: true },
     image: { type: String, required: false },
-    instagramImage: { type: InstagramImageSchema, required: false },
+    instagramImage: { type: String, required: false }, // APENAS STRING
     status: {
       type: String,
       enum: ['draft', 'published', 'archived'],

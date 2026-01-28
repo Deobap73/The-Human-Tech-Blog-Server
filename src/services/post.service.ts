@@ -1,5 +1,4 @@
 // /src/services/post.service.ts
-
 import Post from '../models/Post';
 import { IPost } from '../models/Post';
 import { generateUniqueSlug } from '../utils/generateUniqueSlug';
@@ -20,7 +19,9 @@ export const getAllPosts = async (filters: any = {}) => {
     .populate('categories', 'translations slug logo')
     .populate('tags', 'slug translations')
     .populate('author', 'name avatar _id')
-    .select('slug image status isQuickPost translations categories tags author createdAt updatedAt')
+    .select(
+      'slug image instagramImage status isQuickPost translations categories tags author createdAt updatedAt',
+    ) // Adicionado instagramImage
     .sort({ createdAt: -1 });
 };
 
@@ -30,8 +31,18 @@ export const createPostDirect = async (userId: string, data: Partial<IPost>): Pr
   const tags = (data.tags || []).filter((id) => isValidObjectId(id));
   const categories = (data.categories || []).filter((id) => isValidObjectId(id));
 
-  const newPost = new Post({
+  // Garantir que instagramImage seja apenas string
+  const cleanData = {
     ...data,
+    // Se instagramImage for objeto, extrair apenas a URL
+    instagramImage:
+      typeof data.instagramImage === 'object' && data.instagramImage !== null
+        ? (data.instagramImage as any).url || ''
+        : data.instagramImage || '',
+  };
+
+  const newPost = new Post({
+    ...cleanData,
     author: userId,
     slug,
     tags,
@@ -49,7 +60,7 @@ export const updatePostDirect = async (
   postId: string,
   userId: string,
   role: string,
-  data: Partial<IPost>
+  data: Partial<IPost>,
 ): Promise<IPost | null> => {
   const post = await Post.findById(postId);
   if (!post) return null;
@@ -61,7 +72,18 @@ export const updatePostDirect = async (
   const tags = (data.tags || []).filter((id) => isValidObjectId(id));
   const categories = (data.categories || []).filter((id) => isValidObjectId(id));
 
-  Object.assign(post, { ...data, tags, categories });
+  // Garantir que instagramImage seja apenas string
+  const cleanInstagramImage =
+    typeof data.instagramImage === 'object' && data.instagramImage !== null
+      ? (data.instagramImage as any).url || ''
+      : data.instagramImage || '';
+
+  Object.assign(post, {
+    ...data,
+    tags,
+    categories,
+    instagramImage: cleanInstagramImage,
+  });
 
   await post.save();
 
