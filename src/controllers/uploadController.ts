@@ -6,12 +6,96 @@ import { isValidObjectId } from 'mongoose';
 
 import { createUploadTicket } from '../models/UploadTicket';
 import { uploadImageBuffer } from '../services/cloudinaryService';
+import Category from '../models/Category';
 import Post from '../models/Post';
+
+type UploadPostCoverBody = {
+  isQuickPost?: string;
+  isAiPrompt?: string;
+  categoryId?: string;
+  categorySlug?: string;
+};
 
 type UploadPostInstagramBody = {
   postId?: string;
   slug?: string;
 };
+
+function parseBoolean(value: unknown): boolean {
+  if (typeof value !== 'string') return false;
+  const v = value.trim().toLowerCase();
+  return v === 'true' || v === '1' || v === 'yes';
+}
+
+function normalizeFolderName(value: string): string {
+  return value.trim().replace(/\s+/g, ' ');
+}
+
+function mapCategorySlugToFolder(slug: string): string {
+  const s = slug.trim().toLowerCase();
+
+  const map: Record<string, string> = {
+    'tech-career': 'Tech-Career',
+    'agile-projects': 'Agile-Projects',
+    'frontend-ux': 'Frontend-Ux',
+    'personal-reflections': 'Personal-Reflections',
+    'tech-tools': 'Tech-Tools',
+  };
+
+  return map[s] ?? 'Tech-Tools';
+}
+
+async function resolveCategorySlug(params: {
+  categoryId?: string;
+  categorySlug?: string;
+}): Promise<{ slug: string | null; reason: string }> {
+  if (typeof params.categorySlug === 'string' && params.categorySlug.trim()) {
+    return { slug: params.categorySlug.trim(), reason: 'categorySlug:body' };
+  }
+
+  const categoryId = params.categoryId;
+  if (!categoryId || !isValidObjectId(categoryId)) {
+    return { slug: null, reason: 'missing-or-invalid-categoryId' };
+  }
+
+  const cat = await Category.findById(categoryId).select('slug').lean<{ slug?: string } | null>();
+  const slug = cat?.slug ?? '';
+  if (!slug) {
+    return { slug: null, reason: 'categoryId:db-no-slug' };
+  }
+
+  return { slug, reason: 'categoryId:db' };
+}
+
+async function resolveFolder(params: {
+  isQuickPost: boolean;
+  isAiPrompt: boolean;
+  categoryId?: string;
+  categorySlug?: string;
+}): Promise<{ folderName: string; reason: string; slugUsed: string | null }> {
+  if (params.isAiPrompt) {
+    return { folderName: 'Prompt', reason: 'isAiPrompt', slugUsed: null };
+  }
+
+  if (params.isQuickPost) {
+    return { folderName: 'Tech-Shorts', reason: 'isQuickPost', slugUsed: null };
+  }
+
+  const { slug, reason } = await resolveCategorySlug({
+    categoryId: params.categoryId,
+    categorySlug: params.categorySlug,
+  });
+
+  if (!slug) {
+    return { folderName: '', reason: `missing-category:${reason}`, slugUsed: null };
+  }
+
+  return {
+    folderName: mapCategorySlugToFolder(slug),
+    reason: `category:${slug}:${reason}`,
+    slugUsed: slug,
+  };
+}
 
 function safePublicIdPart(value: string): string {
   return value
@@ -19,6 +103,84 @@ function safePublicIdPart(value: string): string {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '_')
     .replace(/^_+|_+$/g, '');
+}
+
+export async function uploadPostCover(req: Request, res: Response): Promise<Response> {
+  try {
+    const file = (req as Request & { file?: Express.Multer.File }).file;
+    if (!file?.buffer) {
+      return res.status(400).json({ success: false, message: 'Missing file "image"' });
+    }
+
+    const body = req.body as UploadPostCoverBody;
+
+    const isQuickPost = parseBoolean(body.isQuickPost);
+    const isAiPrompt = parseBoolean(body.isAiPrompt);
+
+    const categoryId = typeof body.categoryId === 'string' ? body.categoryId : undefined;
+    const categorySlug = typeof body.categorySlug === 'string' ? body.categorySlug : undefined;
+
+    const { folderName, reason, slugUsed } = await resolveFolder({
+      isQuickPost,
+      isAiPrompt,
+      categoryId,
+      categorySlug,
+    });
+
+    if (!folderName) {
+      return res.status(400).json({
+        success: false,
+        message: 'Category is required for post cover uploads',
+        reason,
+      });
+    }
+
+    const ticket = await createUploadTicket({
+      type: 'POST_COVER',
+      meta: {
+        reason,
+        folderName,
+        slugUsed,
+        categoryId: categoryId ?? null,
+        categorySlug: categorySlug ?? null,
+        isQuickPost,
+        isAiPrompt,
+        originalName: file.originalname,
+        mimeType: file.mimetype,
+        size: file.size,
+      },
+    });
+
+    const safeFolderName = normalizeFolderName(folderName);
+
+    const rootFolder = 'The-Human-Tech-Blog';
+    const folder = `${rootFolder}/${safeFolderName}`;
+
+    const publicId = `${safeFolderName}_${ticket.seq}`;
+    const displayName = `${safeFolderName}_${ticket.seq}`;
+
+    const uploaded = await uploadImageBuffer({
+      buffer: file.buffer,
+      folder,
+      publicId,
+      displayName,
+      preset: 'post_cover',
+    });
+
+    return res.status(200).json({
+      success: true,
+      imageUrl: uploaded.url,
+      publicId: uploaded.publicId,
+      displayName: uploaded.displayName,
+      ticketSeq: ticket.seq,
+      folder,
+      folderName: safeFolderName,
+      reason,
+    });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    return res.status(500).json({ success: false, message });
+  }
 }
 
 export async function uploadPostInstagramImage(req: Request, res: Response): Promise<Response> {
@@ -50,9 +212,8 @@ export async function uploadPostInstagramImage(req: Request, res: Response): Pro
       return res.status(404).json({ success: false, message: 'Post not found' });
     }
 
-    // Important:
-    // If your UploadTicket model does not support POST_INSTAGRAM_IMAGE, this will throw and cause 500.
-    // In that case, change the "type" to an existing one and keep the real type in meta.kind.
+    // UploadTicket no teu projeto atualmente só tem POST_COVER.
+    // Para nao partir o enum, registamos o tipo real em meta.kind.
     const ticket = await createUploadTicket({
       type: 'POST_COVER',
       meta: {
