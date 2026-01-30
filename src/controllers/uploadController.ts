@@ -195,29 +195,29 @@ export async function uploadPostInstagramImage(req: Request, res: Response): Pro
     const postId = typeof body.postId === 'string' ? body.postId.trim() : '';
     const slug = typeof body.slug === 'string' ? body.slug.trim() : '';
 
-    if (!postId && !slug) {
-      return res.status(400).json({
-        success: false,
-        message: 'postId or slug is required',
-      });
-    }
-
     if (postId && !isValidObjectId(postId)) {
       return res.status(400).json({ success: false, message: 'Invalid postId' });
     }
 
-    const post = postId ? await Post.findById(postId) : await Post.findOne({ slug });
+    const hasBinding = Boolean(postId || slug);
 
-    if (!post) {
+    const post = hasBinding
+      ? postId
+        ? await Post.findById(postId)
+        : await Post.findOne({ slug })
+      : null;
+
+    if (hasBinding && !post) {
       return res.status(404).json({ success: false, message: 'Post not found' });
     }
 
     const ticket = await createUploadTicket({
-      type: 'POST_COVER',
+      type: 'POST_INSTAGRAM_IMAGE',
       meta: {
         kind: 'POST_INSTAGRAM_IMAGE',
-        postId: String(post._id),
-        slug: post.slug,
+        mode: post ? 'attached' : 'tmp',
+        postId: post ? String(post._id) : null,
+        slug: post ? post.slug : slug || null,
         originalName: file.originalname,
         mimeType: file.mimetype,
         size: file.size,
@@ -225,10 +225,10 @@ export async function uploadPostInstagramImage(req: Request, res: Response): Pro
     });
 
     const rootFolder = 'The-Human-Tech-Blog';
-    const folderName = 'Instagram';
+    const folderName = post ? 'Instagram' : 'Instagram-Tmp';
     const folder = `${rootFolder}/${folderName}`;
 
-    const slugPart = safePublicIdPart(post.slug || slug || 'post');
+    const slugPart = post ? safePublicIdPart(post.slug || 'post') : 'tmp';
     const publicId = `${folderName}_${slugPart}_${ticket.seq}`;
     const displayName = publicId;
 
@@ -240,16 +240,25 @@ export async function uploadPostInstagramImage(req: Request, res: Response): Pro
       preset: 'instagram_post',
     });
 
-    // APENAS STRING - Simplificado!
-    post.instagramImage = uploaded.url;
-    await post.save();
+    if (post) {
+      post.instagramImage = uploaded.url;
+      await post.save();
 
-    // Retornar APENAS a URL como string (consistente com frontend)
+      return res.status(200).json({
+        success: true,
+        imageUrl: uploaded.url,
+        postId: String(post._id),
+        slug: post.slug,
+        ticketSeq: ticket.seq,
+        mode: 'attached',
+      });
+    }
+
     return res.status(200).json({
       success: true,
-      imageUrl: uploaded.url, // APENAS STRING
-      postId: String(post._id),
-      slug: post.slug,
+      imageUrl: uploaded.url,
+      ticketSeq: ticket.seq,
+      mode: 'tmp',
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';

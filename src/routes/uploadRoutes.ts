@@ -33,6 +33,11 @@ router.post(
  *  image: File
  *  postId: string (optional)
  *  slug: string (optional)
+ *
+ * Notes:
+ * - postId or slug can be omitted.
+ * - If omitted, the image is uploaded to a temporary folder and only the URL is returned.
+ * - If provided, the image is uploaded and the Post.instagramImage is updated.
  */
 router.post(
   '/uploads/post-instagram',
