@@ -39,10 +39,10 @@ function mapCategorySlugToFolder(slug: string): string {
     'agile-projects': 'Agile-Projects',
     'frontend-ux': 'Frontend-Ux',
     'personal-reflections': 'Personal-Reflections',
-    'tech-tools': 'Tech-Tools',
+    'tech-world': 'Tech-World',
   };
 
-  return map[s] ?? 'Tech-Tools';
+  return map[s] ?? 'Tech-World';
 }
 
 async function resolveCategorySlug(params: {
