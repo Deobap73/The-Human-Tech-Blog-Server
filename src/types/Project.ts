@@ -16,30 +16,31 @@ export interface ProjectMetaFigma {
   fileKey?: string;
   fileName?: string;
   thumbnailUrl?: string;
-  lastModified?: string; // ISO date
+  lastModified?: string;
 }
 
 export interface ProjectMetaGitHub {
-  repo?: string; // owner/name
+  repo?: string;
   stars?: number;
-  lastCommitAt?: string; // ISO date
+  lastCommitAt?: string;
   topics?: string[];
   description?: string;
 }
 
 /**
  * Internationalized fields per language.
- * NOTE: For Projects decidiste usar array; Posts/Categories usam mapa por lang.
+ * Projects currently use an array based translation structure.
  */
 export interface ProjectTranslation {
   lang: 'en' | 'pt' | 'de' | 'es';
   title: string;
   excerpt: string;
+  description?: string;
   slug?: string;
 }
 
 /**
- * DTO accepted by the controller/service to create/update Project docs.
+ * DTO accepted by the controller and service to create or update Project docs.
  */
 export interface ProjectDTO {
   slug?: string;
@@ -47,6 +48,7 @@ export interface ProjectDTO {
   source: ProjectSource;
   title: string;
   excerpt: string;
+  description?: string;
   coverImage?: string;
   tags?: string[];
   links?: ProjectLinks;

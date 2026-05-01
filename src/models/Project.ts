@@ -17,6 +17,7 @@ export interface ProjectDoc extends Document {
   source: ProjectSource;
   title: string;
   excerpt: string;
+  description?: string;
   coverImage?: string;
   tags: string[];
   links: ProjectLinks;
@@ -35,20 +36,39 @@ const TranslationSchema = new Schema<ProjectTranslation>(
     lang: { type: String, enum: ['en', 'pt', 'de', 'es'], required: true },
     title: { type: String, required: true },
     excerpt: { type: String, required: true },
+    description: { type: String },
     slug: { type: String },
   },
-  { _id: false }
+  { _id: false },
 );
 
 const ProjectSchema = new Schema<ProjectDoc>(
   {
     slug: { type: String, required: true, unique: true, index: true },
-    type: { type: String, enum: ['frontend-ui', 'ux-figma', 'full'], required: true, index: true },
-    source: { type: String, enum: ['figma', 'github', 'mixed'], required: true },
+
+    type: {
+      type: String,
+      enum: ['frontend-ui', 'ux-figma', 'full'],
+      required: true,
+      index: true,
+    },
+
+    source: {
+      type: String,
+      enum: ['figma', 'github', 'mixed'],
+      required: true,
+    },
+
     title: { type: String, required: true },
+
     excerpt: { type: String, required: true },
+
+    description: { type: String },
+
     coverImage: { type: String },
+
     tags: { type: [String], default: [] },
+
     links: {
       figma: String,
       figmaEmbedUrl: String,
@@ -56,7 +76,9 @@ const ProjectSchema = new Schema<ProjectDoc>(
       live: String,
       blog: String,
     },
+
     translations: { type: [TranslationSchema], default: [] },
+
     meta: {
       figma: {
         fileKey: String,
@@ -72,19 +94,24 @@ const ProjectSchema = new Schema<ProjectDoc>(
         description: String,
       },
     },
+
     isPublic: { type: Boolean, default: true },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 /**
  * Text search index:
- * - Single text index including title, excerpt, and tags (array<string> is allowed in text index).
- * - Named for easier migrations.
+ * Includes title, excerpt, description, and tags.
  */
 ProjectSchema.index(
-  { title: 'text', excerpt: 'text', tags: 'text' },
-  { name: 'Project_text_search' }
+  {
+    title: 'text',
+    excerpt: 'text',
+    description: 'text',
+    tags: 'text',
+  },
+  { name: 'Project_text_search' },
 );
 
 export const Project: Model<ProjectDoc> =
