@@ -1,7 +1,7 @@
 // /src/types/Project.ts
 'use strict';
 
-export type ProjectType = 'frontend-ui' | 'ux-figma' | 'full';
+export type ProjectType = 'frontend-ui' | 'ux-figma' | 'full' | 'automation';
 export type ProjectSource = 'figma' | 'github' | 'mixed';
 
 export interface ProjectLinks {

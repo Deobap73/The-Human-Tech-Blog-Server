@@ -48,7 +48,7 @@ const ProjectSchema = new Schema<ProjectDoc>(
 
     type: {
       type: String,
-      enum: ['frontend-ui', 'ux-figma', 'full'],
+      enum: ['frontend-ui', 'ux-figma', 'full', 'automation'],
       required: true,
       index: true,
     },
